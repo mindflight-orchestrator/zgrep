@@ -57,7 +57,10 @@ open them without an additional `PATH_MAX` copy. The pipeline uses 12 workers
 for fast literal, alternation and required-literal matchers, avoiding queue and
 I/O contention, while compute-heavy regexes without a prefilter retain the
 16-worker ceiling. Ordinary recursive full-line output uses the same bounded
-ordered pipeline in forced-text, default binary and without-match modes.
+ordered pipeline in forced-text, default binary and without-match modes. Each
+worker formats into one temporary 64 KiB buffer, then retains only the exact
+bytes produced under a shared 16 MiB payload budget; this lets thousands of
+small dense outputs stay in the first ordered pass without fixed 64 KiB waste.
 Matching candidates that contain a NUL fall back before emission, while
 invalid UTF-8 summaries are propagated in traversal order.
 UTF-8 locales use libc's locale-aware GNU regex semantics for Unicode classes,

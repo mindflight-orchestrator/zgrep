@@ -187,6 +187,24 @@ compare_large "pipelined whole-buffer regexp preserves record boundaries" \
 compare_large "pipelined without-match recursive literal output" \
     "$PIPELINED_TREE" -I -F -r -n -b needle
 
+# Exact-size capture may retain more than 256 small outputs, but the aggregate
+# payload remains capped at 16 MiB. This tree exceeds that byte budget while
+# keeping every individual file below the 64 KiB per-file fallback.
+CAPTURE_BUDGET_TREE="$TEST_DIR/capture-budget-tree"
+for directory in $(seq 0 7); do
+    mkdir -p "$CAPTURE_BUDGET_TREE/directory-$directory"
+done
+for index in $(seq 0 519); do
+    directory=$((index % 8))
+    awk -v file="$index" 'BEGIN {
+        for (line = 1; line <= 300; line++) {
+            printf "capture budget target file=%04d line=%04d 0123456789012345678901234567890123456789\n", file, line
+        }
+    }' >"$CAPTURE_BUDGET_TREE/directory-$directory/file-$index.txt"
+done
+compare_large "pipelined aggregate capture budget fallback" \
+    "$CAPTURE_BUDGET_TREE" -a -F -r -n -b 'capture budget target'
+
 # Matching NUL files must leave the parallel path before it emits anything so
 # GNU's block-sensitive binary summaries and any earlier text output remain
 # byte exact. These patterns do not affect the ordinary text cases above.

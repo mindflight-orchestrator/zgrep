@@ -1,7 +1,7 @@
 const std = @import("std");
 const zgrep = @import("zgrep");
 
-const version = "0.1.0";
+const version = "0.2.0";
 
 pub fn main(init: std.process.Init) !void {
     const exit_code = run(init) catch |err| {
@@ -511,6 +511,14 @@ fn scanDirectoryOutputParallel(
             return aggregate;
         }
 
+        for (matching_items.items) |item| {
+            const output = item.output orelse continue;
+            std.heap.c_allocator.free(output);
+            item.output = null;
+            item.output_len = 0;
+            item.output_binary_match = false;
+        }
+
         const sparse_rescan_max = 16;
         if (matching_items.items.len <= sparse_rescan_max) {
             for (matching_items.items) |item| {
@@ -589,6 +597,9 @@ fn scanDirectoryOutputParallel(
 
 const parallel_output_slot_count = 256;
 const parallel_output_slot_bytes = 64 * 1024;
+// Captured payload is globally bounded; each worker only keeps one temporary
+// per-file buffer before reserving the exact number of bytes it produced.
+const parallel_output_capture_bytes = parallel_output_slot_count * parallel_output_slot_bytes;
 const ParallelOutputQueue = std.Io.Queue(*ParallelOutputTask);
 
 const ParallelOutputTask = struct {
@@ -630,7 +641,7 @@ fn scanCollectedOutputParallel(
 ) !void {
     const storage = try init.gpa.alloc(
         u8,
-        parallel_output_slot_count * parallel_output_slot_bytes,
+        parallel_output_capture_bytes,
     );
     defer init.gpa.free(storage);
     var tasks: [parallel_output_slot_count]ParallelOutputTask = undefined;
@@ -1122,7 +1133,7 @@ const ParallelListPipelineContext = struct {
     options: zgrep.scanner.ScanOptions,
     queue: *ParallelListQueue,
     capture_output: bool = false,
-    captured_slots: std.atomic.Value(usize) = .init(0),
+    captured_bytes: std.atomic.Value(usize) = .init(0),
     setup_failed: std.atomic.Value(bool) = .init(false),
 };
 
@@ -1289,32 +1300,27 @@ fn captureParallelOutput(
     item: *ParallelListItem,
     matchers: []const zgrep.matcher.ThreadMatcher,
 ) void {
-    const reserved = context.captured_slots.fetchAdd(1, .acq_rel);
-    if (reserved >= parallel_output_slot_count) {
-        _ = context.captured_slots.fetchSub(1, .acq_rel);
-        return;
-    }
-    const buffer = std.heap.c_allocator.alloc(u8, parallel_output_slot_bytes) catch {
-        _ = context.captured_slots.fetchSub(1, .acq_rel);
-        return;
-    };
-    var output = std.Io.Writer.fixed(buffer);
+    var temporary: [parallel_output_slot_bytes]u8 = undefined;
+    var output = std.Io.Writer.fixed(&temporary);
     const result = scanFileOutputThreadMatchers(
         context.init,
         item.path,
         matchers,
         context.options,
         &output,
-    ) catch {
-        std.heap.c_allocator.free(buffer);
-        _ = context.captured_slots.fetchSub(1, .acq_rel);
-        return;
-    };
-    if (!result.matched) {
-        std.heap.c_allocator.free(buffer);
-        _ = context.captured_slots.fetchSub(1, .acq_rel);
+    ) catch return;
+    if (!result.matched) return;
+
+    const reserved = context.captured_bytes.fetchAdd(output.end, .acq_rel);
+    if (reserved > parallel_output_capture_bytes - output.end) {
+        _ = context.captured_bytes.fetchSub(output.end, .acq_rel);
         return;
     }
+    const buffer = std.heap.c_allocator.alloc(u8, output.end) catch {
+        _ = context.captured_bytes.fetchSub(output.end, .acq_rel);
+        return;
+    };
+    @memcpy(buffer, temporary[0..output.end]);
     item.output = buffer;
     item.output_len = output.end;
     item.output_binary_match = result.binary_match;
