@@ -3,7 +3,8 @@ const std = @import("std");
 pub const Mode = enum { basic, extended, fixed, perl };
 pub const BinaryMode = enum { binary, text, without_match };
 pub const DirectoryMode = enum { read, recurse, skip };
-pub const DeviceMode = enum { read, skip };
+pub const DeviceMode = enum { default, read, skip };
+pub const ColorMode = enum { always, never, auto };
 pub const FileFilterArg = union(enum) {
     include: []const u8,
     exclude: []const u8,
@@ -24,7 +25,7 @@ pub const Options = struct {
     recursive: bool = false,
     dereference_recursive: bool = false,
     directory_mode: DirectoryMode = .read,
-    device_mode: DeviceMode = .read,
+    device_mode: DeviceMode = .default,
     list_files: ?bool = null,
     max_count: ?usize = null,
     byte_offset: bool = false,
@@ -36,6 +37,9 @@ pub const Options = struct {
     null_data: bool = false,
     null_filename: bool = false,
     binary_mode: BinaryMode = .binary,
+    line_buffered: bool = false,
+    initial_tab: bool = false,
+    color: ?ColorMode = null,
     help: bool = false,
     version: bool = false,
     patterns: std.ArrayList([]const u8) = .empty,
@@ -169,11 +173,20 @@ pub const Options = struct {
         } else if (std.mem.eql(u8, arg, "--max-count")) {
             const value = it.next() orelse return error.MissingOptionArgument;
             self.max_count = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNumber;
-        } else if (std.mem.eql(u8, arg, "--text")) self.binary_mode = .text else if (std.mem.startsWith(u8, arg, "--binary-files=")) {
+        } else if (std.mem.eql(u8, arg, "--text")) self.binary_mode = .text else if (std.mem.eql(u8, arg, "--binary")) {
+            // GNU/Linux already reads files in binary mode; keep -U/--binary
+            // as the compatible no-op documented by GNU grep.
+        } else if (std.mem.eql(u8, arg, "--line-buffered")) self.line_buffered = true else if (std.mem.eql(u8, arg, "--initial-tab")) self.initial_tab = true else if (std.mem.startsWith(u8, arg, "--binary-files=")) {
             try self.setBinaryMode(arg[15..]);
         } else if (std.mem.eql(u8, arg, "--binary-files")) {
             try self.setBinaryMode(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.eql(u8, arg, "--help")) self.help = true else if (std.mem.eql(u8, arg, "--version")) self.version = true else if (std.mem.eql(u8, arg, "--color") or std.mem.startsWith(u8, arg, "--color=") or std.mem.eql(u8, arg, "--colour") or std.mem.startsWith(u8, arg, "--colour=")) {} else if (std.mem.startsWith(u8, arg, "--regexp=")) {
+        } else if (std.mem.eql(u8, arg, "--help")) self.help = true else if (std.mem.eql(u8, arg, "--version")) self.version = true else if (std.mem.eql(u8, arg, "--color") or std.mem.eql(u8, arg, "--colour")) {
+            self.color = .auto;
+        } else if (std.mem.startsWith(u8, arg, "--color=")) {
+            self.setColorMode(arg[8..]);
+        } else if (std.mem.startsWith(u8, arg, "--colour=")) {
+            self.setColorMode(arg[9..]);
+        } else if (std.mem.startsWith(u8, arg, "--regexp=")) {
             try self.appendArgumentPatterns(allocator, arg[9..]);
         } else if (std.mem.eql(u8, arg, "--regexp")) {
             try self.appendArgumentPatterns(allocator, it.next() orelse return error.MissingOptionArgument);
@@ -209,6 +222,8 @@ pub const Options = struct {
                 'o' => self.only_matching = true,
                 'a' => self.binary_mode = .text,
                 'I' => self.binary_mode = .without_match,
+                'U' => {},
+                'T' => self.initial_tab = true,
                 'H' => self.with_filename = true,
                 'h' => self.with_filename = false,
                 'q' => self.quiet = true,
@@ -332,6 +347,27 @@ pub const Options = struct {
             self.device_mode = .skip;
         } else {
             return error.InvalidDeviceMode;
+        }
+    }
+
+    fn setColorMode(self: *Options, value: []const u8) void {
+        if (std.mem.eql(u8, value, "always") or
+            std.mem.eql(u8, value, "yes") or
+            std.mem.eql(u8, value, "force"))
+        {
+            self.color = .always;
+        } else if (std.mem.eql(u8, value, "never") or
+            std.mem.eql(u8, value, "no") or
+            std.mem.eql(u8, value, "none"))
+        {
+            self.color = .never;
+        } else if (std.mem.eql(u8, value, "auto") or
+            std.mem.eql(u8, value, "tty") or
+            std.mem.eql(u8, value, "if-tty"))
+        {
+            self.color = .auto;
+        } else {
+            self.help = true;
         }
     }
 

@@ -18,7 +18,9 @@ mkdir -p "$TEST_DIR/tree/sub"
 mkdir -p "$TEST_DIR/symlink-tree/real/sub"
 mkdir -p "$TEST_DIR/parallel-tree"
 mkdir -p "$TEST_DIR/filter-tree/sub/nested" "$TEST_DIR/filter-tree/subskip"
+mkdir -p "$TEST_DIR/device-tree"
 mkfifo "$TEST_DIR/device-fifo"
+mkfifo "$TEST_DIR/device-tree/input.fifo"
 
 cat >"$CORPUS" <<'EOF'
 alpha
@@ -59,6 +61,7 @@ printf '\n' >"$TEST_DIR/blank-pattern.txt"
 printf '[foo]' >"$TEST_DIR/pattern-no-newline.txt"
 printf 'fz\n' >"$TEST_DIR/pattern-no-newline-corpus.txt"
 printf 'test\ntest\n' >"$TEST_DIR/max-count-corpus.txt"
+awk 'BEGIN { for (i = 0; i < 200000; i++) print "alpha" }' >"$TEST_DIR/broken-pipe.txt"
 printf 'one\ntwo' >"$TEST_DIR/no-final-newline.txt"
 printf '1\n2\n3\n4\n5\n6\n7\n8\n9\n' >"$TEST_DIR/context.txt"
 printf 'foo\nctx\ngap\nctx\nfoo\nctx' >"$TEST_DIR/context-groups.txt"
@@ -93,6 +96,7 @@ head -c 262137 /dev/zero | tr '\0' x >"$TEST_DIR/stream-word-boundary.txt"
 printf ' needlex\nneedle!\n' >>"$TEST_DIR/stream-word-boundary.txt"
 printf 'one\ninside\0two match\0three match' >"$TEST_DIR/null-records.txt"
 printf 'foo\0bar\0\0\0baz\0' >"$TEST_DIR/null-empty-records.txt"
+printf 'match\0ctx\0gap1\0gap2\0match\0ctx\0' >"$TEST_DIR/null-context-groups.txt"
 
 compare_file() {
     description=$1
@@ -112,6 +116,32 @@ compare() {
     compare_file "$description" "$CORPUS" "$@"
 }
 
+compare_color_file() {
+    description=$1
+    corpus=$2
+    colors=$3
+    shift 3
+    set +e
+    GREP_COLORS=$colors LC_ALL=C grep "$@" "$corpus" \
+        >"$TEST_DIR/grep-color.out" 2>"$TEST_DIR/grep-color.err"
+    grep_status=$?
+    GREP_COLORS=$colors LC_ALL=C "$ZGREP" "$@" "$corpus" \
+        >"$TEST_DIR/zgrep-color.out" 2>"$TEST_DIR/zgrep-color.err"
+    zgrep_status=$?
+    set -e
+    sed 's/^grep:/zgrep:/' "$TEST_DIR/grep-color.err" >"$TEST_DIR/grep-color-normalized.err"
+    if [ "$grep_status" -ne "$zgrep_status" ] || \
+        ! cmp -s "$TEST_DIR/grep-color.out" "$TEST_DIR/zgrep-color.out" || \
+        ! cmp -s "$TEST_DIR/grep-color-normalized.err" "$TEST_DIR/zgrep-color.err"; then
+        echo "color differential failure: $description" >&2
+        echo "GNU stdout:" >&2
+        od -An -v -tx1 "$TEST_DIR/grep-color.out" >&2
+        echo "zgrep stdout:" >&2
+        od -An -v -tx1 "$TEST_DIR/zgrep-color.out" >&2
+        exit 1
+    fi
+}
+
 command_status=0
 capture_status() {
     set +e
@@ -129,6 +159,112 @@ compare_status() {
     zgrep_status=$command_status
     if [ "$grep_status" -ne "$zgrep_status" ]; then
         echo "status failure: $description (grep=$grep_status, zgrep=$zgrep_status)" >&2
+        exit 1
+    fi
+}
+
+compare_timeout_status() {
+    description=$1
+    shift
+    capture_status timeout 5 env LC_ALL=C grep "$@"
+    grep_status=$command_status
+    capture_status timeout 5 env LC_ALL=C "$ZGREP" "$@"
+    zgrep_status=$command_status
+    if [ "$grep_status" -ne "$zgrep_status" ]; then
+        echo "timeout status failure: $description (grep=$grep_status, zgrep=$zgrep_status)" >&2
+        exit 1
+    fi
+}
+
+compare_broken_pipe() {
+    description=$1
+    shift
+    set +e
+    (
+        trap '' PIPE
+        exec env LC_ALL=C grep "$@" alpha "$TEST_DIR/broken-pipe.txt"
+    ) 2>"$TEST_DIR/grep-broken-pipe.err" | {
+            head -n1 >"$TEST_DIR/grep-broken-pipe.out"
+            sleep 0.05
+        }
+    grep_pipeline_status=("${PIPESTATUS[@]}")
+    (
+        trap '' PIPE
+        exec env LC_ALL=C "$ZGREP" "$@" alpha "$TEST_DIR/broken-pipe.txt"
+    ) 2>"$TEST_DIR/zgrep-broken-pipe.err" | {
+            head -n1 >"$TEST_DIR/zgrep-broken-pipe.out"
+            sleep 0.05
+        }
+    zgrep_pipeline_status=("${PIPESTATUS[@]}")
+    set -e
+
+    sed 's/^grep:/zgrep:/' "$TEST_DIR/grep-broken-pipe.err" \
+        >"$TEST_DIR/grep-broken-pipe-normalized.err"
+    if [ "${grep_pipeline_status[0]}" -ne "${zgrep_pipeline_status[0]}" ] || \
+        ! cmp -s "$TEST_DIR/grep-broken-pipe.out" "$TEST_DIR/zgrep-broken-pipe.out" || \
+        ! cmp -s "$TEST_DIR/grep-broken-pipe-normalized.err" "$TEST_DIR/zgrep-broken-pipe.err"; then
+        echo "broken-pipe differential failure: $description" >&2
+        echo "GNU status/stderr: ${grep_pipeline_status[0]}" >&2
+        cat "$TEST_DIR/grep-broken-pipe.err" >&2
+        echo "zgrep status/stderr: ${zgrep_pipeline_status[0]}" >&2
+        cat "$TEST_DIR/zgrep-broken-pipe.err" >&2
+        exit 1
+    fi
+}
+
+assert_line_buffered_context() {
+    implementation=$1
+    implementation_name=${implementation##*/}
+    coproc LINE_BUFFERED_SEARCH { LC_ALL=C "$implementation" --line-buffered -A1 needle; }
+    input_fd=${LINE_BUFFERED_SEARCH[1]}
+    output_fd=${LINE_BUFFERED_SEARCH[0]}
+    search_pid=$LINE_BUFFERED_SEARCH_PID
+
+    printf 'needle first\n' >&$input_fd
+    if ! IFS= read -r -t 5 first_line <&$output_fd || [ "$first_line" != 'needle first' ]; then
+        eval "exec ${input_fd}>&-"
+        wait "$search_pid" || true
+        echo "line-buffered failure before EOF: $implementation_name" >&2
+        exit 1
+    fi
+    printf 'after\n' >&$input_fd
+    if ! IFS= read -r -t 5 second_line <&$output_fd || [ "$second_line" != 'after' ]; then
+        eval "exec ${input_fd}>&-"
+        wait "$search_pid" || true
+        echo "line-buffered context failure before EOF: $implementation_name" >&2
+        exit 1
+    fi
+    eval "exec ${input_fd}>&-"
+    wait "$search_pid"
+}
+
+compare_fifo_read() {
+    description=$1
+    fifo=$2
+    search_path=$3
+    shift 3
+    for implementation in grep "$ZGREP"; do
+        implementation_name=${implementation##*/}
+        timeout 10 sh -c 'printf "device needle\n" >"$1"' sh "$fifo" &
+        writer_pid=$!
+        set +e
+        timeout 10 env LC_ALL=C "$implementation" "$@" "$search_path" \
+            >"$TEST_DIR/$implementation_name-fifo.out" \
+            2>"$TEST_DIR/$implementation_name-fifo.err"
+        eval "${implementation_name}_status=$?"
+        wait "$writer_pid"
+        writer_status=$?
+        set -e
+        if [ "$writer_status" -ne 0 ]; then
+            echo "FIFO writer failure: $description ($implementation_name=$writer_status)" >&2
+            exit 1
+        fi
+    done
+    sed 's/^grep:/zgrep:/' "$TEST_DIR/grep-fifo.err" >"$TEST_DIR/grep-fifo-normalized.err"
+    if [ "$grep_status" -ne "$zgrep_status" ] || \
+        ! cmp -s "$TEST_DIR/grep-fifo.out" "$TEST_DIR/zgrep-fifo.out" || \
+        ! cmp -s "$TEST_DIR/grep-fifo-normalized.err" "$TEST_DIR/zgrep-fifo.err"; then
+        echo "FIFO differential failure: $description" >&2
         exit 1
     fi
 }
@@ -288,6 +424,34 @@ compare_pattern_stdin "pattern stdin without final newline" \
 compare "forced filename" -H alpha
 compare "files with matches" -l alpha
 compare "files without matches" -L absent
+compare_color_file "color always highlights all fixed matches" "$CORPUS" '' \
+    --color=always -F alpha
+compare_color_file "color prefixes and only-matching offsets" "$CORPUS" '' \
+    --color=always -F -H -n -b -o alpha
+compare_color_file "color context and group separators" "$TEST_DIR/context-groups.txt" '' \
+    --color=always -H -n -A1 foo
+compare_color_file "color count filename" "$CORPUS" '' \
+    --color=always -H -c alpha
+compare_color_file "color matching filename" "$CORPUS" '' \
+    --color=always -l alpha
+compare_color_file "color auto disables markers on a pipe" "$CORPUS" '' \
+    --color=auto -H -n -b alpha
+compare_color_file "bare color uses auto" "$CORPUS" '' \
+    --color -H -n -b alpha
+compare_color_file "color yes alias" "$CORPUS" '' \
+    --color=yes -F alpha
+compare_color_file "color none alias" "$CORPUS" '' \
+    --color=none -H -n -b alpha
+compare_color_file "color tty alias" "$CORPUS" '' \
+    --color=tty -H -n -b alpha
+compare_color_file "colour alias" "$CORPUS" '' \
+    --colour=always -E 'alpha|Beta'
+compare_color_file "custom GREP_COLORS" "$CORPUS" \
+    'ms=35:fn=32:ln=33:bn=36:se=37' --color=always -H -n -b alpha
+compare_color_file "GREP_COLORS line and context styles" "$TEST_DIR/context-groups.txt" \
+    'sl=43:cx=44:ms=35:mc=36' --color=always -H -n -A1 foo
+compare_color_file "GREP_COLORS reverse mode" "$CORPUS" \
+    'rv:sl=43:cx=44:ms=35:mc=36' --color=always -v alpha
 compare_file "pattern file without final newline" \
     "$TEST_DIR/pattern-no-newline-corpus.txt" -f "$TEST_DIR/pattern-no-newline.txt"
 compare_file "duplicate fixed patterns" \
@@ -326,6 +490,18 @@ compare_file "Perl only-matching reset start" \
     "$TEST_DIR/ere-prefilter.txt" -P -n -b -o 'status=\K(200|500)'
 compare_file "only matching skips empty regex matches" \
     "$TEST_DIR/ere-prefilter.txt" -E -o 'a*'
+compare "initial tab with filename and offsets" -T -H -n -b alpha
+compare "long initial-tab only matching" --initial-tab -H -n -b -o alpha
+compare_file "initial tab with context" "$TEST_DIR/context.txt" -T -H -n -b -C1 5
+compare "initial tab does not alter count output" -T -H -c alpha
+compare "initial tab does not alter listing output" -T -H -l alpha
+compare "binary input compatibility no-op" -U -H -n -b alpha
+compare "long binary input compatibility no-op" --binary -H -n -b alpha
+compare "line-buffered output bytes" --line-buffered -H -n -b alpha
+compare "combined initial-tab flags" -TUHnb alpha
+compare_color_file "color initial tab fields" "$TEST_DIR/context.txt" \
+    'ms=01;31:mc=01;31:sl=:cx=:fn=35:ln=32:bn=32:se=36' \
+    --color=always -T -H -n -b -C1 5
 
 compare_binary_file "binary match before NUL" "$TEST_DIR/binary-small.txt" needle
 compare_binary_file "binary match after NUL" "$TEST_DIR/binary-small.txt" Heaven
@@ -350,6 +526,14 @@ compare_binary_stdin "binary stdin match before same-block NUL" "$TEST_DIR/binar
 compare_binary_stdin "late stdin NUL preserves earlier output" "$TEST_DIR/binary-late.txt" needle
 compare_binary_stdin "late stdin NUL summarizes later match" "$TEST_DIR/binary-late.txt" Heaven
 compare_binary_stdin "binary stdin as text" "$TEST_DIR/binary-small.txt" -a -n Heaven
+compare_binary_stdin "line-buffered streamed before context" \
+    "$TEST_DIR/context-groups.txt" --line-buffered -H -n -b -B1 foo
+compare_binary_stdin "line-buffered streamed symmetric context" \
+    "$TEST_DIR/context-groups.txt" --line-buffered -H -n -b -C1 foo
+compare_binary_stdin "line-buffered streamed context and maximum count" \
+    "$TEST_DIR/context-max.txt" --line-buffered -H -n -b -A2 -m1 d
+compare_binary_stdin "initial tab on unknown-size stdin" \
+    "$CORPUS" --initial-tab --label=input -H -n -b alpha
 
 compare_null_file "NUL-delimited literal output" "$TEST_DIR/null-records.txt" -z match
 compare_null_file "long null-data option" "$TEST_DIR/null-records.txt" --null-data match
@@ -368,11 +552,17 @@ compare_null_file "NUL-delimited whole-record regexp" \
     "$TEST_DIR/null-empty-records.txt" -z -x bar
 compare_null_file "NUL-delimited inverted output" "$TEST_DIR/null-records.txt" -z -v absent
 compare_null_file "NUL-delimited after context" "$TEST_DIR/null-records.txt" -z -n -A1 two
+compare_null_file "NUL-delimited separated context groups" \
+    "$TEST_DIR/null-context-groups.txt" -z -n -A1 match
 compare_null_file "NUL-delimited maximum count" "$TEST_DIR/null-records.txt" -z -m1 match
 compare_null_file "NUL separators are not binary data" "$TEST_DIR/null-records.txt" -z -I match
 compare_null_file "NUL-delimited files with matches" "$TEST_DIR/null-records.txt" -z -l match
+compare_color_file "color NUL-delimited records" "$TEST_DIR/null-records.txt" '' \
+    --color=always -z -H -n -b -o match
 compare_null_stdin "NUL-delimited stdin output" "$TEST_DIR/null-records.txt" -z -n match
 compare_null_stdin "NUL-delimited stdin only matching" "$TEST_DIR/null-records.txt" -z -b -o match
+compare_null_stdin "line-buffered NUL-delimited stdin" \
+    "$TEST_DIR/null-records.txt" --line-buffered -z -H -n -b match
 
 compare_null_file "NUL-terminated filename in normal output" "$CORPUS" -Z -H -n -b alpha
 compare_null_file "long null filename option" "$CORPUS" --null -H alpha
@@ -381,6 +571,8 @@ compare_null_file "NUL-terminated matching filename" "$CORPUS" -Z -l alpha
 compare_null_file "NUL-terminated non-matching filename" "$CORPUS" -Z -L absent
 compare_null_file "NUL-terminated filename with context" "$CORPUS" -Z -H -n -A1 warning
 compare_null_file "NUL input and filename separators" "$TEST_DIR/null-records.txt" -z -Z -H -n match
+compare_null_file "initial tab with NUL records" \
+    "$TEST_DIR/null-records.txt" -T -z -Z -H -n -b match
 compare_null_stdin "NUL-terminated stdin label" "$CORPUS" -Z --label=input -H alpha
 
 diff -u \
@@ -398,6 +590,9 @@ diff -u \
 diff -u \
     <(printf 'stdin needle\n' | LC_ALL=C grep --label input -H needle) \
     <(printf 'stdin needle\n' | LC_ALL=C "$ZGREP" --label input -H needle)
+
+assert_line_buffered_context grep
+assert_line_buffered_context "$ZGREP"
 
 diff -u \
     <(cat "$TEST_DIR/context.txt" | LC_ALL=C grep -n -C1 5) \
@@ -528,13 +723,28 @@ compare_status "recursive then directory read" -r -d read needle "$TEST_DIR/tree
 compare_status "device skip FIFO" -D skip needle "$TEST_DIR/device-fifo"
 compare_status "long device skip FIFO" --devices=skip needle "$TEST_DIR/device-fifo"
 compare_status "device skip keeps regular files" -D skip alpha "$CORPUS"
+compare_timeout_status "recursive default skips FIFO" \
+    -r needle "$TEST_DIR/device-tree"
+compare_timeout_status "recursive explicit device skip" \
+    -r -D skip needle "$TEST_DIR/device-tree"
+compare_fifo_read "explicit FIFO is read by default" \
+    "$TEST_DIR/device-fifo" "$TEST_DIR/device-fifo" needle
+compare_fifo_read "recursive FIFO read" \
+    "$TEST_DIR/device-tree/input.fifo" "$TEST_DIR/device-tree" -r -D read needle
+compare_fifo_read "recursive FIFO files-with-matches" \
+    "$TEST_DIR/device-tree/input.fifo" "$TEST_DIR/device-tree" -r -D read -l needle
+compare_fifo_read "recursive FIFO files-without-match" \
+    "$TEST_DIR/device-tree/input.fifo" "$TEST_DIR/device-tree" -r -D read -L absent
 compare_status "invalid directory action" -d definitely-invalid needle "$TEST_DIR/tree"
 compare_status "invalid device action" -D definitely-invalid needle "$CORPUS"
+compare_status "invalid color action shows help" --color=definitely-invalid alpha "$CORPUS"
 compare_status "explicit file excluded by include" \
     --include='*.h' needle "$TEST_DIR/filter-tree/a.c"
 compare_status "empty only-matching pattern still selects" -o -e '' "$CORPUS"
 compare_status "inverted only-matching selection" -v -o absent "$CORPUS"
 compare_status "files without match with a matching file" -L alpha "$CORPUS"
 compare_status "files without match with no matching file" -L absent "$CORPUS"
+compare_broken_pipe "buffered output"
+compare_broken_pipe "line-buffered output" --line-buffered
 
 printf 'zgrep differential tests passed\n'

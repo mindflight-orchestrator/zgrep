@@ -50,6 +50,10 @@ pub fn build(b: *std.Build) void {
     regex_tests.addArtifactArg(zgrep);
     test_step.dependOn(&regex_tests.step);
 
+    const locale_tests = b.addSystemCommand(&.{ "bash", "tests/locale-semantics.sh" });
+    locale_tests.addArtifactArg(zgrep);
+    test_step.dependOn(&locale_tests.step);
+
     const fuzz_step = b.step("test-fuzz", "Run deterministic BRE/ERE differential fuzz tests");
     const fuzz_tests = b.addSystemCommand(&.{ "bash", "tests/regex-fuzz.sh" });
     fuzz_tests.addArtifactArg(zgrep);

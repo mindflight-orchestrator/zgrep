@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.optimize }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        optimize: [Debug, ReleaseSafe, ReleaseFast]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install native dependencies and locales
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpcre2-dev locales ripgrep
+          sudo locale-gen en_US.UTF-8 nl_BE.UTF-8
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Check generated and native sources
+        run: |
+          zig version
+          zig fmt --check build.zig src/*.zig
+          cc -std=gnu17 -Wall -Wextra -Werror -Wconversion -Wshadow \
+            -Iinclude -fsyntax-only src/pcre2_shim.c
+          cc -std=c11 -Wall -Wextra -Werror -Wconversion -Wshadow \
+            -fsyntax-only bench/evict-tree-cache.c
+          for script in tests/*.sh bench/*.sh; do bash -n "$script"; done
+
+      - name: Run unit and GNU differential tests
+        run: zig build test -Doptimize=${{ matrix.optimize }}
+
+      - name: Run extended ReleaseFast gates
+        if: matrix.optimize == 'ReleaseFast'
+        env:
+          ZGREP_FUZZ_ITERATIONS: 256
+        run: |
+          zig build test-fuzz -Doptimize=ReleaseFast
+          zig build test-stress -Doptimize=ReleaseFast
+          bench/generate.sh /tmp/zgrep-ci-bench.txt 100000
+          BENCH_LOCALE=C.utf8 ZGREP=./zig-out/bin/zgrep \
+            bench/run.sh /tmp/zgrep-ci-bench.txt 1

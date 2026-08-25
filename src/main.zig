@@ -7,7 +7,10 @@ pub fn main(init: std.process.Init) !void {
     const exit_code = run(init) catch |err| {
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-        try stderr.interface.print("zgrep: {s}\n", .{@errorName(err)});
+        if (err == error.BrokenPipe)
+            try stderr.interface.writeAll("zgrep: write error: Broken pipe\n")
+        else
+            try stderr.interface.print("zgrep: {s}\n", .{@errorName(err)});
         try stderr.interface.flush();
         std.process.exit(2);
     };
@@ -15,6 +18,7 @@ pub fn main(init: std.process.Init) !void {
 }
 
 fn run(init: std.process.Init) !u8 {
+    const utf8_locale = zgrep.matcher.initializeLocale();
     var options = zgrep.options.Options.parse(init.minimal.args, init.gpa) catch |err| {
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
@@ -125,8 +129,9 @@ fn run(init: std.process.Init) !u8 {
         initialized += 1;
     }
 
+    const stdout_file = std.Io.File.stdout();
     var output_buffer: [256 * 1024]u8 = undefined;
-    var stdout = std.Io.File.stdout().writerStreaming(init.io, &output_buffer);
+    var stdout = stdout_file.writerStreaming(init.io, &output_buffer);
     var diagnostic_buffer: [4096]u8 = undefined;
     var stderr = std.Io.File.stderr().writerStreaming(init.io, &diagnostic_buffer);
 
@@ -136,6 +141,12 @@ fn run(init: std.process.Init) !u8 {
     const file_count = options.operands.items.len;
     const show_filename = options.with_filename orelse (file_count > 1 or options.recursive);
     const stdin_path = options.label orelse "(standard input)";
+    const color_enabled = if (options.color) |mode| switch (mode) {
+        .always => true,
+        .never => false,
+        .auto => stdout_file.isTty(init.io) catch false,
+    } else false;
+    const color_config = zgrep.scanner.ColorConfig.fromEnvironment(init.environ_map);
     var context_state: zgrep.scanner.ContextState = .{};
     const scan_options: zgrep.scanner.ScanOptions = .{
         .invert = options.invert,
@@ -152,8 +163,15 @@ fn run(init: std.process.Init) !u8 {
         .context_separator = options.context_separator,
         .context_state = &context_state,
         .binary_mode = options.binary_mode,
+        .line_buffered = options.line_buffered,
+        .initial_tab_width = if (options.initial_tab)
+            zgrep.scanner.unknown_initial_tab_width
+        else
+            0,
+        .utf8_locale = utf8_locale,
         .delimiter = if (options.null_data) 0 else '\n',
         .null_filename = options.null_filename,
+        .colors = if (color_enabled) &color_config else null,
     };
 
     var any_match = false;
@@ -167,6 +185,7 @@ fn run(init: std.process.Init) !u8 {
             &stdout.interface,
             &stderr.interface,
         ) catch |err| blk: {
+            if (err == error.WriteFailed) return stdout.err orelse err;
             if (!options.no_messages) try stderr.interface.print("zgrep: standard input: {s}\n", .{@errorName(err)});
             had_error = true;
             break :blk null;
@@ -187,12 +206,13 @@ fn run(init: std.process.Init) !u8 {
                     options.recursive,
                     options.dereference_recursive,
                     options.directory_mode == .skip,
-                    options.device_mode == .skip,
+                    options.device_mode,
                     options.no_messages,
                     &stdout.interface,
                     &stderr.interface,
                 );
             const value = result catch |err| {
+                if (err == error.WriteFailed) return stdout.err orelse err;
                 if (!options.no_messages) try stderr.interface.print("zgrep: {s}: {s}\n", .{ path, @errorName(err) });
                 had_error = true;
                 continue;
@@ -203,8 +223,8 @@ fn run(init: std.process.Init) !u8 {
         }
     }
 
-    try stdout.interface.flush();
-    try stderr.interface.flush();
+    try stdout.flush();
+    try stderr.flush();
     if (had_error and !(options.quiet and any_match)) return 2;
     return if (any_match) 0 else 1;
 }
@@ -248,14 +268,14 @@ fn scanPath(
     recursive: bool,
     dereference_recursive: bool,
     skip_directories: bool,
-    skip_devices: bool,
+    device_mode: zgrep.options.DeviceMode,
     no_messages: bool,
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !PathResult {
     const stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
     if (stat.kind != .directory) {
-        if (skip_devices and stat.kind != .file) return .{};
+        if (device_mode == .skip and stat.kind != .file) return .{};
         if (!filters.allowsFile(std.fs.path.basename(path))) return .{};
         const result = try scanFile(init, path, matchers, options, writer, diagnostic_writer);
         return .{ .matched = result.matched };
@@ -266,7 +286,7 @@ fn scanPath(
     }
     if (!filters.allowsDir(std.fs.path.basename(path))) return .{};
 
-    if (options.list_files != null and !options.quiet) {
+    if (options.list_files != null and !options.quiet and device_mode != .read) {
         var list_ancestors = std.StringHashMap(void).init(init.gpa);
         defer list_ancestors.deinit();
         return scanDirectoryListParallel(
@@ -282,6 +302,22 @@ fn scanPath(
             diagnostic_writer,
         );
     }
+    if (parallelRecursiveOutputEligible(options) and device_mode != .read) {
+        var output_ancestors = std.StringHashMap(void).init(init.gpa);
+        defer output_ancestors.deinit();
+        return scanDirectoryOutputParallel(
+            init,
+            path,
+            matchers,
+            options,
+            filters,
+            strip_dot_prefix,
+            if (dereference_recursive) &output_ancestors else null,
+            no_messages,
+            writer,
+            diagnostic_writer,
+        );
+    }
 
     var ancestors = std.StringHashMap(void).init(init.gpa);
     defer ancestors.deinit();
@@ -292,6 +328,7 @@ fn scanPath(
         options,
         filters,
         strip_dot_prefix,
+        device_mode,
         if (dereference_recursive) &ancestors else null,
         no_messages,
         writer,
@@ -306,11 +343,12 @@ fn scanDirectory(
     options: zgrep.scanner.ScanOptions,
     filters: zgrep.filter.Filters,
     strip_dot_prefix: bool,
+    device_mode: zgrep.options.DeviceMode,
     ancestors: ?*std.StringHashMap(void),
     no_messages: bool,
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
-) !PathResult {
+) anyerror!PathResult {
     var canonical: ?[:0]u8 = null;
     if (ancestors) |set| {
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
@@ -371,12 +409,16 @@ fn scanDirectory(
                 options,
                 filters,
                 strip_dot_prefix,
+                device_mode,
                 ancestors,
                 no_messages,
                 writer,
                 diagnostic_writer,
             ) else continue,
-            else => continue,
+            else => if (device_mode == .read and filters.allowsFile(entry.name))
+                scanRegularPath(init, full_path, matchers, options, writer, diagnostic_writer)
+            else
+                continue,
         } catch |err| {
             if (!no_messages) try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
             aggregate.had_error = true;
@@ -387,6 +429,434 @@ fn scanDirectory(
         if (options.quiet and aggregate.matched) break;
     }
     return aggregate;
+}
+
+fn parallelRecursiveOutputEligible(options: zgrep.scanner.ScanOptions) bool {
+    return !options.count and !options.quiet and options.list_files == null and
+        options.max_count == null and !options.only_matching and
+        options.before_context == 0 and options.after_context == 0 and
+        options.colors == null and !options.line_buffered;
+}
+
+fn scanDirectoryOutputParallel(
+    init: std.process.Init,
+    path: []const u8,
+    matchers: []const zgrep.matcher.Matcher,
+    options: zgrep.scanner.ScanOptions,
+    filters: zgrep.filter.Filters,
+    strip_dot_prefix: bool,
+    ancestors: ?*std.StringHashMap(void),
+    no_messages: bool,
+    writer: *std.Io.Writer,
+    diagnostic_writer: *std.Io.Writer,
+) !PathResult {
+    var path_arena = std.heap.ArenaAllocator.init(init.gpa);
+    defer path_arena.deinit();
+    var items: std.ArrayList(*ParallelListItem) = .empty;
+    defer items.deinit(init.gpa);
+    defer for (items.items) |item| {
+        if (item.output) |output| std.heap.c_allocator.free(output);
+    };
+    var discovery: ParallelListPipeline = undefined;
+    discovery.init(init, matchers, options);
+    discovery.context.capture_output = true;
+    var collector: ParallelListCollector = .{
+        .init = init,
+        .items = &items,
+        .pipeline = &discovery,
+    };
+    errdefer discovery.abort();
+    var aggregate: PathResult = .{};
+    try collectDirectoryFiles(
+        init,
+        path_arena.allocator(),
+        null,
+        path,
+        filters,
+        strip_dot_prefix,
+        ancestors,
+        no_messages,
+        diagnostic_writer,
+        &collector,
+        &aggregate,
+    );
+    if (items.items.len == 0) return aggregate;
+
+    const cpu_count = std.Thread.getCpuCount() catch 1;
+    if (discovery.started) {
+        try discovery.finish();
+        if (discovery.context.setup_failed.load(.acquire)) return error.OutOfMemory;
+
+        var matching_items: std.ArrayList(*ParallelListItem) = .empty;
+        defer matching_items.deinit(init.gpa);
+        var all_matching_captured = true;
+        for (items.items) |item| {
+            if (item.result.err) |err| {
+                if (!no_messages)
+                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                aggregate.had_error = true;
+            } else if (item.result.matched) {
+                try matching_items.append(init.gpa, item);
+                all_matching_captured = all_matching_captured and item.output != null;
+            }
+        }
+        if (matching_items.items.len == 0) return aggregate;
+        if (all_matching_captured) {
+            for (matching_items.items) |item| {
+                try writer.writeAll(item.output.?[0..item.output_len]);
+                if (item.output_binary_match)
+                    try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{item.path});
+            }
+            aggregate.matched = true;
+            return aggregate;
+        }
+
+        const sparse_rescan_max = 16;
+        if (matching_items.items.len <= sparse_rescan_max) {
+            for (matching_items.items) |item| {
+                const result = scanFile(
+                    init,
+                    item.path,
+                    matchers,
+                    options,
+                    writer,
+                    diagnostic_writer,
+                ) catch |err| {
+                    if (!no_messages)
+                        try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    aggregate.had_error = true;
+                    continue;
+                };
+                aggregate.matched = aggregate.matched or result.matched;
+            }
+            return aggregate;
+        }
+
+        try scanCollectedOutputParallel(
+            init,
+            matching_items.items,
+            matchers,
+            options,
+            @min(parallelListThreadLimit(matchers), cpu_count),
+            no_messages,
+            writer,
+            diagnostic_writer,
+            &aggregate,
+        );
+        return aggregate;
+    }
+
+    var benefits_from_parallelism = false;
+    for (matchers) |*matcher| {
+        if (matcher.benefitsFromLargeFileListParallelism()) {
+            benefits_from_parallelism = true;
+            break;
+        }
+    }
+    if (items.items.len < 32 or cpu_count < 2 or !benefits_from_parallelism) {
+        for (items.items) |item| {
+            const result = scanFile(
+                init,
+                item.path,
+                matchers,
+                options,
+                writer,
+                diagnostic_writer,
+            ) catch |err| {
+                if (!no_messages)
+                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                aggregate.had_error = true;
+                continue;
+            };
+            aggregate.matched = aggregate.matched or result.matched;
+        }
+        return aggregate;
+    }
+
+    try scanCollectedOutputParallel(
+        init,
+        items.items,
+        matchers,
+        options,
+        @min(parallelListThreadLimit(matchers), cpu_count),
+        no_messages,
+        writer,
+        diagnostic_writer,
+        &aggregate,
+    );
+    return aggregate;
+}
+
+const parallel_output_slot_count = 256;
+const parallel_output_slot_bytes = 64 * 1024;
+const ParallelOutputQueue = std.Io.Queue(*ParallelOutputTask);
+
+const ParallelOutputTask = struct {
+    item: *ParallelListItem = undefined,
+    buffer: []u8 = undefined,
+    output_len: usize = 0,
+    result: zgrep.scanner.Result = .{},
+    err: ?anyerror = null,
+    fallback: bool = false,
+    ready: std.atomic.Value(bool) = .init(false),
+
+    fn prepare(self: *ParallelOutputTask, item: *ParallelListItem) void {
+        self.item = item;
+        self.output_len = 0;
+        self.result = .{};
+        self.err = null;
+        self.fallback = false;
+        self.ready.store(false, .monotonic);
+    }
+};
+
+const ParallelOutputContext = struct {
+    init: std.process.Init,
+    matchers: []const zgrep.matcher.Matcher,
+    options: zgrep.scanner.ScanOptions,
+    queue: *ParallelOutputQueue,
+};
+
+fn scanCollectedOutputParallel(
+    init: std.process.Init,
+    items: []const *ParallelListItem,
+    matchers: []const zgrep.matcher.Matcher,
+    options: zgrep.scanner.ScanOptions,
+    thread_count: usize,
+    no_messages: bool,
+    writer: *std.Io.Writer,
+    diagnostic_writer: *std.Io.Writer,
+    aggregate: *PathResult,
+) !void {
+    const storage = try init.gpa.alloc(
+        u8,
+        parallel_output_slot_count * parallel_output_slot_bytes,
+    );
+    defer init.gpa.free(storage);
+    var tasks: [parallel_output_slot_count]ParallelOutputTask = undefined;
+    for (&tasks, 0..) |*task, index| {
+        task.* = .{
+            .buffer = storage[index * parallel_output_slot_bytes ..][0..parallel_output_slot_bytes],
+        };
+    }
+
+    var queue_buffer: [parallel_output_slot_count]*ParallelOutputTask = undefined;
+    var queue: ParallelOutputQueue = .init(&queue_buffer);
+    var context: ParallelOutputContext = .{
+        .init = init,
+        .matchers = matchers,
+        .options = options,
+        .queue = &queue,
+    };
+    var threads: [parallel_list_max_threads]std.Thread = undefined;
+    var spawned: usize = 0;
+    var joined = false;
+    defer if (!joined) {
+        queue.close(init.io);
+        for (threads[0..spawned]) |thread| thread.join();
+    };
+    for (0..thread_count) |index| {
+        threads[index] = try std.Thread.spawn(
+            .{ .stack_size = 1024 * 1024 },
+            parallelOutputWorker,
+            .{&context},
+        );
+        spawned += 1;
+    }
+
+    const initial_count = @min(items.len, parallel_output_slot_count);
+    for (0..initial_count) |index| {
+        tasks[index].prepare(items[index]);
+        try enqueueParallelOutputTask(init.io, &queue, &tasks[index]);
+    }
+
+    for (items, 0..) |item, index| {
+        const task = &tasks[index % parallel_output_slot_count];
+        var spin_count: usize = 0;
+        while (!task.ready.load(.acquire)) {
+            if (spin_count < 64) {
+                std.atomic.spinLoopHint();
+                spin_count += 1;
+            } else {
+                std.Thread.yield() catch {};
+                spin_count = 0;
+            }
+        }
+        std.debug.assert(task.item == item);
+        if (task.fallback) {
+            const result = scanFile(
+                init,
+                item.path,
+                matchers,
+                options,
+                writer,
+                diagnostic_writer,
+            ) catch |err| {
+                if (!no_messages)
+                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                aggregate.had_error = true;
+                continue;
+            };
+            aggregate.matched = aggregate.matched or result.matched;
+        } else if (task.err) |err| {
+            if (!no_messages)
+                try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+            aggregate.had_error = true;
+        } else {
+            try writer.writeAll(task.buffer[0..task.output_len]);
+            if (task.result.binary_match)
+                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{item.path});
+            aggregate.matched = aggregate.matched or task.result.matched;
+        }
+
+        const next_index = index + parallel_output_slot_count;
+        if (next_index < items.len) {
+            task.prepare(items[next_index]);
+            try enqueueParallelOutputTask(init.io, &queue, task);
+        }
+    }
+    queue.close(init.io);
+    for (threads[0..spawned]) |thread| thread.join();
+    joined = true;
+}
+
+fn enqueueParallelOutputTask(
+    io: std.Io,
+    queue: *ParallelOutputQueue,
+    task: *ParallelOutputTask,
+) !void {
+    var one = [_]*ParallelOutputTask{task};
+    const queued = try queue.putUncancelable(io, &one, 1);
+    std.debug.assert(queued == 1);
+}
+
+fn parallelOutputWorker(context: *ParallelOutputContext) void {
+    const thread_matchers = std.heap.c_allocator.alloc(
+        zgrep.matcher.ThreadMatcher,
+        context.matchers.len,
+    ) catch {
+        parallelOutputDrainFallback(context);
+        return;
+    };
+    defer std.heap.c_allocator.free(thread_matchers);
+    var initialized: usize = 0;
+    defer for (thread_matchers[0..initialized]) |*matcher| matcher.deinit();
+    for (context.matchers, 0..) |*matcher, index| {
+        thread_matchers[index] = zgrep.matcher.ThreadMatcher.init(matcher) catch {
+            parallelOutputDrainFallback(context);
+            return;
+        };
+        initialized += 1;
+    }
+
+    var batch: [parallel_list_dequeue_batch]*ParallelOutputTask = undefined;
+    while (true) {
+        const count = context.queue.getUncancelable(context.init.io, &batch, 1) catch break;
+        for (batch[0..count]) |task| {
+            var output = std.Io.Writer.fixed(task.buffer);
+            task.result = scanFileOutputThreadMatchers(
+                context.init,
+                task.item.path,
+                thread_matchers,
+                context.options,
+                &output,
+            ) catch |err| {
+                if (err == error.WriteFailed or err == error.BinaryInput)
+                    task.fallback = true
+                else
+                    task.err = err;
+                task.ready.store(true, .release);
+                continue;
+            };
+            task.output_len = output.end;
+            task.ready.store(true, .release);
+        }
+    }
+}
+
+fn parallelOutputDrainFallback(context: *ParallelOutputContext) void {
+    var batch: [parallel_list_dequeue_batch]*ParallelOutputTask = undefined;
+    while (true) {
+        const count = context.queue.getUncancelable(context.init.io, &batch, 1) catch break;
+        for (batch[0..count]) |task| {
+            task.fallback = true;
+            task.ready.store(true, .release);
+        }
+    }
+}
+
+fn scanFileOutputThreadMatchers(
+    init: std.process.Init,
+    path: [:0]const u8,
+    matchers: []const zgrep.matcher.ThreadMatcher,
+    options: zgrep.scanner.ScanOptions,
+    writer: *std.Io.Writer,
+) !zgrep.scanner.Result {
+    const file = try openTraversalFile(path);
+    defer file.close(init.io);
+    const stat = try file.stat(init.io);
+    if (stat.kind != .file or stat.size == 0) return .{};
+    if (stat.size > std.math.maxInt(usize)) return error.FileTooBig;
+    var file_options = options;
+    if (options.initial_tab_width != 0)
+        file_options.initial_tab_width = decimalDigitCount(stat.size);
+
+    const small_file_bytes = 64 * 1024;
+    if (stat.size <= small_file_bytes) {
+        var small_buffer: [small_file_bytes]u8 = undefined;
+        const bytes_read = try file.readPositionalAll(
+            init.io,
+            small_buffer[0..@intCast(stat.size)],
+            0,
+        );
+        return scanOutputBufferThreadMatchers(
+            small_buffer[0..bytes_read],
+            matchers,
+            path,
+            file_options,
+            writer,
+        );
+    }
+
+    const mapped = try std.posix.mmap(
+        null,
+        @intCast(stat.size),
+        .{ .READ = true },
+        .{ .TYPE = .PRIVATE },
+        file.handle,
+        0,
+    );
+    defer std.posix.munmap(mapped);
+    return scanOutputBufferThreadMatchers(
+        mapped,
+        matchers,
+        path,
+        file_options,
+        writer,
+    );
+}
+
+fn scanOutputBufferThreadMatchers(
+    buffer: []const u8,
+    matchers: []const zgrep.matcher.ThreadMatcher,
+    path: []const u8,
+    options: zgrep.scanner.ScanOptions,
+    writer: *std.Io.Writer,
+) !zgrep.scanner.Result {
+    if (options.delimiter != 0 and std.mem.findScalar(u8, buffer, 0) != null) {
+        switch (options.binary_mode) {
+            .binary => return error.BinaryInput,
+            .without_match => return error.BinaryInput,
+            .text => {},
+        }
+    }
+    return zgrep.scanner.scanBufferOutputThreadMatchers(
+        buffer,
+        matchers,
+        path,
+        options,
+        writer,
+    );
 }
 
 fn scanDirectoryListParallel(
@@ -401,81 +871,120 @@ fn scanDirectoryListParallel(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !PathResult {
-    var paths: std.ArrayList([]u8) = .empty;
-    defer {
-        for (paths.items) |file_path| init.gpa.free(file_path);
-        paths.deinit(init.gpa);
-    }
+    var path_arena = std.heap.ArenaAllocator.init(init.gpa);
+    defer path_arena.deinit();
+    var items: std.ArrayList(*ParallelListItem) = .empty;
+    defer items.deinit(init.gpa);
+    var pipeline: ParallelListPipeline = undefined;
+    pipeline.init(init, matchers, options);
+    var collector: ParallelListCollector = .{
+        .init = init,
+        .items = &items,
+        .pipeline = &pipeline,
+    };
+    errdefer pipeline.abort();
     var aggregate: PathResult = .{};
     try collectDirectoryFiles(
         init,
+        path_arena.allocator(),
+        null,
         path,
         filters,
         strip_dot_prefix,
         ancestors,
         no_messages,
         diagnostic_writer,
-        &paths,
+        &collector,
         &aggregate,
     );
-    if (paths.items.len == 0) return aggregate;
+    if (items.items.len == 0) return aggregate;
 
-    const results = try init.gpa.alloc(ParallelListResult, paths.items.len);
-    defer init.gpa.free(results);
-    @memset(results, .{});
-    var context: ParallelListContext = .{
-        .init = init,
-        .matchers = matchers,
-        .paths = paths.items,
-        .options = options,
-        .results = results,
-    };
+    if (pipeline.started) {
+        try pipeline.finish();
+        if (pipeline.context.setup_failed.load(.acquire)) return error.OutOfMemory;
+    } else {
+        var context: ParallelListContext = .{
+            .init = init,
+            .matchers = matchers,
+            .items = items.items,
+            .options = options,
+            .probe_small_files_without_stat = items.items.len >= 32,
+        };
 
-    const max_threads = 16;
-    const cpu_count = std.Thread.getCpuCount() catch 1;
-    const useful_threads = (paths.items.len + 31) / 32;
-    const thread_count = @max(1, @min(max_threads, @min(cpu_count, useful_threads)));
-    var threads: [max_threads - 1]std.Thread = undefined;
-    var spawned: usize = 0;
-    errdefer for (threads[0..spawned]) |thread| thread.join();
-    for (0..thread_count - 1) |index| {
-        threads[index] = try std.Thread.spawn(
-            .{ .stack_size = 1024 * 1024 },
-            parallelListWorker,
-            .{&context},
-        );
-        spawned += 1;
+        const cpu_count = std.Thread.getCpuCount() catch 1;
+        var useful_threads = (items.items.len + 31) / 32;
+        var benefits_from_large_file_parallelism = false;
+        for (matchers) |*matcher| {
+            if (matcher.benefitsFromLargeFileListParallelism()) {
+                benefits_from_large_file_parallelism = true;
+                break;
+            }
+        }
+        if (benefits_from_large_file_parallelism and items.items.len > 1 and items.items.len < 32) {
+            const bytes_per_thread = 2 * 1024 * 1024;
+            var total_bytes: u64 = 0;
+            for (items.items) |item| {
+                const stat = std.Io.Dir.cwd().statFile(init.io, item.path, .{}) catch continue;
+                total_bytes +|= stat.size;
+            }
+            const useful_by_bytes: usize = @intCast(@min(
+                items.items.len,
+                @max(1, (total_bytes + bytes_per_thread - 1) / bytes_per_thread),
+            ));
+            useful_threads = @max(useful_threads, useful_by_bytes);
+        }
+        const thread_count = @max(1, @min(
+            parallelListThreadLimit(matchers),
+            @min(cpu_count, useful_threads),
+        ));
+        var threads: [parallel_list_max_threads - 1]std.Thread = undefined;
+        var spawned: usize = 0;
+        errdefer for (threads[0..spawned]) |thread| thread.join();
+        for (0..thread_count - 1) |index| {
+            threads[index] = try std.Thread.spawn(
+                .{ .stack_size = 1024 * 1024 },
+                parallelListWorker,
+                .{&context},
+            );
+            spawned += 1;
+        }
+        parallelListWorker(&context);
+        for (threads[0..spawned]) |thread| thread.join();
+        if (context.setup_failed.load(.acquire)) return error.OutOfMemory;
     }
-    parallelListWorker(&context);
-    for (threads[0..spawned]) |thread| thread.join();
-    if (context.setup_failed.load(.acquire)) return error.OutOfMemory;
 
     const want_match = options.list_files.?;
-    for (paths.items, results) |file_path, result| {
-        if (result.err) |err| {
+    for (items.items) |item| {
+        if (item.result.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ file_path, @errorName(err) });
+                try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         }
-        aggregate.matched = aggregate.matched or result.matched;
-        if (result.matched == want_match) {
-            try writer.writeAll(file_path);
-            try writer.writeByte(if (options.null_filename) 0 else '\n');
-        }
+        aggregate.matched = aggregate.matched or item.result.matched;
+        if (item.result.matched == want_match)
+            try zgrep.scanner.emitFilename(
+                writer,
+                item.path,
+                options.null_filename,
+                options.colors,
+                options.line_buffered,
+            );
     }
     return aggregate;
 }
 
 fn collectDirectoryFiles(
     init: std.process.Init,
+    path_allocator: std.mem.Allocator,
+    opened_directory: ?std.Io.Dir,
     path: []const u8,
     filters: zgrep.filter.Filters,
     strip_dot_prefix: bool,
     ancestors: ?*std.StringHashMap(void),
     no_messages: bool,
     diagnostic_writer: *std.Io.Writer,
-    paths: *std.ArrayList([]u8),
+    collector: *ParallelListCollector,
     aggregate: *PathResult,
 ) !void {
     var canonical: ?[:0]u8 = null;
@@ -498,13 +1007,12 @@ fn collectDirectoryFiles(
         init.gpa.free(resolved);
     };
 
-    const directory = try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
+    const directory = opened_directory orelse
+        try std.Io.Dir.cwd().openDir(init.io, path, .{ .iterate = true });
     defer directory.close(init.io);
     var iterator = directory.iterateAssumeFirstIteration();
     while (try iterator.next(init.io)) |entry| {
-        const full_path = try joinTraversalPath(init.gpa, path, entry.name, strip_dot_prefix);
-        var keep_path = false;
-        defer if (!keep_path) init.gpa.free(full_path);
+        const full_path = try joinTraversalPath(path_allocator, path, entry.name, strip_dot_prefix);
 
         var kind = entry.kind;
         if (kind == .unknown) {
@@ -530,23 +1038,37 @@ fn collectDirectoryFiles(
         switch (kind) {
             .file => {
                 if (!filters.allowsFile(entry.name)) continue;
-                try paths.append(init.gpa, full_path);
-                keep_path = true;
+                const item = try path_allocator.create(ParallelListItem);
+                item.* = .{ .path = full_path };
+                try collector.append(item);
             },
-            .directory => if (filters.allowsDir(entry.name)) collectDirectoryFiles(
-                init,
-                full_path,
-                filters,
-                strip_dot_prefix,
-                ancestors,
-                no_messages,
-                diagnostic_writer,
-                paths,
-                aggregate,
-            ) catch |err| {
-                if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
-                aggregate.had_error = true;
+            .directory => if (filters.allowsDir(entry.name)) {
+                const child_directory = if (ancestors == null)
+                    directory.openDir(init.io, entry.name, .{ .iterate = true }) catch |err| {
+                        if (!no_messages)
+                            try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                        aggregate.had_error = true;
+                        continue;
+                    }
+                else
+                    null;
+                collectDirectoryFiles(
+                    init,
+                    path_allocator,
+                    child_directory,
+                    full_path,
+                    filters,
+                    strip_dot_prefix,
+                    ancestors,
+                    no_messages,
+                    diagnostic_writer,
+                    collector,
+                    aggregate,
+                ) catch |err| {
+                    if (!no_messages)
+                        try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                    aggregate.had_error = true;
+                };
             } else continue,
             else => {},
         }
@@ -558,9 +1080,9 @@ fn joinTraversalPath(
     path: []const u8,
     name: []const u8,
     strip_dot_prefix: bool,
-) ![]u8 {
-    if (strip_dot_prefix and std.mem.eql(u8, path, ".")) return allocator.dupe(u8, name);
-    return std.fs.path.join(allocator, &.{ path, name });
+) ![:0]u8 {
+    if (strip_dot_prefix and std.mem.eql(u8, path, ".")) return allocator.dupeZ(u8, name);
+    return std.fs.path.joinZ(allocator, &.{ path, name });
 }
 
 const ParallelListResult = struct {
@@ -568,15 +1090,243 @@ const ParallelListResult = struct {
     err: ?anyerror = null,
 };
 
+const ParallelListItem = struct {
+    path: [:0]const u8,
+    result: ParallelListResult = .{},
+    output: ?[]u8 = null,
+    output_len: usize = 0,
+    output_binary_match: bool = false,
+};
+
+const parallel_list_max_threads = 16;
+// Fast matchers become queue- and I/O-bound before compute-heavy regexes do.
+const parallel_list_fast_matcher_threads = 12;
+
+fn parallelListThreadLimit(matchers: []const zgrep.matcher.Matcher) usize {
+    for (matchers) |*matcher|
+        if (matcher.benefitsFromExtraRecursiveWorkers()) return parallel_list_max_threads;
+    return parallel_list_fast_matcher_threads;
+}
+// Medium source trees are faster with the post-traversal scheduler. Once a
+// tree reaches this size, a bounded queue can hide serial directory walking
+// behind file scans without changing traversal-order output.
+const parallel_list_pipeline_threshold = 512;
+const parallel_list_queue_capacity = 256;
+const parallel_list_enqueue_batch = 128;
+const parallel_list_dequeue_batch = 32;
+const ParallelListQueue = std.Io.Queue(*ParallelListItem);
+
+const ParallelListPipelineContext = struct {
+    init: std.process.Init,
+    matchers: []const zgrep.matcher.Matcher,
+    options: zgrep.scanner.ScanOptions,
+    queue: *ParallelListQueue,
+    capture_output: bool = false,
+    captured_slots: std.atomic.Value(usize) = .init(0),
+    setup_failed: std.atomic.Value(bool) = .init(false),
+};
+
+const ParallelListPipeline = struct {
+    init_state: std.process.Init = undefined,
+    context: ParallelListPipelineContext = undefined,
+    queue: ParallelListQueue = undefined,
+    queue_buffer: [parallel_list_queue_capacity]*ParallelListItem = undefined,
+    pending: [parallel_list_enqueue_batch]*ParallelListItem = undefined,
+    pending_len: usize = 0,
+    threads: [parallel_list_max_threads]std.Thread = undefined,
+    spawned: usize = 0,
+    started: bool = false,
+    closed: bool = false,
+
+    fn init(
+        self: *ParallelListPipeline,
+        init_state: std.process.Init,
+        matchers: []const zgrep.matcher.Matcher,
+        options: zgrep.scanner.ScanOptions,
+    ) void {
+        self.* = .{ .init_state = init_state };
+        self.queue = .init(&self.queue_buffer);
+        self.context = .{
+            .init = init_state,
+            .matchers = matchers,
+            .options = options,
+            .queue = &self.queue,
+        };
+    }
+
+    fn start(self: *ParallelListPipeline, items: []const *ParallelListItem) !void {
+        std.debug.assert(!self.started);
+        self.started = true;
+        const cpu_count = std.Thread.getCpuCount() catch 1;
+        const thread_count = @max(1, @min(
+            parallelListThreadLimit(self.context.matchers),
+            cpu_count,
+        ));
+        for (0..thread_count) |index| {
+            self.threads[index] = try std.Thread.spawn(
+                .{ .stack_size = 1024 * 1024 },
+                parallelListPipelineWorker,
+                .{&self.context},
+            );
+            self.spawned += 1;
+        }
+        try self.enqueueAll(items);
+    }
+
+    fn enqueue(self: *ParallelListPipeline, item: *ParallelListItem) !void {
+        self.pending[self.pending_len] = item;
+        self.pending_len += 1;
+        if (self.pending_len == self.pending.len) try self.flush();
+    }
+
+    fn enqueueAll(self: *ParallelListPipeline, items: []const *ParallelListItem) !void {
+        if (items.len == 0) return;
+        const queued = try self.queue.putUncancelable(self.init_state.io, items, items.len);
+        std.debug.assert(queued == items.len);
+    }
+
+    fn flush(self: *ParallelListPipeline) !void {
+        try self.enqueueAll(self.pending[0..self.pending_len]);
+        self.pending_len = 0;
+    }
+
+    fn finish(self: *ParallelListPipeline) !void {
+        std.debug.assert(self.started and !self.closed);
+        try self.flush();
+        self.closeAndJoin();
+    }
+
+    fn abort(self: *ParallelListPipeline) void {
+        if (!self.started or self.closed) return;
+        self.pending_len = 0;
+        self.closeAndJoin();
+    }
+
+    fn closeAndJoin(self: *ParallelListPipeline) void {
+        self.queue.close(self.init_state.io);
+        self.closed = true;
+        for (self.threads[0..self.spawned]) |thread| thread.join();
+        self.spawned = 0;
+    }
+};
+
+const ParallelListCollector = struct {
+    init: std.process.Init,
+    items: *std.ArrayList(*ParallelListItem),
+    pipeline: ?*ParallelListPipeline,
+
+    fn append(self: *ParallelListCollector, item: *ParallelListItem) !void {
+        try self.items.append(self.init.gpa, item);
+        const pipeline = self.pipeline orelse return;
+        if (pipeline.started) return pipeline.enqueue(item);
+        if (self.items.items.len == parallel_list_pipeline_threshold and
+            (std.Thread.getCpuCount() catch 1) > 1)
+        {
+            try pipeline.start(self.items.items);
+        }
+    }
+};
+
 const ParallelListContext = struct {
     init: std.process.Init,
     matchers: []const zgrep.matcher.Matcher,
-    paths: []const []u8,
+    items: []const *ParallelListItem,
     options: zgrep.scanner.ScanOptions,
-    results: []ParallelListResult,
+    probe_small_files_without_stat: bool,
     next: std.atomic.Value(usize) = .init(0),
     setup_failed: std.atomic.Value(bool) = .init(false),
 };
+
+fn parallelListPipelineWorker(context: *ParallelListPipelineContext) void {
+    const thread_matchers = std.heap.c_allocator.alloc(
+        zgrep.matcher.ThreadMatcher,
+        context.matchers.len,
+    ) catch {
+        context.setup_failed.store(true, .release);
+        parallelListPipelineDrainFailed(context);
+        return;
+    };
+    defer std.heap.c_allocator.free(thread_matchers);
+    var initialized: usize = 0;
+    defer for (thread_matchers[0..initialized]) |*matcher| matcher.deinit();
+    for (context.matchers, 0..) |*matcher, index| {
+        thread_matchers[index] = zgrep.matcher.ThreadMatcher.init(matcher) catch {
+            context.setup_failed.store(true, .release);
+            parallelListPipelineDrainFailed(context);
+            return;
+        };
+        initialized += 1;
+    }
+
+    var scan_options = context.options;
+    scan_options.list_files = null;
+    scan_options.quiet = true;
+    scan_options.count = false;
+    scan_options.context_state = null;
+    var batch: [parallel_list_dequeue_batch]*ParallelListItem = undefined;
+    while (true) {
+        const count = context.queue.getUncancelable(context.init.io, &batch, 1) catch break;
+        for (batch[0..count]) |item| {
+            const result = scanFileThreadMatchers(
+                context.init,
+                item.path,
+                thread_matchers,
+                scan_options,
+                true,
+            ) catch |err| {
+                item.result.err = err;
+                continue;
+            };
+            item.result.matched = result.matched;
+            if (context.capture_output and result.matched)
+                captureParallelOutput(context, item, thread_matchers);
+        }
+    }
+}
+
+fn captureParallelOutput(
+    context: *ParallelListPipelineContext,
+    item: *ParallelListItem,
+    matchers: []const zgrep.matcher.ThreadMatcher,
+) void {
+    const reserved = context.captured_slots.fetchAdd(1, .acq_rel);
+    if (reserved >= parallel_output_slot_count) {
+        _ = context.captured_slots.fetchSub(1, .acq_rel);
+        return;
+    }
+    const buffer = std.heap.c_allocator.alloc(u8, parallel_output_slot_bytes) catch {
+        _ = context.captured_slots.fetchSub(1, .acq_rel);
+        return;
+    };
+    var output = std.Io.Writer.fixed(buffer);
+    const result = scanFileOutputThreadMatchers(
+        context.init,
+        item.path,
+        matchers,
+        context.options,
+        &output,
+    ) catch {
+        std.heap.c_allocator.free(buffer);
+        _ = context.captured_slots.fetchSub(1, .acq_rel);
+        return;
+    };
+    if (!result.matched) {
+        std.heap.c_allocator.free(buffer);
+        _ = context.captured_slots.fetchSub(1, .acq_rel);
+        return;
+    }
+    item.output = buffer;
+    item.output_len = output.end;
+    item.output_binary_match = result.binary_match;
+}
+
+fn parallelListPipelineDrainFailed(context: *ParallelListPipelineContext) void {
+    var batch: [parallel_list_dequeue_batch]*ParallelListItem = undefined;
+    while (true) {
+        const count = context.queue.getUncancelable(context.init.io, &batch, 1) catch break;
+        for (batch[0..count]) |item| item.result.err = error.OutOfMemory;
+    }
+}
 
 fn parallelListWorker(context: *ParallelListContext) void {
     const thread_matchers = std.heap.c_allocator.alloc(
@@ -604,33 +1354,49 @@ fn parallelListWorker(context: *ParallelListContext) void {
     scan_options.context_state = null;
     while (true) {
         const index = context.next.fetchAdd(1, .monotonic);
-        if (index >= context.paths.len) break;
+        if (index >= context.items.len) break;
+        const item = context.items[index];
         const result = scanFileThreadMatchers(
             context.init,
-            context.paths[index],
+            item.path,
             thread_matchers,
             scan_options,
+            context.probe_small_files_without_stat,
         ) catch |err| {
-            context.results[index].err = err;
+            item.result.err = err;
             continue;
         };
-        context.results[index].matched = result.matched;
+        item.result.matched = result.matched;
     }
 }
 
 fn scanFileThreadMatchers(
     init: std.process.Init,
-    path: []const u8,
+    path: [:0]const u8,
     matchers: []const zgrep.matcher.ThreadMatcher,
     options: zgrep.scanner.ScanOptions,
+    probe_small_files_without_stat: bool,
 ) !zgrep.scanner.Result {
-    const file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
+    const file = try openTraversalFile(path);
     defer file.close(init.io);
+    const small_file_bytes = 64 * 1024;
+    if (probe_small_files_without_stat) {
+        var small_buffer: [small_file_bytes]u8 = undefined;
+        const bytes_read = file.readPositionalAll(init.io, &small_buffer, 0) catch
+            small_file_bytes;
+        if (bytes_read < small_file_bytes) {
+            if (bytes_read == 0) return .{};
+            return zgrep.scanner.scanBufferQuietThreadMatchers(
+                small_buffer[0..bytes_read],
+                matchers,
+                options,
+            );
+        }
+    }
+
     const stat = try file.stat(init.io);
     if (stat.kind != .file or stat.size == 0) return .{};
     if (stat.size > std.math.maxInt(usize)) return error.FileTooBig;
-
-    const small_file_bytes = 64 * 1024;
     if (stat.size <= small_file_bytes) {
         var small_buffer: [small_file_bytes]u8 = undefined;
         const bytes_read = try file.readPositionalAll(
@@ -657,6 +1423,15 @@ fn scanFileThreadMatchers(
     return zgrep.scanner.scanBufferQuietThreadMatchers(mapped, matchers, options);
 }
 
+fn openTraversalFile(path: [:0]const u8) !std.Io.File {
+    var flags: std.posix.O = .{ .ACCMODE = .RDONLY };
+    if (@hasField(std.posix.O, "CLOEXEC")) flags.CLOEXEC = true;
+    if (@hasField(std.posix.O, "LARGEFILE")) flags.LARGEFILE = true;
+    if (@hasField(std.posix.O, "NOCTTY")) flags.NOCTTY = true;
+    const handle = try std.posix.openatZ(std.posix.AT.FDCWD, path.ptr, flags, 0);
+    return .{ .handle = handle, .flags = .{ .nonblocking = false } };
+}
+
 fn scanFile(
     init: std.process.Init,
     path: []const u8,
@@ -668,10 +1443,13 @@ fn scanFile(
     const file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
     defer file.close(init.io);
     const stat = try file.stat(init.io);
+    var file_options = options;
+    if (stat.kind == .file and options.initial_tab_width != 0)
+        file_options.initial_tab_width = decimalDigitCount(stat.size);
     if (stat.kind == .file and stat.size > 0) {
         if (stat.size > std.math.maxInt(usize)) return error.FileTooBig;
         const small_file_bytes = 64 * 1024;
-        if (stat.size > small_file_bytes and options.quiet and options.binary_mode != .without_match) {
+        if (stat.size > small_file_bytes and file_options.quiet and file_options.binary_mode != .without_match) {
             var quiet_buffer: [64 * 1024]u8 = undefined;
             var quiet_reader = file.readerStreaming(init.io, &quiet_buffer);
             return zgrep.scanner.scanReader(
@@ -679,7 +1457,7 @@ fn scanFile(
                 init.gpa,
                 matchers,
                 path,
-                options,
+                file_options,
                 writer,
             );
         }
@@ -694,7 +1472,7 @@ fn scanFile(
                 small_buffer[0..bytes_read],
                 matchers,
                 path,
-                options,
+                file_options,
                 writer,
                 diagnostic_writer,
             );
@@ -708,9 +1486,9 @@ fn scanFile(
             0,
         );
         defer std.posix.munmap(mapped);
-        return scanRegularBuffer(mapped, matchers, path, options, writer, diagnostic_writer);
+        return scanRegularBuffer(mapped, matchers, path, file_options, writer, diagnostic_writer);
     }
-    if (stat.kind == .file) return zgrep.scanner.scanBuffer(&.{}, matchers, path, options, writer);
+    if (stat.kind == .file) return zgrep.scanner.scanBuffer(&.{}, matchers, path, file_options, writer);
 
     if (requiresBufferedScan(options)) {
         var read_buffer: [256 * 1024]u8 = undefined;
@@ -734,6 +1512,13 @@ fn scanFile(
     return result;
 }
 
+fn decimalDigitCount(value: u64) usize {
+    var remaining = value;
+    var digits: usize = 1;
+    while (remaining >= 10) : (digits += 1) remaining /= 10;
+    return digits;
+}
+
 fn scanRegularBuffer(
     buffer: []const u8,
     matchers: []const zgrep.matcher.Matcher,
@@ -743,8 +1528,15 @@ fn scanRegularBuffer(
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
     if (options.delimiter != 0 and options.binary_mode == .without_match) {
-        if (try zgrep.scanner.findNulParallel(buffer) != null)
-            return zgrep.scanner.scanBuffer(&.{}, matchers, path, options, writer);
+        if (try zgrep.scanner.findNulParallel(buffer)) |nul_position|
+            return scanWithoutMatchBinaryBuffer(
+                buffer,
+                nul_position,
+                matchers,
+                path,
+                options,
+                writer,
+            );
     } else if (options.binary_mode == .binary and shouldSummarizeBinary(options)) {
         if (try zgrep.scanner.findNulParallel(buffer)) |nul_position| {
             return scanBinaryBuffer(
@@ -758,6 +1550,22 @@ fn scanRegularBuffer(
             );
         }
     }
+    var scan_options = options;
+    if (matchers.len == 1) switch (matchers[0]) {
+        .regex => |*regex| {
+            if (regex.ascii_class_sequence != null and options.count and !options.quiet and
+                options.list_files == null and options.max_count == null)
+                scan_options.ascii_input = try zgrep.scanner.isAsciiParallel(buffer);
+        },
+        .posix_regex => |*regex| {
+            const needs_full_ascii = regex.ascii_literal != null or regex.ascii_alternation != null or
+                regex.ascii_class_sequence != null or
+                (regex.ascii_pcre and (options.count or regex.prefilter == null));
+            if (needs_full_ascii)
+                scan_options.ascii_input = try zgrep.scanner.isAsciiParallel(buffer);
+        },
+        else => {},
+    };
     if (options.count and !options.quiet and options.list_files == null and
         options.max_count == null and matchers.len == 1)
     {
@@ -774,7 +1582,9 @@ fn scanRegularBuffer(
                     path,
                     options.show_filename,
                     options.null_filename,
+                    options.colors,
                     count,
+                    options.line_buffered,
                 );
                 return .{ .matched = count != 0, .selected_lines = count };
             },
@@ -790,7 +1600,9 @@ fn scanRegularBuffer(
                     path,
                     options.show_filename,
                     options.null_filename,
+                    options.colors,
                     count,
+                    options.line_buffered,
                 );
                 return .{ .matched = count != 0, .selected_lines = count };
             },
@@ -800,22 +1612,71 @@ fn scanRegularBuffer(
                     regex,
                     options.invert,
                     options.delimiter,
+                    scan_options.ascii_input orelse false,
                 );
                 try zgrep.scanner.emitCount(
                     writer,
                     path,
                     options.show_filename,
                     options.null_filename,
+                    options.colors,
                     count,
+                    options.line_buffered,
                 );
                 return .{ .matched = count != 0, .selected_lines = count };
             },
-            .posix_regex => {},
+            .posix_regex => |*regex| {
+                const count: ?usize = if (scan_options.ascii_input orelse false) count: {
+                    if (regex.ascii_literal) |*literal| {
+                        if (!literal.whole_line)
+                            break :count try zgrep.scanner.parallelLiteralCount(
+                                buffer,
+                                literal,
+                                options.invert,
+                                options.delimiter,
+                            );
+                    } else if (regex.ascii_alternation) |*alternation| {
+                        break :count try zgrep.scanner.parallelAlternationCount(
+                            buffer,
+                            alternation,
+                            options.invert,
+                            options.delimiter,
+                        );
+                    } else if (regex.ascii_class_sequence != null or regex.ascii_pcre) {
+                        break :count try zgrep.scanner.parallelRegexCount(
+                            buffer,
+                            regex,
+                            options.invert,
+                            options.delimiter,
+                            true,
+                        );
+                    }
+                    break :count null;
+                } else null;
+                if (count) |selected| {
+                    try zgrep.scanner.emitCount(
+                        writer,
+                        path,
+                        options.show_filename,
+                        options.null_filename,
+                        options.colors,
+                        selected,
+                        options.line_buffered,
+                    );
+                    return .{ .matched = selected != 0, .selected_lines = selected };
+                }
+            },
         }
     }
-    if (try zgrep.scanner.parallelSelectedOutput(buffer, matchers, path, options, writer)) |result|
+    if (try zgrep.scanner.parallelSelectedOutput(buffer, matchers, path, scan_options, writer)) |result| {
+        if (result.binary_match)
+            try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
         return result;
-    return zgrep.scanner.scanBuffer(buffer, matchers, path, options, writer);
+    }
+    const result = try zgrep.scanner.scanBuffer(buffer, matchers, path, scan_options, writer);
+    if (result.binary_match)
+        try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+    return result;
 }
 
 fn scanStdin(
@@ -826,36 +1687,44 @@ fn scanStdin(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
-    if (requiresBufferedScan(options)) {
+    const stdin_file = std.Io.File.stdin();
+    var input_options = options;
+    if (options.initial_tab_width != 0) {
+        if (stdin_file.stat(init.io)) |stat| {
+            if (stat.kind == .file)
+                input_options.initial_tab_width = decimalDigitCount(stat.size);
+        } else |_| {}
+    }
+    if (requiresBufferedScan(input_options)) {
         var read_buffer: [256 * 1024]u8 = undefined;
-        var reader = std.Io.File.stdin().readerStreaming(init.io, &read_buffer);
+        var reader = stdin_file.readerStreaming(init.io, &read_buffer);
         const data = try reader.interface.allocRemaining(init.gpa, .unlimited);
         defer init.gpa.free(data);
         return scanBufferedData(
             data,
             matchers,
             path,
-            options,
+            input_options,
             writer,
             diagnostic_writer,
         );
     }
     if (try zgrep.scanner.scanFileLiteralCount(
-        std.Io.File.stdin(),
+        stdin_file,
         init.io,
         init.gpa,
         matchers,
         path,
-        options,
+        input_options,
         writer,
     )) |result| return result;
     if (try zgrep.scanner.scanFileLiteralOutput(
-        std.Io.File.stdin(),
+        stdin_file,
         init.io,
         init.gpa,
         matchers,
         path,
-        options,
+        input_options,
         writer,
     )) |result| {
         if (result.binary_match)
@@ -864,13 +1733,13 @@ fn scanStdin(
     }
 
     var read_buffer: [256 * 1024]u8 = undefined;
-    var reader = std.Io.File.stdin().readerStreaming(init.io, &read_buffer);
+    var reader = stdin_file.readerStreaming(init.io, &read_buffer);
     const result = try zgrep.scanner.scanReader(
         &reader.interface,
         init.gpa,
         matchers,
         path,
-        options,
+        input_options,
         writer,
     );
     if (result.binary_match)
@@ -879,7 +1748,7 @@ fn scanStdin(
 }
 
 fn requiresBufferedScan(options: zgrep.scanner.ScanOptions) bool {
-    return contextOutputEnabled(options) or
+    return (contextOutputEnabled(options) and !options.line_buffered) or
         (options.delimiter != 0 and options.binary_mode == .without_match);
 }
 
@@ -901,12 +1770,28 @@ fn scanBufferedData(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
-    if (options.delimiter == 0 or options.binary_mode == .text)
-        return zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
+    if (options.delimiter == 0 or options.binary_mode == .text) {
+        const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
+        if (result.binary_match)
+            try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+        return result;
+    }
     const nul_position = try zgrep.scanner.findNulParallel(data) orelse
-        return zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
+        {
+            const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
+            if (result.binary_match)
+                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+            return result;
+        };
     if (options.binary_mode == .without_match)
-        return zgrep.scanner.scanBuffer(&.{}, matchers, path, options, writer);
+        return scanWithoutMatchBinaryBuffer(
+            data,
+            nul_position,
+            matchers,
+            path,
+            options,
+            writer,
+        );
     return scanBinaryBuffer(
         data,
         nul_position,
@@ -918,6 +1803,36 @@ fn scanBufferedData(
     );
 }
 
+fn scanWithoutMatchBinaryBuffer(
+    buffer: []const u8,
+    nul_position: usize,
+    matchers: []const zgrep.matcher.Matcher,
+    path: []const u8,
+    options: zgrep.scanner.ScanOptions,
+    writer: *std.Io.Writer,
+) !zgrep.scanner.Result {
+    const text_end = zgrep.scanner.binaryTextPrefixEnd(
+        buffer,
+        nul_position,
+        options.delimiter,
+    );
+    if (text_end == 0 or options.count)
+        return zgrep.scanner.scanBuffer(&.{}, matchers, path, options, writer);
+    var result = try zgrep.scanner.scanBuffer(
+        buffer[0..text_end],
+        matchers,
+        path,
+        options,
+        writer,
+    );
+    if (options.quiet or options.list_files != null) return result;
+    if (options.max_count) |limit|
+        if (result.selected_lines >= limit) return result;
+    result.matched = false;
+    result.selected_lines = 0;
+    return result;
+}
+
 fn scanBinaryBuffer(
     buffer: []const u8,
     nul_position: usize,
@@ -927,24 +1842,27 @@ fn scanBinaryBuffer(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
-    const detection_block_bytes = 256 * 1024;
-    const nominal_start = nul_position / detection_block_bytes * detection_block_bytes;
-    const binary_start = if (nominal_start == 0)
-        0
-    else if (std.mem.findScalarLast(u8, buffer[0..nominal_start], options.delimiter)) |record_end|
-        record_end + 1
-    else
-        0;
+    const binary_start = zgrep.scanner.binaryTextPrefixEnd(
+        buffer,
+        nul_position,
+        options.delimiter,
+    );
 
+    var aggregate: zgrep.scanner.Result = .{};
     if (binary_start != 0) {
-        const text_result = try zgrep.scanner.scanBuffer(
+        aggregate = try zgrep.scanner.scanBuffer(
             buffer[0..binary_start],
             matchers,
             path,
             options,
             writer,
         );
-        if (text_result.matched) return text_result;
+        if (aggregate.matched) {
+            if (aggregate.binary_match)
+                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+            if (options.max_count) |limit|
+                if (aggregate.selected_lines >= limit) return aggregate;
+        }
     }
 
     var quiet_options = options;
@@ -959,7 +1877,9 @@ fn scanBinaryBuffer(
         writer,
     );
     if (result.matched) try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
-    return result;
+    aggregate.matched = aggregate.matched or result.matched;
+    aggregate.selected_lines += result.selected_lines;
+    return aggregate;
 }
 
 fn readPatternFile(init: std.process.Init, path: []const u8) ![]u8 {
@@ -1020,6 +1940,7 @@ const help_text =
     \\  -x, --line-regexp        match only whole lines
     \\  -z, --null-data         end input records with NUL, not newline
     \\  -a, --text               process binary files as text
+    \\  -U, --binary             do not strip CR characters (no-op on GNU/Linux)
     \\  -I                       assume binary files have no matches
     \\      --binary-files=TYPE  TYPE is binary, text, or without-match
     \\
@@ -1030,14 +1951,18 @@ const help_text =
     \\  -n, --line-number        print line numbers
     \\  -b, --byte-offset        print byte offsets
     \\  -o, --only-matching      print only non-empty matching parts
+    \\      --line-buffered      flush output after every complete line
+    \\  -T, --initial-tab        align line content on a tab stop
     \\  -A, --after-context=NUM  print NUM lines of trailing context
     \\  -B, --before-context=NUM print NUM lines of leading context
     \\  -C, --context=NUM        print NUM lines of output context
+    \\      --group-separator=SEP use SEP between context groups
+    \\      --no-group-separator suppress context group separators
     \\  -H, --with-filename      print file names
     \\  -h, --no-filename        suppress file names
     \\  -Z, --null               end printed file names with NUL
     \\      --label=LABEL        use LABEL for standard input
-    \\  -q, --quiet              stop after the first match
+    \\  -q, --quiet, --silent    stop after the first match
     \\  -s, --no-messages        suppress file error messages
     \\  -l, --files-with-matches print only names of matching files
     \\  -L, --files-without-match
@@ -1051,6 +1976,8 @@ const help_text =
     \\      --exclude=GLOB       skip files matching GLOB
     \\      --exclude-from=FILE  read exclude globs from FILE
     \\      --exclude-dir=GLOB   skip directories matching GLOB
+    \\      --color[=WHEN]       highlight matches; WHEN is always, never, or auto
+    \\      --colour[=WHEN]      same as --color
     \\      --help               display this help
     \\      --version            display version information
     \\  -V                       same as --version

@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  linux-x86_64:
+    name: Linux x86_64 GNU
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install native dependencies and locales
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpcre2-dev locales
+          sudo locale-gen en_US.UTF-8 nl_BE.UTF-8
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Verify release tag and source version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^const version = "\([^"]*\)";/\1/p' src/main.zig)
+          short_version=${version%.0}
+          if [[ "$GITHUB_REF_NAME" != "v$version" && "$GITHUB_REF_NAME" != "v$short_version" ]]; then
+            printf 'tag %s does not match source version %s\n' "$GITHUB_REF_NAME" "$version" >&2
+            exit 1
+          fi
+          grep -Fq ".version = \"$version\"" build.zig.zon
+          test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
+          test "$(git rev-list -n 1 "$GITHUB_REF_NAME")" = "$GITHUB_SHA"
+
+      - name: Run release gates
+        env:
+          ZGREP_FUZZ_ITERATIONS: 768
+        run: |
+          zig fmt --check build.zig src/*.zig
+          cc -std=gnu17 -Wall -Wextra -Werror -Wconversion -Wshadow \
+            -Iinclude -fsyntax-only src/pcre2_shim.c
+          zig build test -Doptimize=ReleaseSafe
+          zig build test -Doptimize=ReleaseFast
+          zig build test-fuzz -Doptimize=ReleaseFast
+          zig build test-stress -Doptimize=ReleaseFast
+
+      - name: Build and package Linux binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          zig build -Doptimize=ReleaseFast
+          package="zgrep-$GITHUB_REF_NAME-x86_64-linux-gnu"
+          mkdir -p "dist/$package"
+          cp zig-out/bin/zgrep zig-out/bin/zegrep README.md LICENSE "dist/$package/"
+          tar -C dist -czf "dist/$package.tar.gz" "$package"
+          sha256sum "dist/$package.tar.gz" >"dist/$package.tar.gz.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/*.tar.gz dist/*.sha256 \
+            --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
