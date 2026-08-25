@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ZGREP=${1:?missing zgrep binary}
+ZGREP=${1:?missing zgr binary}
 ZGREP=$(realpath "$ZGREP")
 TEST_DIR=$(mktemp -d /tmp/zgrep-locale.XXXXXX)
 trap 'rm -rf "$TEST_DIR"' EXIT HUP INT TERM
@@ -62,7 +62,7 @@ for candidate in C.utf8 en_US.utf8 nl_BE.utf8; do
     fi
 done
 if [ "${#locales[@]}" -eq 0 ]; then
-    echo 'zgrep locale differentials skipped: no UTF-8 locale available'
+    echo 'zgr locale differentials skipped: no UTF-8 locale available'
     exit 0
 fi
 
@@ -87,7 +87,7 @@ compare_file() {
         >"$TEST_DIR/zgrep.out" 2>"$TEST_DIR/zgrep.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgrep:/' "$TEST_DIR/gnu.err" >"$TEST_DIR/gnu-normalized.err"
+    sed 's/^grep:/zgr:/' "$TEST_DIR/gnu.err" >"$TEST_DIR/gnu-normalized.err"
     if [ "$gnu_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/gnu.out" "$TEST_DIR/zgrep.out" || \
         ! cmp -s "$TEST_DIR/gnu-normalized.err" "$TEST_DIR/zgrep.err"; then
@@ -116,7 +116,7 @@ compare_tree() {
     set -e
     sort -o "$TEST_DIR/gnu.out" "$TEST_DIR/gnu.out"
     sort -o "$TEST_DIR/zgrep.out" "$TEST_DIR/zgrep.out"
-    sed 's/^grep:/zgrep:/' "$TEST_DIR/gnu.err" >"$TEST_DIR/gnu-normalized.err"
+    sed 's/^grep:/zgr:/' "$TEST_DIR/gnu.err" >"$TEST_DIR/gnu-normalized.err"
     if [ "$gnu_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/gnu.out" "$TEST_DIR/zgrep.out" || \
         ! cmp -s "$TEST_DIR/gnu-normalized.err" "$TEST_DIR/zgrep.err"; then
@@ -178,5 +178,5 @@ for locale_name in "${locales[@]}"; do
     compare_file 'ASCII hybrid ERE without literal' "$locale_name" "$ASCII_CORPUS" -E -c '[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}'
 done
 
-printf 'zgrep UTF-8 locale differentials passed (%s cases across %s locales)\n' \
+printf 'zgr UTF-8 locale differentials passed (%s cases across %s locales)\n' \
     "$case_count" "${#locales[@]}"

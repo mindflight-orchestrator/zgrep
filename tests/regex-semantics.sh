@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ZGREP=${1:?missing zgrep binary}
+ZGREP=${1:?missing zgr binary}
 ZGREP=$(realpath "$ZGREP")
 TEST_DIR=$(mktemp -d /tmp/zgrep-regex-semantics.XXXXXX)
 trap 'rm -rf "$TEST_DIR"' EXIT HUP INT TERM
@@ -177,4 +177,4 @@ check 'ERE plus at expression start' '+a' -E -n -b -o
 check 'ERE question at expression start' '?a' -E -n -b -o
 check 'ERE interval at expression start' '{2}a' -E -n -b -o
 
-printf 'zgrep regex semantics differentials passed (%s cases)\n' "$checks"
+printf 'zgr regex semantics differentials passed (%s cases)\n' "$checks"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ZGREP=${1:?missing zgrep binary}
+ZGREP=${1:?missing zgr binary}
 ZGREP=$(realpath "$ZGREP")
 TEST_DIR=$(mktemp -d /tmp/zgrep-regex-fuzz.XXXXXX)
 trap 'rm -rf "$TEST_DIR"' EXIT HUP INT TERM
@@ -139,5 +139,5 @@ while [ "$index" -lt "$ITERATIONS" ]; do
     index=$((index + 1))
 done
 
-printf 'zgrep seeded regex differentials passed (%s checks, seed %s)\n' \
+printf 'zgr seeded regex differentials passed (%s checks, seed %s)\n' \
     "$checks" "$SEED"

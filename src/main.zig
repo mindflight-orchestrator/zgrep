@@ -8,9 +8,9 @@ pub fn main(init: std.process.Init) !void {
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
         if (err == error.BrokenPipe)
-            try stderr.interface.writeAll("zgrep: write error: Broken pipe\n")
+            try stderr.interface.writeAll("zgr: write error: Broken pipe\n")
         else
-            try stderr.interface.print("zgrep: {s}\n", .{@errorName(err)});
+            try stderr.interface.print("zgr: {s}\n", .{@errorName(err)});
         try stderr.interface.flush();
         std.process.exit(2);
     };
@@ -24,16 +24,16 @@ fn run(init: std.process.Init) !u8 {
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
         const exit_status: u8 = if (err == error.InvalidDirectoryMode) 1 else 2;
         switch (err) {
-            error.MissingPattern => try stderr.interface.writeAll("zgrep: missing search pattern\n"),
-            error.MissingOptionArgument => try stderr.interface.writeAll("zgrep: option requires an argument\n"),
-            error.UnknownOption => try stderr.interface.writeAll("zgrep: unrecognized option\n"),
-            error.InvalidNumber => try stderr.interface.writeAll("zgrep: invalid maximum count\n"),
-            error.InvalidBinaryMode => try stderr.interface.writeAll("zgrep: invalid argument for --binary-files\n"),
-            error.InvalidDirectoryMode => try stderr.interface.writeAll("zgrep: invalid argument for --directories\n"),
-            error.InvalidDeviceMode => try stderr.interface.writeAll("zgrep: invalid argument for --devices\n"),
+            error.MissingPattern => try stderr.interface.writeAll("zgr: missing search pattern\n"),
+            error.MissingOptionArgument => try stderr.interface.writeAll("zgr: option requires an argument\n"),
+            error.UnknownOption => try stderr.interface.writeAll("zgr: unrecognized option\n"),
+            error.InvalidNumber => try stderr.interface.writeAll("zgr: invalid maximum count\n"),
+            error.InvalidBinaryMode => try stderr.interface.writeAll("zgr: invalid argument for --binary-files\n"),
+            error.InvalidDirectoryMode => try stderr.interface.writeAll("zgr: invalid argument for --directories\n"),
+            error.InvalidDeviceMode => try stderr.interface.writeAll("zgr: invalid argument for --devices\n"),
             else => return err,
         }
-        try stderr.interface.writeAll("Try 'zgrep --help' for more information.\n");
+        try stderr.interface.writeAll("Try 'zgr --help' for more information.\n");
         try stderr.interface.flush();
         return exit_status;
     };
@@ -46,7 +46,7 @@ fn run(init: std.process.Init) !u8 {
     if (options.version) {
         var buffer: [128]u8 = undefined;
         var stdout = std.Io.File.stdout().writerStreaming(init.io, &buffer);
-        try stdout.interface.print("zgrep {s} (Zig 0.16)\n", .{version});
+        try stdout.interface.print("zgr {s} (Zig 0.16)\n", .{version});
         try stdout.interface.flush();
         return 0;
     }
@@ -60,7 +60,7 @@ fn run(init: std.process.Init) !u8 {
         const data = readPatternFile(init, pattern_path) catch |err| {
             var buffer: [4096]u8 = undefined;
             var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-            try stderr.interface.print("zgrep: {s}: {s}\n", .{ pattern_path, @errorName(err) });
+            try stderr.interface.print("zgr: {s}: {s}\n", .{ pattern_path, @errorName(err) });
             try stderr.interface.flush();
             return 2;
         };
@@ -87,7 +87,7 @@ fn run(init: std.process.Init) !u8 {
             const data = readPatternFile(init, filter_path) catch |err| {
                 var buffer: [4096]u8 = undefined;
                 var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-                try stderr.interface.print("zgrep: {s}: {s}\n", .{ filter_path, @errorName(err) });
+                try stderr.interface.print("zgr: {s}: {s}\n", .{ filter_path, @errorName(err) });
                 try stderr.interface.flush();
                 return 2;
             };
@@ -186,7 +186,7 @@ fn run(init: std.process.Init) !u8 {
             &stderr.interface,
         ) catch |err| blk: {
             if (err == error.WriteFailed) return stdout.err orelse err;
-            if (!options.no_messages) try stderr.interface.print("zgrep: standard input: {s}\n", .{@errorName(err)});
+            if (!options.no_messages) try stderr.interface.print("zgr: standard input: {s}\n", .{@errorName(err)});
             had_error = true;
             break :blk null;
         };
@@ -213,7 +213,7 @@ fn run(init: std.process.Init) !u8 {
                 );
             const value = result catch |err| {
                 if (err == error.WriteFailed) return stdout.err orelse err;
-                if (!options.no_messages) try stderr.interface.print("zgrep: {s}: {s}\n", .{ path, @errorName(err) });
+                if (!options.no_messages) try stderr.interface.print("zgr: {s}: {s}\n", .{ path, @errorName(err) });
                 had_error = true;
                 continue;
             };
@@ -354,7 +354,7 @@ fn scanDirectory(
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
             if (!no_messages) try diagnostic_writer.print(
-                "zgrep: {s}: warning: recursive directory loop\n",
+                "zgr: {s}: warning: recursive directory loop\n",
                 .{path},
             );
             init.gpa.free(resolved);
@@ -381,7 +381,7 @@ fn scanDirectory(
         var kind = entry.kind;
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -390,7 +390,7 @@ fn scanDirectory(
         if (kind == .sym_link) {
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -420,7 +420,7 @@ fn scanDirectory(
             else
                 continue,
         } catch |err| {
-            if (!no_messages) try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+            if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         };
@@ -493,7 +493,7 @@ fn scanDirectoryOutputParallel(
         for (items.items) |item| {
             if (item.result.err) |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
                 aggregate.had_error = true;
             } else if (item.result.matched) {
                 try matching_items.append(init.gpa, item);
@@ -505,7 +505,7 @@ fn scanDirectoryOutputParallel(
             for (matching_items.items) |item| {
                 try writer.writeAll(item.output.?[0..item.output_len]);
                 if (item.output_binary_match)
-                    try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{item.path});
+                    try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{item.path});
             }
             aggregate.matched = true;
             return aggregate;
@@ -531,7 +531,7 @@ fn scanDirectoryOutputParallel(
                     diagnostic_writer,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                        try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
                     aggregate.had_error = true;
                     continue;
                 };
@@ -572,7 +572,7 @@ fn scanDirectoryOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -704,19 +704,19 @@ fn scanCollectedOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
             aggregate.matched = aggregate.matched or result.matched;
         } else if (task.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
             aggregate.had_error = true;
         } else {
             try writer.writeAll(task.buffer[0..task.output_len]);
             if (task.result.binary_match)
-                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{item.path});
+                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{item.path});
             aggregate.matched = aggregate.matched or task.result.matched;
         }
 
@@ -968,7 +968,7 @@ fn scanDirectoryListParallel(
     for (items.items) |item| {
         if (item.result.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ item.path, @errorName(err) });
+                try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         }
@@ -1003,7 +1003,7 @@ fn collectDirectoryFiles(
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
             if (!no_messages) try diagnostic_writer.print(
-                "zgrep: {s}: warning: recursive directory loop\n",
+                "zgr: {s}: warning: recursive directory loop\n",
                 .{path},
             );
             init.gpa.free(resolved);
@@ -1029,7 +1029,7 @@ fn collectDirectoryFiles(
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1039,7 +1039,7 @@ fn collectDirectoryFiles(
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1057,7 +1057,7 @@ fn collectDirectoryFiles(
                 const child_directory = if (ancestors == null)
                     directory.openDir(init.io, entry.name, .{ .iterate = true }) catch |err| {
                         if (!no_messages)
-                            try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                            try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                         aggregate.had_error = true;
                         continue;
                     }
@@ -1077,7 +1077,7 @@ fn collectDirectoryFiles(
                     aggregate,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("zgrep: {s}: {s}\n", .{ full_path, @errorName(err) });
+                        try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
                     aggregate.had_error = true;
                 };
             } else continue,
@@ -1508,13 +1508,13 @@ fn scanFile(
         return result;
     }
     if (try zgrep.scanner.scanFileLiteralOutput(file, init.io, init.gpa, matchers, path, options, writer)) |result| {
-        if (result.binary_match) try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+        if (result.binary_match) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
         return result;
     }
     var read_buffer: [256 * 1024]u8 = undefined;
     var reader = file.readerStreaming(init.io, &read_buffer);
     const result = try zgrep.scanner.scanReader(&reader.interface, init.gpa, matchers, path, options, writer);
-    if (result.binary_match) try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+    if (result.binary_match) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
     return result;
 }
 
@@ -1676,12 +1676,12 @@ fn scanRegularBuffer(
     }
     if (try zgrep.scanner.parallelSelectedOutput(buffer, matchers, path, scan_options, writer)) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
         return result;
     }
     const result = try zgrep.scanner.scanBuffer(buffer, matchers, path, scan_options, writer);
     if (result.binary_match)
-        try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+        try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
     return result;
 }
 
@@ -1734,7 +1734,7 @@ fn scanStdin(
         writer,
     )) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
         return result;
     }
 
@@ -1749,7 +1749,7 @@ fn scanStdin(
         writer,
     );
     if (result.binary_match)
-        try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+        try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
     return result;
 }
 
@@ -1779,14 +1779,14 @@ fn scanBufferedData(
     if (options.delimiter == 0 or options.binary_mode == .text) {
         const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
         if (result.binary_match)
-            try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
         return result;
     }
     const nul_position = try zgrep.scanner.findNulParallel(data) orelse
         {
             const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
             if (result.binary_match)
-                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
             return result;
         };
     if (options.binary_mode == .without_match)
@@ -1865,7 +1865,7 @@ fn scanBinaryBuffer(
         );
         if (aggregate.matched) {
             if (aggregate.binary_match)
-                try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
             if (options.max_count) |limit|
                 if (aggregate.selected_lines >= limit) return aggregate;
         }
@@ -1882,7 +1882,7 @@ fn scanBinaryBuffer(
         quiet_options,
         writer,
     );
-    if (result.matched) try diagnostic_writer.print("zgrep: {s}: binary file matches\n", .{path});
+    if (result.matched) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
     aggregate.matched = aggregate.matched or result.matched;
     aggregate.selected_lines += result.selected_lines;
     return aggregate;
@@ -1930,7 +1930,7 @@ fn appendFilterRules(
 }
 
 const help_text =
-    \\Usage: zgrep [OPTION]... PATTERN [FILE]...
+    \\Usage: zgr [OPTION]... PATTERN [FILE]...
     \\Search for PATTERN in each FILE (or standard input).
     \\
     \\Pattern syntax:

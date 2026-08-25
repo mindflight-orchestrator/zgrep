@@ -4,7 +4,7 @@ set -eu
 CORPUS=${1:-/tmp/zgrep-bench-varied.txt}
 REPEATS=${2:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
-ZGREP=${ZGREP:-./zig-out/bin/zgrep}
+ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
 BENCH_LOCALE=${BENCH_LOCALE:-C}
 BENCH_CACHE=${BENCH_CACHE:-warm}
 BENCH_CPUSET=${BENCH_CPUSET:-}
@@ -20,7 +20,7 @@ if [ ! -r "$CORPUS" ]; then
     exit 2
 fi
 if [ ! -x "$ZGREP" ]; then
-    echo "zgrep binary not found: $ZGREP" >&2
+    echo "zgr binary not found: $ZGREP" >&2
     echo "run: zig build -Doptimize=ReleaseFast" >&2
     exit 2
 fi
@@ -145,7 +145,7 @@ verify_case() {
     reference_status=$captured_status
     run_capture "$SINK" env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-        echo "benchmark correctness failure: zgrep / $label" >&2
+        echo "benchmark correctness failure: zgr / $label" >&2
         exit 1
     fi
     run_capture "$SINK" env LC_ALL="$BENCH_LOCALE" rg $ripgrep_flags "$pattern" "$CORPUS"
@@ -164,7 +164,7 @@ benchmark_case() {
 
     printf '%s\n' "$label"
     verify_case "$label" "$zgrep_flags" "$grep_flags" "$ripgrep_flags" "$pattern"
-    benchmark zgrep env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
+    benchmark zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$CORPUS"
     benchmark ripgrep env LC_ALL="$BENCH_LOCALE" rg $ripgrep_flags "$pattern" "$CORPUS"
 }
@@ -180,10 +180,10 @@ benchmark_color_case() {
     reference_status=$captured_status
     run_capture "$SINK" env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-        echo "benchmark correctness failure: zgrep / $label" >&2
+        echo "benchmark correctness failure: zgr / $label" >&2
         exit 1
     fi
-    benchmark zgrep env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
+    benchmark zgr env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env GREP_COLORS= LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$CORPUS"
 }
 
@@ -254,6 +254,6 @@ benchmark_case 'regexp output with context' \
     '-a -E -n -b -C2' '-a -E -n -b -C2' '-a -n -b -C2' '[a-z]+-needle'
 
 printf '%s\n' 'rare literal hit from stdin'
-benchmark_stream zgrep env LC_ALL="$BENCH_LOCALE" "$ZGREP" -F -c rare-needle
+benchmark_stream zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" -F -c rare-needle
 benchmark_stream grep env LC_ALL="$BENCH_LOCALE" grep -F -c rare-needle
 benchmark_stream ripgrep env LC_ALL="$BENCH_LOCALE" rg -a -F -c rare-needle

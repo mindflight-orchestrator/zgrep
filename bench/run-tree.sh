@@ -5,7 +5,7 @@ TREE=${1:?usage: bench/run-tree.sh TREE [PATTERN] [REPEATS]}
 PATTERN=${2:-SearcherBuilder}
 REPEATS=${3:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
-ZGREP=${ZGREP:-./zig-out/bin/zgrep}
+ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
 BENCH_LOCALE=${BENCH_LOCALE:-C}
 BENCH_CACHE=${BENCH_CACHE:-warm}
 BENCH_CPUSET=${BENCH_CPUSET:-}
@@ -43,7 +43,7 @@ report_samples() {
         }'
 }
 if [ ! -x "$ZGREP" ]; then
-    echo "zgrep binary not found: $ZGREP" >&2
+    echo "zgr binary not found: $ZGREP" >&2
     echo "run: zig build -Doptimize=ReleaseFast" >&2
     exit 2
 fi
@@ -127,7 +127,7 @@ verify_case() {
     run_sorted "$REFERENCE" env LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$TREE" || [ "$?" -eq 1 ]
     run_sorted "$CANDIDATE" env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$TREE" || [ "$?" -eq 1 ]
     if ! cmp -s "$REFERENCE" "$CANDIDATE"; then
-        echo "recursive result mismatch: zgrep / $label" >&2
+        echo "recursive result mismatch: zgr / $label" >&2
         diff -u "$REFERENCE" "$CANDIDATE" >&2 || true
         exit 1
     fi
@@ -148,7 +148,7 @@ benchmark_case() {
 
     printf '%s\n' "$label"
     verify_case "$label" "$zgrep_flags" "$grep_flags" "$ripgrep_flags" "$pattern"
-    benchmark zgrep env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$TREE"
+    benchmark zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$TREE"
     benchmark grep env LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$TREE"
     benchmark ripgrep env LC_ALL="$BENCH_LOCALE" rg $ripgrep_flags "$pattern" "$TREE"
 }

@@ -1,5 +1,8 @@
 # zgrep v0.2 — petit benchmark comparatif
 
+> Ce benchmark précède le renommage de l'exécutable en `zgr`. Les résultats
+> restent historiques ; la commande de rejeu ci-dessous utilise le nom actuel.
+
 Mesure capturée le 2026-08-25 à 10:59 CEST sur Linux 6.8.0 x86_64,
 Intel Core i9-13900KF (32 CPU logiques), avec Zig 0.16.0, GNU grep 3.11 et
 ripgrep 15.2.0. Le corpus est
@@ -49,6 +52,6 @@ Pour rejouer le profil public courant sans baseline A/B :
 
 ```sh
 BENCH_PROFILE=ripgrep-linux-default BENCH_BATCHES=9 BENCH_CPUSET=0-15 \
-  BENCH_LOCALE=C ZGREP=./zig-out/bin/zgrep \
+  BENCH_LOCALE=C ZGR=./zig-out/bin/zgr \
   bench/run-tree.sh /usr/src/linux-headers-6.8.0-137 PM_RESUME 5
 ```

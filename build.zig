@@ -26,13 +26,11 @@ pub fn build(b: *std.Build) void {
     });
     core.linkSystemLibrary("pcre2-8", .{});
 
-    const zgrep = addExecutable(b, "zgrep", core, target, optimize);
-    const zegrep = addExecutable(b, "zegrep", core, target, optimize);
-    b.installArtifact(zgrep);
-    b.installArtifact(zegrep);
+    const zgr = addExecutable(b, "zgr", core, target, optimize);
+    b.installArtifact(zgr);
 
-    const run_step = b.step("run", "Run zgrep");
-    const run_cmd = b.addRunArtifact(zgrep);
+    const run_step = b.step("run", "Run zgr");
+    const run_cmd = b.addRunArtifact(zgr);
     if (b.args) |args| run_cmd.addArgs(args);
     run_step.dependOn(&run_cmd.step);
 
@@ -42,26 +40,25 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_unit_tests.step);
 
     const cli_tests = b.addSystemCommand(&.{ "bash", "tests/differential.sh" });
-    cli_tests.addArtifactArg(zgrep);
-    cli_tests.addArtifactArg(zegrep);
+    cli_tests.addArtifactArg(zgr);
     test_step.dependOn(&cli_tests.step);
 
     const regex_tests = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
-    regex_tests.addArtifactArg(zgrep);
+    regex_tests.addArtifactArg(zgr);
     test_step.dependOn(&regex_tests.step);
 
     const locale_tests = b.addSystemCommand(&.{ "bash", "tests/locale-semantics.sh" });
-    locale_tests.addArtifactArg(zgrep);
+    locale_tests.addArtifactArg(zgr);
     test_step.dependOn(&locale_tests.step);
 
     const fuzz_step = b.step("test-fuzz", "Run deterministic BRE/ERE differential fuzz tests");
     const fuzz_tests = b.addSystemCommand(&.{ "bash", "tests/regex-fuzz.sh" });
-    fuzz_tests.addArtifactArg(zgrep);
+    fuzz_tests.addArtifactArg(zgr);
     fuzz_step.dependOn(&fuzz_tests.step);
 
     const stress_step = b.step("test-stress", "Run large-file differential stress tests");
     const stress_tests = b.addSystemCommand(&.{ "bash", "tests/stress.sh" });
-    stress_tests.addArtifactArg(zgrep);
+    stress_tests.addArtifactArg(zgr);
     stress_step.dependOn(&stress_tests.step);
 }
 

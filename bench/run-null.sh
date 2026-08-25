@@ -4,7 +4,7 @@ set -eu
 CORPUS=${1:-/tmp/zgrep-bench-nul.dat}
 REPEATS=${2:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
-ZGREP=${ZGREP:-./zig-out/bin/zgrep}
+ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
 SINK=$(mktemp /tmp/zgrep-null-benchmark-output.XXXXXX)
 REFERENCE=$(mktemp /tmp/zgrep-null-benchmark-reference.XXXXXX)
 SAMPLES=$(mktemp /tmp/zgrep-null-benchmark-samples.XXXXXX)
@@ -36,7 +36,7 @@ report_samples() {
         }'
 }
 if [ ! -x "$ZGREP" ]; then
-    echo "zgrep binary not found: $ZGREP" >&2
+    echo "zgr binary not found: $ZGREP" >&2
     exit 2
 fi
 case $REPEATS in ''|*[!0-9]*|0) echo "repeats must be a positive integer" >&2; exit 2 ;; esac
@@ -82,7 +82,7 @@ benchmark_case() {
     reference_status=$captured_status
     run_capture "$SINK" env LC_ALL=C "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-        echo "NUL benchmark correctness failure: zgrep / $label" >&2
+        echo "NUL benchmark correctness failure: zgr / $label" >&2
         exit 1
     fi
     run_capture "$SINK" env LC_ALL=C rg $ripgrep_flags "$pattern" "$CORPUS"
@@ -105,7 +105,7 @@ benchmark_case() {
     fi
 
     printf '%s\n' "$label"
-    benchmark zgrep env LC_ALL=C "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
+    benchmark zgr env LC_ALL=C "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env LC_ALL=C grep $grep_flags "$pattern" "$CORPUS"
     benchmark ripgrep env LC_ALL=C rg $ripgrep_flags "$pattern" "$CORPUS"
 }

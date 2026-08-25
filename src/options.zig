@@ -63,8 +63,7 @@ pub const Options = struct {
         errdefer result.deinit(allocator);
 
         var it = std.process.Args.Iterator.init(args);
-        const argv0 = it.next() orelse "zgrep";
-        if (std.mem.endsWith(u8, argv0, "egrep")) result.mode = .extended;
+        _ = it.next();
 
         var parse_options = true;
         while (it.next()) |arg_z| {
