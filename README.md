@@ -1,5 +1,7 @@
 # zgr
 
+[English](README.md) | [Français](README.fr.md)
+
 Fast, grep-compatible text search written in Zig 0.16 for x86_64 GNU/Linux.
 
 `zgr` combines optimized literal and regular-expression search with GNU-oriented
