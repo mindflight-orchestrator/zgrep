@@ -26,6 +26,11 @@ zg_regex *zg_regex_compile(
 bool zg_regex_matches(zg_regex *regex, const uint8_t *subject, size_t subject_len);
 bool zg_regex_posix_matches(zg_regex *regex, const uint8_t *subject, size_t subject_len);
 bool zg_regex_uses_pcre(const zg_regex *regex);
+bool zg_regex_required_literal(
+    const zg_regex *regex,
+    const uint8_t **ptr,
+    size_t *len
+);
 bool zg_regex_find(
     zg_regex *regex,
     const uint8_t *subject,

@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .zpcre2 = .{
-            .url = "git+https://github.com/mindflight-orchestrator/zpcre2.git?ref=v0.2#7bc774c701b6fbf094af0717d92c94c9cdf8e304",
-            .hash = "zpcre2-0.1.0-inU7b0vTBgDW2dqZEvCHjIHYR594vIjC5_4vz6uhUWa6",
+            .url = "git+https://github.com/mindflight-orchestrator/zpcre2.git?ref=v0.4#c91d476277c573e3f7afa0462fcc1ae4c690ae82",
+            .hash = "zpcre2-0.1.0-inU7b_E3BwBdBeCM9Vpava1GBUdJ_6u1pdZYdZnuQ7rG",
         },
     },
     .paths = .{

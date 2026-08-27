@@ -119,7 +119,7 @@ pub const Matcher = union(enum) {
             error_buffer.ptr,
             error_buffer.len,
         ) orelse return error.InvalidRegex;
-        const prefilter = if (!ignore_case)
+        const ere_prefilter = if (!ignore_case)
             if (fixed_posix)
                 Literal.init(pattern, false, false, false)
             else if (mode == .extended)
@@ -128,6 +128,13 @@ pub const Matcher = union(enum) {
                 null
         else
             null;
+        var study_ptr: [*c]const u8 = undefined;
+        var study_len: usize = 0;
+        const prefilter = if (!ignore_case and !fixed_posix and
+            c.zg_regex_required_literal(regex, &study_ptr, &study_len) and study_len >= 3)
+            Literal.init(study_ptr[0..study_len], false, false, false)
+        else
+            ere_prefilter;
         const uses_pcre = c.zg_regex_uses_pcre(regex);
         const value: Regex = .{
             .compiled = regex,

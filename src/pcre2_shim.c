@@ -194,6 +194,17 @@ bool zg_regex_uses_pcre(const zg_regex *regex) {
     return regex->code != NULL;
 }
 
+bool zg_regex_required_literal(
+    const zg_regex *regex,
+    const uint8_t **ptr,
+    size_t *len
+) {
+    (void)regex;
+    (void)ptr;
+    (void)len;
+    return false;
+}
+
 bool zg_regex_pcre_find(
     zg_regex *regex,
     const uint8_t *subject,

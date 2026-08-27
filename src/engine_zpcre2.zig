@@ -170,6 +170,18 @@ pub fn zg_regex_uses_pcre(regex: *const zg_regex) bool {
     return regex.pcre != null;
 }
 
+pub fn zg_regex_required_literal(
+    regex: *const zg_regex,
+    ptr_out: [*c][*c]const u8,
+    len_out: [*c]usize,
+) bool {
+    const compiled = if (regex.pcre) |*value| value else return false;
+    if (compiled.study.req_lit_len < 3) return false;
+    ptr_out.?.* = @ptrCast(&compiled.study.req_lit);
+    len_out.?.* = compiled.study.req_lit_len;
+    return true;
+}
+
 pub fn zg_regex_matches(regex: *zg_regex, subject: [*]const u8, subject_len: usize) bool {
     const compiled = regex.pcre orelse return false;
     return compiled.isMatch(slice(subject, subject_len));
