@@ -45,6 +45,13 @@ pub const Matcher = union(enum) {
                 line_regexp,
                 word_regexp,
             )) |alternation| return .{ .alternation = alternation };
+            if (try LiteralAlternation.initGroupedPrefix(
+                allocator,
+                pattern,
+                ignore_case,
+                line_regexp,
+                word_regexp,
+            )) |alternation| return .{ .alternation = alternation };
         }
 
         const fixed_posix = utf8_locale and mode == .fixed;
@@ -190,6 +197,7 @@ pub const Matcher = union(enum) {
 pub const LiteralAlternation = struct {
     literals: []Literal,
     allocator: std.mem.Allocator,
+    storage: []u8 = &.{},
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -223,8 +231,40 @@ pub const LiteralAlternation = struct {
         return .{ .literals = literals, .allocator = allocator };
     }
 
+    pub fn initGroupedPrefix(
+        allocator: std.mem.Allocator,
+        pattern: []const u8,
+        ignore_case: bool,
+        whole_line: bool,
+        word: bool,
+    ) !?LiteralAlternation {
+        if (ignore_case or whole_line or word) return null;
+        const parsed = parsePrefixAlt(pattern) orelse return null;
+        const n = parsed.prefix.len + parsed.a.len + 1 + parsed.prefix.len + parsed.b.len;
+        const storage = try allocator.alloc(u8, n);
+        errdefer allocator.free(storage);
+        var off: usize = 0;
+        @memcpy(storage[off..][0..parsed.prefix.len], parsed.prefix);
+        off += parsed.prefix.len;
+        @memcpy(storage[off..][0..parsed.a.len], parsed.a);
+        off += parsed.a.len;
+        storage[off] = '|';
+        off += 1;
+        @memcpy(storage[off..][0..parsed.prefix.len], parsed.prefix);
+        off += parsed.prefix.len;
+        @memcpy(storage[off..][0..parsed.b.len], parsed.b);
+
+        var result = (try init(allocator, storage, ignore_case, whole_line, word)) orelse {
+            allocator.free(storage);
+            return null;
+        };
+        result.storage = storage;
+        return result;
+    }
+
     pub fn deinit(self: *LiteralAlternation) void {
         self.allocator.free(self.literals);
+        if (self.storage.len != 0) self.allocator.free(self.storage);
     }
 
     pub fn matches(self: *const LiteralAlternation, line: []const u8) bool {
@@ -1246,6 +1286,41 @@ fn isPosixBracketSubexpressionEnd(pattern: []const u8, index: usize) bool {
     return pattern[index - 1] == ':' or pattern[index - 1] == '.' or pattern[index - 1] == '=';
 }
 
+fn parsePrefixAlt(pattern: []const u8) ?struct { prefix: []const u8, a: []const u8, b: []const u8 } {
+    if (pattern.len < 5) return null;
+    var paren: ?usize = null;
+    var bar: ?usize = null;
+    var close: ?usize = null;
+    for (pattern, 0..) |byte, index| {
+        switch (byte) {
+            '\\', '[', ']', '.', '^', '$', '*', '{', '}', '+', '?' => return null,
+            '(' => {
+                if (paren != null) return null;
+                paren = index;
+            },
+            '|' => {
+                if (paren == null or bar != null) return null;
+                bar = index;
+            },
+            ')' => {
+                if (paren == null or bar == null or close != null) return null;
+                close = index;
+            },
+            else => {},
+        }
+    }
+    const open_at = paren orelse return null;
+    const bar_at = bar orelse return null;
+    const close_at = close orelse return null;
+    if (close_at != pattern.len - 1 or bar_at <= open_at + 1 or close_at <= bar_at + 1)
+        return null;
+    return .{
+        .prefix = pattern[0..open_at],
+        .a = pattern[open_at + 1 .. bar_at],
+        .b = pattern[bar_at + 1 .. close_at],
+    };
+}
+
 fn requiredLiteralEre(pattern: []const u8) ?[]const u8 {
     var depth: usize = 0;
     var in_class = false;
@@ -1622,6 +1697,38 @@ test "pure ERE literal alternation promotion" {
         null,
         try LiteralAlternation.init(std.testing.allocator, "error|warn.*", false, false, false),
     );
+}
+
+test "grouped literal prefix alt matches without the engine" {
+    try std.testing.expectEqualStrings("status=", parsePrefixAlt("status=(200|500)").?.prefix);
+    try std.testing.expectEqualStrings("200", parsePrefixAlt("status=(200|500)").?.a);
+    try std.testing.expectEqualStrings("500", parsePrefixAlt("status=(200|500)").?.b);
+    try std.testing.expectEqual(null, parsePrefixAlt("[a-z]+-needle"));
+    try std.testing.expectEqual(null, parsePrefixAlt("foo|bar"));
+    try std.testing.expectEqual(null, parsePrefixAlt("(foo|bar)required"));
+
+    var error_buffer: [256]u8 = @splat(0);
+    var matcher = try Matcher.init(
+        std.testing.allocator,
+        "status=(200|500)",
+        .extended,
+        false,
+        false,
+        false,
+        false,
+        false,
+        &error_buffer,
+    );
+    defer matcher.deinit();
+    try std.testing.expect(matcher.matches("2026 INFO host=web-01 status=200 latency=3"));
+    try std.testing.expect(matcher.matches("status=500"));
+    try std.testing.expect(!matcher.matches("status=404"));
+    const found = matcher.find("xx status=200 yy", 0).?;
+    try std.testing.expectEqualStrings("status=200", "xx status=200 yy"[found.start..found.end]);
+    switch (matcher) {
+        .alternation => {},
+        else => return error.TestUnexpectedResult,
+    }
 }
 
 test "PCRE2 worker owns independent match data" {

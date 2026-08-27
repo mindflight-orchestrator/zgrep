@@ -160,7 +160,30 @@ pub fn scanBuffer(
                     if (regex.ascii_literal) |*literal| {
                         if (!literal.whole_line and literal.pattern.len != 0)
                             return scanLiteralContextFast(buffer, matchers, literal, path, options, writer);
+                    } else if (regex.prefilter) |*prefilter| {
+                        if (shouldUseRegexPrefilter(buffer, prefilter))
+                            return scanRegexPrefilterContextFast(
+                                buffer,
+                                matchers,
+                                regex,
+                                prefilter,
+                                path,
+                                options,
+                                writer,
+                            );
                     }
+                },
+                .regex => |*regex| if (regex.prefilter) |*prefilter| {
+                    if (shouldUseRegexPrefilter(buffer, prefilter))
+                        return scanRegexPrefilterContextFast(
+                            buffer,
+                            matchers,
+                            regex,
+                            prefilter,
+                            path,
+                            options,
+                            writer,
+                        );
                 },
                 else => {},
             }
@@ -2015,9 +2038,9 @@ fn countRegexSelected(
         total += 1;
         const line = buffer[line_start..line_end];
         const matches = if (ascii_input)
-            regex.matchesAsciiClassSequence(line) orelse regex.matches(line)
+            regex.matchesAsciiClassSequence(line) orelse regex.matchesFull(line)
         else
-            regex.matches(line);
+            regex.matchesFull(line);
         matching += @intFromBool(matches);
         if (line_end == buffer.len) break;
         line_start = line_end + 1;
@@ -2042,16 +2065,12 @@ fn countRegexSelectedWithWorker(
     while (line_start < buffer.len) {
         const line_end = std.mem.findScalarPos(u8, buffer, line_start, delimiter) orelse buffer.len;
         const line = buffer[line_start..line_end];
-        const prefilter_matches = if (regex.prefilter) |*prefilter|
-            prefilter.find(line, 0) != null
-        else
-            true;
         total += 1;
         const matches = if (ascii_input)
             regex.matchesAsciiClassSequence(line) orelse worker.matches(line)
         else
             worker.matches(line);
-        matching += @intFromBool(prefilter_matches and matches);
+        matching += @intFromBool(matches);
         if (line_end == buffer.len) break;
         line_start = line_end + 1;
     }
@@ -2974,6 +2993,112 @@ fn scanLiteralContextFast(
         else
             0;
         const line_end = std.mem.findScalarPos(u8, buffer, match_position, options.delimiter) orelse buffer.len;
+        if (last_selected_start != null and last_selected_start.? == line_start) {
+            if (line_end == buffer.len) break;
+            search_position = line_end + 1;
+            continue;
+        }
+
+        line_number += std.mem.countScalar(u8, buffer[numbered_through..line_start], options.delimiter);
+        numbered_through = line_start;
+        last_selected_start = line_start;
+        last_selected_number = line_number;
+        result.matched = true;
+        result.selected_lines += 1;
+
+        const context_start = rewindLines(
+            buffer,
+            line_start,
+            line_number,
+            options.before_context,
+            options.delimiter,
+        );
+        const context_end = advanceLinesEnd(buffer, line_end, options.after_context, options.delimiter);
+        if (!has_group) {
+            group_start = context_start.start;
+            group_start_number = context_start.number;
+            group_end = context_end;
+            has_group = true;
+        } else if (context_start.start <= group_end + @intFromBool(group_end < buffer.len)) {
+            group_end = @max(group_end, context_end);
+        } else {
+            try beginContextGroup(writer, options, !emitted_group);
+            try emitMatchedContextGroup(
+                writer,
+                buffer,
+                matchers,
+                path,
+                options,
+                group_start,
+                group_start_number,
+                group_end,
+                null,
+            );
+            emitted_group = true;
+            group_start = context_start.start;
+            group_start_number = context_start.number;
+            group_end = context_end;
+        }
+
+        if (options.max_count == result.selected_lines) break;
+        if (line_end == buffer.len) break;
+        search_position = line_end + 1;
+    }
+
+    if (has_group) {
+        try beginContextGroup(writer, options, !emitted_group);
+        try emitMatchedContextGroup(
+            writer,
+            buffer,
+            matchers,
+            path,
+            options,
+            group_start,
+            group_start_number,
+            group_end,
+            if (options.max_count == result.selected_lines) last_selected_number else null,
+        );
+    }
+    return result;
+}
+
+fn scanRegexPrefilterContextFast(
+    buffer: []const u8,
+    matchers: []const matcher_mod.Matcher,
+    regex: *const matcher_mod.Regex,
+    prefilter: *const matcher_mod.Literal,
+    path: []const u8,
+    options: ScanOptions,
+    writer: *std.Io.Writer,
+) !Result {
+    var result: Result = .{};
+    var search_position: usize = 0;
+    var numbered_through: usize = 0;
+    var line_number: usize = 1;
+    var last_selected_start: ?usize = null;
+    var last_selected_number: usize = 0;
+    var group_start: usize = 0;
+    var group_start_number: usize = 1;
+    var group_end: usize = 0;
+    var has_group = false;
+    var emitted_group = false;
+
+    while (search_position < buffer.len) {
+        const match_position = prefilter.find(buffer, search_position) orelse break;
+        const line_start = if (std.mem.findScalarLast(u8, buffer[0..match_position], options.delimiter)) |record_end|
+            record_end + 1
+        else
+            0;
+        const line_end = std.mem.findScalarPos(u8, buffer, match_position, options.delimiter) orelse buffer.len;
+        const line = buffer[line_start..line_end];
+        const matches = if (regex.ascii_pcre)
+            regex.matchesPosix(line)
+        else
+            regex.matchesFull(line);
+        if (!matches) {
+            search_position = match_position + 1;
+            continue;
+        }
         if (last_selected_start != null and last_selected_start.? == line_start) {
             if (line_end == buffer.len) break;
             search_position = line_end + 1;
@@ -4140,6 +4265,60 @@ test "parallel literal context preserves groups numbers and byte offsets" {
             "input-5-24-away\n" ++
             "input:6:29:needle two\n" ++
             "input-7-40-last\n",
+        output.written(),
+    );
+}
+
+test "regex prefilter context skips non-matching lines" {
+    var error_buffer: [256]u8 = @splat(0);
+    var matcher = try matcher_mod.Matcher.init(
+        std.testing.allocator,
+        "[a-z]+-needle",
+        .extended,
+        false,
+        false,
+        false,
+        false,
+        false,
+        &error_buffer,
+    );
+    defer matcher.deinit();
+    const regex, const prefilter = switch (matcher) {
+        .regex, .posix_regex => |*value| .{ value, value.prefilter orelse return error.TestUnexpectedResult },
+        else => return error.TestUnexpectedResult,
+    };
+    const matchers = [_]matcher_mod.Matcher{matcher};
+    const data = "before\nABC-needle\nfoo-needle\nafter";
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
+    const result = try scanRegexPrefilterContextFast(
+        data,
+        &matchers,
+        regex,
+        &prefilter,
+        "input",
+        .{
+            .invert = false,
+            .count = false,
+            .line_number = true,
+            .show_filename = false,
+            .quiet = false,
+            .list_files = null,
+            .max_count = null,
+            .byte_offset = true,
+            .only_matching = false,
+            .before_context = 1,
+            .after_context = 1,
+            .binary_mode = .text,
+        },
+        &output.writer,
+    );
+    try std.testing.expect(result.matched);
+    try std.testing.expectEqual(1, result.selected_lines);
+    try std.testing.expectEqualStrings(
+        "2-7-ABC-needle\n" ++
+            "3:18:foo-needle\n" ++
+            "4-29-after\n",
         output.written(),
     );
 }
