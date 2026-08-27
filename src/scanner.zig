@@ -2324,33 +2324,61 @@ fn alternationCandidateMask(
     head_bytes: @Vector(32, u8),
     alternation: *const matcher_mod.LiteralAlternation,
 ) u32 {
-    const Bytes = @Vector(32, u8);
     var candidate_mask: u32 = 0;
     for (alternation.literals) |*literal| {
-        const first_exact: Bytes = @splat(literal.pattern[0]);
-        const first_lower: Bytes = @splat(std.ascii.toLower(literal.pattern[0]));
-        const first_upper: Bytes = @splat(std.ascii.toUpper(literal.pattern[0]));
-        const exact_mask: u32 = @bitCast(head_bytes == first_exact);
-        const lower_mask: u32 = @bitCast(head_bytes == first_lower);
-        const upper_mask: u32 = @bitCast(head_bytes == first_upper);
-        var literal_mask = if (literal.ignore_case) lower_mask | upper_mask else exact_mask;
-        const last = literal.pattern.len - 1;
-        if (last != 0) {
-            const tails: *align(1) const Bytes = @ptrCast(buffer[index + last ..].ptr);
-            const last_exact: Bytes = @splat(literal.pattern[last]);
-            const last_lower: Bytes = @splat(std.ascii.toLower(literal.pattern[last]));
-            const last_upper: Bytes = @splat(std.ascii.toUpper(literal.pattern[last]));
-            const last_exact_mask: u32 = @bitCast(tails.* == last_exact);
-            const last_lower_mask: u32 = @bitCast(tails.* == last_lower);
-            const last_upper_mask: u32 = @bitCast(tails.* == last_upper);
-            literal_mask &= if (literal.ignore_case)
-                last_lower_mask | last_upper_mask
-            else
-                last_exact_mask;
-        }
-        candidate_mask |= literal_mask;
+        candidate_mask |= if (literal.ignore_case)
+            literalCandidateMaskIgnoreCase(buffer, index, head_bytes, literal)
+        else
+            literalCandidateMaskExact(buffer, index, head_bytes, literal);
     }
     return candidate_mask;
+}
+
+fn literalCandidateMaskExact(
+    buffer: []const u8,
+    index: usize,
+    head_bytes: @Vector(32, u8),
+    literal: *const matcher_mod.Literal,
+) u32 {
+    const Bytes = @Vector(32, u8);
+    var mask: u32 = @bitCast(head_bytes == @as(Bytes, @splat(literal.pattern[0])));
+    if (mask == 0) return 0;
+    if (literal.pattern.len >= 4) {
+        const off = literal.pattern.len - 4;
+        inline for (0..4) |k| {
+            const chunk: *align(1) const Bytes = @ptrCast(buffer[index + off + k ..].ptr);
+            mask &= @bitCast(chunk.* == @as(Bytes, @splat(literal.pattern[off + k])));
+        }
+    } else if (literal.pattern.len > 1) {
+        const last = literal.pattern.len - 1;
+        const tails: *align(1) const Bytes = @ptrCast(buffer[index + last ..].ptr);
+        mask &= @bitCast(tails.* == @as(Bytes, @splat(literal.pattern[last])));
+    }
+    return mask;
+}
+
+fn literalCandidateMaskIgnoreCase(
+    buffer: []const u8,
+    index: usize,
+    head_bytes: @Vector(32, u8),
+    literal: *const matcher_mod.Literal,
+) u32 {
+    const Bytes = @Vector(32, u8);
+    const first_lower: Bytes = @splat(std.ascii.toLower(literal.pattern[0]));
+    const first_upper: Bytes = @splat(std.ascii.toUpper(literal.pattern[0]));
+    const lower_mask: u32 = @bitCast(head_bytes == first_lower);
+    const upper_mask: u32 = @bitCast(head_bytes == first_upper);
+    var mask = lower_mask | upper_mask;
+    const last = literal.pattern.len - 1;
+    if (last != 0) {
+        const tails: *align(1) const Bytes = @ptrCast(buffer[index + last ..].ptr);
+        const last_lower: Bytes = @splat(std.ascii.toLower(literal.pattern[last]));
+        const last_upper: Bytes = @splat(std.ascii.toUpper(literal.pattern[last]));
+        const last_lower_mask: u32 = @bitCast(tails.* == last_lower);
+        const last_upper_mask: u32 = @bitCast(tails.* == last_upper);
+        mask &= last_lower_mask | last_upper_mask;
+    }
+    return mask;
 }
 
 fn alternationMatchesAt(
@@ -2358,7 +2386,9 @@ fn alternationMatchesAt(
     candidate: usize,
     alternation: *const matcher_mod.LiteralAlternation,
 ) bool {
+    const first = buffer[candidate];
     for (alternation.literals) |*literal| {
+        if (!literal.ignore_case and literal.pattern[0] != first) continue;
         if (candidate + literal.pattern.len <= buffer.len and
             literal.eqlPattern(buffer[candidate .. candidate + literal.pattern.len]) and
             literal.acceptsMatchAt(buffer, candidate)) return true;
@@ -3949,6 +3979,23 @@ pub fn emitCount(
     try writer.printInt(count, 10, .lower, .{});
     try writer.writeByte('\n');
     try finishRecord(writer, line_buffered);
+}
+
+test "alternation last-four probe rejects a shared prefix" {
+    var alternation = (try matcher_mod.LiteralAlternation.init(
+        std.testing.allocator,
+        "rare-needle|status=500|route=/api/item/42|latency_us=999",
+        false,
+        false,
+        false,
+    )).?;
+    defer alternation.deinit();
+    const data =
+        "2026 INFO route=/api/item/1 status=200 latency_us=12\n" ++
+        "2026 INFO route=/api/item/42 status=500 latency_us=999 rare-needle\n" ++
+        "2026 INFO route=/api/item/2 status=200 latency_us=9\n";
+    try std.testing.expectEqual(1, try parallelAlternationCount(data, &alternation, false, '\n'));
+    try std.testing.expectEqual(2, try parallelAlternationCount(data, &alternation, true, '\n'));
 }
 
 test "parallel literal count preserves line boundaries" {
