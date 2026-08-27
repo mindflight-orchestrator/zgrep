@@ -242,7 +242,11 @@ compare_fifo_read() {
     search_path=$3
     shift 3
     for implementation in grep "$ZGREP"; do
-        implementation_name=${implementation##*/}
+        if [ "$implementation" = grep ]; then
+            implementation_name=grep
+        else
+            implementation_name=zgr
+        fi
         timeout 10 sh -c 'printf "device needle\n" >"$1"' sh "$fifo" &
         writer_pid=$!
         set +e

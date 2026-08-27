@@ -6,6 +6,9 @@ PATTERN=${2:-SearcherBuilder}
 REPEATS=${3:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
 ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
+ZGREP_ZPCRE2=${ZGR_ZPCRE2:-$(dirname "$ZGREP")/zgr-zpcre2}
+HAVE_ZPCRE2=0
+if [ -x "$ZGREP_ZPCRE2" ]; then HAVE_ZPCRE2=1; fi
 BENCH_LOCALE=${BENCH_LOCALE:-C}
 BENCH_CACHE=${BENCH_CACHE:-warm}
 BENCH_CPUSET=${BENCH_CPUSET:-}
@@ -137,6 +140,16 @@ verify_case() {
         diff -u "$REFERENCE" "$CANDIDATE" >&2 || true
         exit 1
     fi
+    ZPCRE2_OK=0
+    if [ "$HAVE_ZPCRE2" -eq 1 ]; then
+        run_sorted "$CANDIDATE" env LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$TREE" || [ "$?" -eq 1 ]
+        if ! cmp -s "$REFERENCE" "$CANDIDATE"; then
+            echo "recursive result mismatch: zgr-zpcre2 / $label (skipping timing)" >&2
+            diff -u "$REFERENCE" "$CANDIDATE" >&2 || true
+        else
+            ZPCRE2_OK=1
+        fi
+    fi
 }
 
 benchmark_case() {
@@ -149,15 +162,18 @@ benchmark_case() {
     printf '%s\n' "$label"
     verify_case "$label" "$zgrep_flags" "$grep_flags" "$ripgrep_flags" "$pattern"
     benchmark zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$TREE"
+    if [ "${ZPCRE2_OK:-0}" -eq 1 ]; then
+        benchmark zgr-zpcre2 env LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$TREE"
+    fi
     benchmark grep env LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$TREE"
     benchmark ripgrep env LC_ALL="$BENCH_LOCALE" rg $ripgrep_flags "$pattern" "$TREE"
 }
 
 files=$(find "$TREE" -type f | wc -l)
 bytes=$(find "$TREE" -type f -printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')
-printf 'tree: %s (%s files, %s bytes), profile: %s, pattern: %s, repeats: %s, batches: %s, locale: %s, cache: %s, cpuset: %s\n' \
+printf 'tree: %s (%s files, %s bytes), profile: %s, pattern: %s, repeats: %s, batches: %s, locale: %s, cache: %s, cpuset: %s, zpcre2: %s\n' \
     "$TREE" "$files" "$bytes" "$BENCH_PROFILE" "$PATTERN" "$REPEATS" "$BENCH_BATCHES" \
-    "$BENCH_LOCALE" "$BENCH_CACHE" "${BENCH_CPUSET:-unrestricted}"
+    "$BENCH_LOCALE" "$BENCH_CACHE" "${BENCH_CPUSET:-unrestricted}" "$(if [ "$HAVE_ZPCRE2" -eq 1 ]; then echo "$ZGREP_ZPCRE2"; else echo absent; fi)"
 if [ "$BENCH_PROFILE" = ripgrep-linux ] || [ "$BENCH_PROFILE" = ripgrep-linux-default ]; then
     no_literal='[[:alnum:]_]{5}[[:space:]]+[[:alnum:]_]{5}[[:space:]]+[[:alnum:]_]{5}[[:space:]]+[[:alnum:]_]{5}[[:space:]]+[[:alnum:]_]{5}'
     alternates='ERR_SYS|PME_TURN_OFF|LINK_REQ_RST|CFG_BME_EVT'

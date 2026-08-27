@@ -3,7 +3,12 @@
     .version = "0.2.0",
     .fingerprint = 0xcc4b9229df83bbb6,
     .minimum_zig_version = "0.16.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .zpcre2 = .{
+            .url = "git+https://github.com/mindflight-orchestrator/zpcre2.git?ref=v0.2#7bc774c701b6fbf094af0717d92c94c9cdf8e304",
+            .hash = "zpcre2-0.1.0-inU7b0vTBgDW2dqZEvCHjIHYR594vIjC5_4vz6uhUWa6",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
