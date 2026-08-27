@@ -39,6 +39,8 @@ jobs:
           zig version
           zig fmt --check build.zig src/*.zig
           cc -std=gnu17 -Wall -Wextra -Werror -Wconversion -Wshadow \
+            -Iinclude -fsyntax-only src/gnu_regex.c
+          cc -std=gnu17 -Wall -Wextra -Werror -Wconversion -Wshadow \
             -Iinclude -fsyntax-only src/pcre2_shim.c
           cc -std=c11 -Wall -Wextra -Werror -Wconversion -Wshadow \
             -fsyntax-only bench/evict-tree-cache.c
@@ -46,6 +48,9 @@ jobs:
 
       - name: Run unit and GNU differential tests
         run: zig build test -Doptimize=${{ matrix.optimize }}
+
+      - name: Run zpcre2 engine unit tests
+        run: zig build test-zpcre2 -Doptimize=${{ matrix.optimize }}
 
       - name: Run extended ReleaseFast gates
         if: matrix.optimize == 'ReleaseFast'
