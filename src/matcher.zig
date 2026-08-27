@@ -1836,7 +1836,7 @@ test "PCRE2 worker owns independent match data" {
     );
     defer matcher.deinit();
     switch (matcher) {
-        .regex => |*regex| {
+        .regex, .posix_regex => |*regex| {
             var worker = regex.createWorker() orelse return error.OutOfMemory;
             defer worker.deinit();
             try std.testing.expect(worker.matches("status=500"));
