@@ -59,8 +59,19 @@ traditionnelle `zgrep`, utilisée pour les fichiers compressés.
 zig build -Doptimize=ReleaseFast
 ```
 
-L'exécutable de production dépouillé de ses symboles est installé dans
+L'exécutable de production dépouillé de ses symboles est écrit dans
 `zig-out/bin/zgr`. Les compilations de débogage conservent les symboles.
+
+### Installation
+
+```sh
+make
+sudo make install
+```
+
+Cela copie `zgr` dans `/usr/local/bin`. Remplacez la destination avec `PREFIX`,
+par exemple `make install PREFIX=$HOME/.local`. Désinstallez avec
+`sudo make uninstall`.
 
 ### Exemples
 

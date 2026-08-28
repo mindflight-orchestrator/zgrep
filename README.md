@@ -53,8 +53,19 @@ The executable is named `zgr` to avoid colliding with the traditional system
 zig build -Doptimize=ReleaseFast
 ```
 
-The stripped release executable is installed at `zig-out/bin/zgr`. Debug builds
+The stripped release executable is written to `zig-out/bin/zgr`. Debug builds
 retain symbols.
+
+### Install
+
+```sh
+make
+sudo make install
+```
+
+This copies `zgr` to `/usr/local/bin`. Override the destination with `PREFIX`,
+for example `make install PREFIX=$HOME/.local`. Uninstall with
+`sudo make uninstall`.
 
 ### Examples
 

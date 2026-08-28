@@ -1,7 +1,8 @@
 const std = @import("std");
 const zgrep = @import("zgrep");
 
-const version = "0.2.0";
+const version = "0.3.0";
+const version_line = "zgr " ++ version ++ " (Zig 0.16)\n";
 
 pub fn main(init: std.process.Init) !void {
     const exit_code = run(init) catch |err| {
@@ -44,10 +45,7 @@ fn run(init: std.process.Init) !u8 {
         return 0;
     }
     if (options.version) {
-        var buffer: [128]u8 = undefined;
-        var stdout = std.Io.File.stdout().writerStreaming(init.io, &buffer);
-        try stdout.interface.print("zgr {s} (Zig 0.16)\n", .{version});
-        try stdout.interface.flush();
+        try std.Io.File.stdout().writeStreamingAll(init.io, version_line);
         return 0;
     }
 
@@ -1929,7 +1927,7 @@ fn appendFilterRules(
     }
 }
 
-const help_text =
+const help_text = version_line ++ "\n" ++
     \\Usage: zgr [OPTION]... PATTERN [FILE]...
     \\Search for PATTERN in each FILE (or standard input).
     \\
