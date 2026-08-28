@@ -213,6 +213,10 @@ différentiels GNU, notamment :
 - les flux d'octets de couleur ANSI, les FIFO, la gestion binaire/NUL et le
   comportement en cas de pipe cassé.
 
+La [comparaison avec la suite officielle de GNU grep 3.12](docs/gnu-grep-3.12-compatibility.fr.md)
+consigne les résultats de l'exécution du banc fonctionnel GNU inchangé de
+128 tests contre les deux moteurs d'expressions régulières.
+
 ### Fuzzing déterministe des expressions régulières
 
 ```sh

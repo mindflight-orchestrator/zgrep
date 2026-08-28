@@ -195,6 +195,10 @@ This runs the Zig unit tests and the main GNU differential lanes, including:
   `nl_BE.utf8` locales;
 - ANSI color byte streams, FIFOs, binary/NUL handling and broken-pipe behavior.
 
+The separate [GNU grep 3.12 official-suite comparison](docs/gnu-grep-3.12-compatibility.md)
+records the results of running GNU's unchanged 128-test functional harness
+against both regex backends.
+
 ### Deterministic regex fuzzing
 
 ```sh
