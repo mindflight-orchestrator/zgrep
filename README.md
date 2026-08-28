@@ -235,7 +235,7 @@ file and trees containing many small files. Every candidate result is compared
 with GNU grep before it is timed.
 
 The latest saved comparison is documented in
-[docs/benchmark-v0.2.md](docs/benchmark-v0.2.md).
+[docs/benchmark-v0.3.md](docs/benchmark-v0.3.md).
 
 ### Generated corpus
 

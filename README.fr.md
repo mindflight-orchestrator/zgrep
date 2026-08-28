@@ -256,7 +256,7 @@ fichier structuré et des arbres comprenant de nombreux petits fichiers. Chaque
 résultat candidat est comparé à GNU grep avant d'être chronométré.
 
 La dernière comparaison enregistrée est documentée dans
-[docs/benchmark-v0.2.fr.md](docs/benchmark-v0.2.fr.md).
+[docs/benchmark-v0.3.fr.md](docs/benchmark-v0.3.fr.md).
 
 ### Corpus généré
 
