@@ -1,7 +1,7 @@
 const std = @import("std");
 const zgrep = @import("zgrep");
 
-const version = "0.3.0";
+const version = "0.3.1";
 const version_line = "zgr " ++ version ++ " (Zig 0.16)\n";
 
 pub fn main(init: std.process.Init) !void {

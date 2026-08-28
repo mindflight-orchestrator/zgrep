@@ -90,12 +90,20 @@ Le contrôle littéral fixe oscille autour de la parité selon les captures ; so
 la version.
 
 Un contrôle exploratoire `status=[[:digit:]]{3}` a été exclu du résumé de la
-version après vérification du matcher : il utilise le moteur préexistant
-`AsciiClassSequence`, et non le parcours de préfiltre dense de v0.3. Il est
-effectivement plus lent dans l'artefact v0.3 et mérite une investigation séparée
-comme anomalie du moteur spécialisé ou de disposition du code, mais il ne fait
-pas partie du profil public et ne démontre pas une régression de l'optimisation
-de préfiltre dense de v0.3.
+version. L'inspection du matcher et un A/B de suivi montrent qu'il n'utilise
+ni le moteur `AsciiClassSequence`, ni le parcours de préfiltre dense de v0.3 :
+`{3}` interrompt `requiredLiteralEre`, donc il n'y a pas de préfiltre
+`status=`, et l'automate de séquence de classes ne compile qu'une chaîne
+d'atomes `[...]`. Le motif est un comptage PCRE2 ligne par ligne. Sur le même
+corpus, il reste à parité avec v0.2 (v0.3 de 1 à 6 % plus rapide sur deux
+captures de 9 exécutions). Un échantillon plus lent antérieur relève du même
+bruit de quelques pourcents que le contrôle littéral fixe.
+
+Le profil public contient déjà la vraie charge `AsciiClassSequence`,
+`regexp without literal` (`[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}`). Cette
+charge était 4,5 % plus lente dans l'A/B archivé à 20 cas et oscille autour de
+la parité à la relecture ; elle ne démontre pas une régression de
+l'optimisation de préfiltre dense de v0.3.
 
 Cet échantillon à cache chaud ne permet pas de généraliser entre machines,
 systèmes de fichiers, formes de corpus ou caches froids.

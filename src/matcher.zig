@@ -1731,6 +1731,89 @@ test "grouped literal prefix alt matches without the engine" {
     }
 }
 
+test "exploratory digit patterns do not use the class-sequence engine" {
+    _ = initializeLocale();
+    try std.testing.expectEqual(null, requiredLiteralEre("status=[[:digit:]]{3}"));
+    try std.testing.expectEqual(
+        null,
+        try AsciiClassSequence.init(
+            std.testing.allocator,
+            "status=[[:digit:]]{3}",
+            .extended,
+            false,
+            false,
+            false,
+        ),
+    );
+    try std.testing.expectEqual(
+        null,
+        try AsciiClassSequence.init(
+            std.testing.allocator,
+            "[[:digit:]]{3}",
+            .extended,
+            false,
+            false,
+            false,
+        ),
+    );
+
+    var error_buffer: [256]u8 = @splat(0);
+    var matcher = try Matcher.init(
+        std.testing.allocator,
+        "status=[[:digit:]]{3}",
+        .extended,
+        false,
+        false,
+        false,
+        false,
+        false,
+        &error_buffer,
+    );
+    defer matcher.deinit();
+    const regex = switch (matcher) {
+        .regex, .posix_regex => |*value| value,
+        else => return error.TestUnexpectedResult,
+    };
+    try std.testing.expect(regex.ascii_class_sequence == null);
+    try std.testing.expect(regex.prefilter == null);
+}
+
+test "public no-literal regexp uses the class-sequence engine" {
+    _ = initializeLocale();
+    const pattern = "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}";
+    try std.testing.expectEqual(null, requiredLiteralEre(pattern));
+    const sequence = try AsciiClassSequence.init(
+        std.testing.allocator,
+        pattern,
+        .extended,
+        false,
+        false,
+        false,
+    );
+    if (sequence == null) return error.ExpectedClassSequence;
+    defer sequence.?.deinit();
+
+    var error_buffer: [256]u8 = @splat(0);
+    var matcher = try Matcher.init(
+        std.testing.allocator,
+        "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}",
+        .extended,
+        false,
+        false,
+        false,
+        false,
+        false,
+        &error_buffer,
+    );
+    defer matcher.deinit();
+    const regex = switch (matcher) {
+        .regex, .posix_regex => |*value| value,
+        else => return error.TestUnexpectedResult,
+    };
+    try std.testing.expect(regex.ascii_class_sequence != null);
+    try std.testing.expect(regex.prefilter == null);
+}
+
 test "PCRE2 worker owns independent match data" {
     var error_buffer: [256]u8 = @splat(0);
     var matcher = try Matcher.init(

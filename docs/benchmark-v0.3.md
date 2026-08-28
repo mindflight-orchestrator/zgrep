@@ -81,11 +81,19 @@ fixed-literal control varied around parity across captures; its 7.9% difference
 in this focused run is not treated as a release conclusion.
 
 An exploratory `status=[[:digit:]]{3}` control was excluded from the release
-summary after matcher inspection showed that it uses the pre-existing
-`AsciiClassSequence` engine, not v0.3's dense-prefilter path. It did run slower
-in the v0.3 artifact and remains worth investigating as a separate specialized
-engine/code-layout anomaly, but it is neither part of the public profile nor
-evidence that the v0.3 dense-prefilter optimization regressed.
+summary. Matcher inspection and a follow-up A/B showed that it is not the
+`AsciiClassSequence` engine and not v0.3's dense-prefilter path: `{3}` aborts
+`requiredLiteralEre`, so there is no `status=` prefilter, and the class-sequence
+NFA only compiles a chain of `[...]` atoms. The pattern is a dense PCRE2
+line-count. On the same corpus it sits at parity with v0.2 (v0.3 was 1–6%
+faster across two 9-run captures). An earlier slower sample was the same
+few-percent jitter as the fixed-literal control.
+
+The public profile already contains the real `AsciiClassSequence` lane,
+`regexp without literal` (`[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}`). That
+lane was 4.5% slower in the archived 20-case A/B and flipped around parity on
+re-runs; it is not evidence that the v0.3 dense-prefilter optimization
+regressed.
 
 This warm-cache sample does not establish results across machines, file
 systems, corpus shapes or cold caches.
