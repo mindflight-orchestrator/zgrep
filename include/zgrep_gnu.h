@@ -71,5 +71,6 @@ bool zg_posix_matches(
     size_t subject_len
 );
 void zg_posix_free(zg_posix_regex *regex);
+bool zg_pattern_would_overflow(const uint8_t *pattern, size_t pattern_len);
 
 #endif

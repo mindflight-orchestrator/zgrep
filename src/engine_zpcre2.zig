@@ -31,6 +31,7 @@ pub const zg_regex = struct {
     posix: ?*gnu.zg_posix_regex = null,
     posix_spans: bool = false,
     word_regexp: bool = false,
+    match_error: bool = false,
 };
 
 pub const zg_regex_worker = struct {
@@ -113,10 +114,17 @@ pub fn zg_regex_compile(
 
     const posix_bytes = slice(posix_pattern, posix_pattern_len);
     const pcre_bytes = slice(pcre_pattern, pcre_pattern_len);
+    if (gnu.zg_pattern_would_overflow(pcre_pattern, pcre_pattern_len) or
+        gnu.zg_pattern_would_overflow(posix_pattern, posix_pattern_len))
+    {
+        setError(error_buffer, error_buffer_len, "stack overflow", .{});
+        allocator.destroy(regex);
+        return null;
+    }
     const basic_or_extended = syntax == gnu.ZG_REGEX_SYNTAX_BASIC or
         syntax == gnu.ZG_REGEX_SYNTAX_EXTENDED;
 
-    if (basic_or_extended and (!pcre_compatible or posix_spans)) {
+    if (basic_or_extended) {
         regex.posix = compilePosix(
             posix_bytes,
             syntax,
@@ -183,8 +191,20 @@ pub fn zg_regex_required_literal(
 }
 
 pub fn zg_regex_matches(regex: *zg_regex, subject: [*]const u8, subject_len: usize) bool {
+    regex.match_error = false;
+    if (regex.posix != null) {
+        return gnu.zg_posix_matches(regex.posix, subject, subject_len);
+    }
     const compiled = regex.pcre orelse return false;
     return compiled.isMatch(slice(subject, subject_len));
+}
+
+pub fn zg_regex_match_error(regex: *const zg_regex) bool {
+    return regex.match_error;
+}
+
+pub fn zg_pcre2_version() [*:0]const u8 {
+    return "10";
 }
 
 pub fn zg_regex_posix_matches(regex: *zg_regex, subject: [*]const u8, subject_len: usize) bool {

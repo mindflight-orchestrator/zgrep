@@ -4,14 +4,41 @@ const zgrep = @import("zgrep");
 const version = "0.3.1";
 const version_line = "zgr " ++ version ++ " (Zig 0.16)\n";
 
+const FileId = struct { ino: u64, dev: u64 };
+
+var diagnostic_name: []const u8 = "zgr";
+var stdout_identity: ?FileId = null;
+
+fn writeDiagnostic(writer: *std.Io.Writer, path: ?[]const u8, msg: []const u8) !void {
+    try writer.writeAll(diagnostic_name);
+    try writer.writeAll(": ");
+    if (path) |value| {
+        try writer.writeAll(value);
+        try writer.writeAll(": ");
+    }
+    try writer.writeAll(msg);
+    try writer.writeByte('\n');
+}
+
+fn errnoMessage(err: anyerror) []const u8 {
+    return switch (err) {
+        error.NoSpaceLeft => "write error: No space left on device",
+        error.WriteFailed => "write error: No space left on device",
+        error.BrokenPipe => "write error: Broken pipe",
+        error.FileNotFound => "No such file or directory",
+        error.IsDirectory => "Is a directory",
+        error.AccessDenied => "Permission denied",
+        error.InputIsOutput => "input file is also the output",
+        error.MatchLimit => "Exceeded PCRE2 match limit",
+        else => @errorName(err),
+    };
+}
+
 pub fn main(init: std.process.Init) !void {
     const exit_code = run(init) catch |err| {
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-        if (err == error.BrokenPipe)
-            try stderr.interface.writeAll("zgr: write error: Broken pipe\n")
-        else
-            try stderr.interface.print("zgr: {s}\n", .{@errorName(err)});
+        try writeDiagnostic(&stderr.interface, null, errnoMessage(err));
         try stderr.interface.flush();
         std.process.exit(2);
     };
@@ -19,19 +46,20 @@ pub fn main(init: std.process.Init) !void {
 }
 
 fn run(init: std.process.Init) !u8 {
+    diagnostic_name = programNameFromArgs(init.minimal.args);
     const utf8_locale = zgrep.matcher.initializeLocale();
     var options = zgrep.options.Options.parse(init.minimal.args, init.gpa) catch |err| {
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
         const exit_status: u8 = if (err == error.InvalidDirectoryMode) 1 else 2;
         switch (err) {
-            error.MissingPattern => try stderr.interface.writeAll("zgr: missing search pattern\n"),
-            error.MissingOptionArgument => try stderr.interface.writeAll("zgr: option requires an argument\n"),
-            error.UnknownOption => try stderr.interface.writeAll("zgr: unrecognized option\n"),
-            error.InvalidNumber => try stderr.interface.writeAll("zgr: invalid maximum count\n"),
-            error.InvalidBinaryMode => try stderr.interface.writeAll("zgr: invalid argument for --binary-files\n"),
-            error.InvalidDirectoryMode => try stderr.interface.writeAll("zgr: invalid argument for --directories\n"),
-            error.InvalidDeviceMode => try stderr.interface.writeAll("zgr: invalid argument for --devices\n"),
+            error.MissingPattern => try writeDiagnostic(&stderr.interface, null, "missing search pattern"),
+            error.MissingOptionArgument => try writeDiagnostic(&stderr.interface, null, "option requires an argument"),
+            error.UnknownOption => try writeDiagnostic(&stderr.interface, null, "unrecognized option"),
+            error.InvalidNumber => try writeDiagnostic(&stderr.interface, null, "invalid maximum count"),
+            error.InvalidBinaryMode => try writeDiagnostic(&stderr.interface, null, "invalid argument for --binary-files"),
+            error.InvalidDirectoryMode => try writeDiagnostic(&stderr.interface, null, "invalid argument for --directories"),
+            error.InvalidDeviceMode => try writeDiagnostic(&stderr.interface, null, "invalid argument for --devices"),
             else => return err,
         }
         try stderr.interface.writeAll("Try 'zgr --help' for more information.\n");
@@ -46,6 +74,13 @@ fn run(init: std.process.Init) !u8 {
     }
     if (options.version) {
         try std.Io.File.stdout().writeStreamingAll(init.io, version_line);
+        var ver_buf: [128]u8 = undefined;
+        const pcre_line = std.fmt.bufPrint(
+            &ver_buf,
+            "{s} -P uses PCRE2 {s}\n",
+            .{ diagnostic_name, std.mem.span(zgrep.matcher.pcre2Version()) },
+        ) catch "grep -P uses PCRE2 10\n";
+        try std.Io.File.stdout().writeStreamingAll(init.io, pcre_line);
         return 0;
     }
 
@@ -54,16 +89,24 @@ fn run(init: std.process.Init) !u8 {
         for (pattern_storage.items) |data| init.gpa.free(data);
         pattern_storage.deinit(init.gpa);
     }
+    var pattern_origins: std.ArrayList(struct { path: []const u8, first: usize, count: usize }) = .empty;
+    defer pattern_origins.deinit(init.gpa);
     for (options.pattern_files.items) |pattern_path| {
         const data = readPatternFile(init, pattern_path) catch |err| {
             var buffer: [4096]u8 = undefined;
             var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-            try stderr.interface.print("zgr: {s}: {s}\n", .{ pattern_path, @errorName(err) });
+            try writeDiagnostic(&stderr.interface, pattern_path, errnoMessage(err));
             try stderr.interface.flush();
             return 2;
         };
         try pattern_storage.append(init.gpa, data);
+        const first = options.patterns.items.len;
         try appendPatterns(&options.patterns, init.gpa, data);
+        try pattern_origins.append(init.gpa, .{
+            .path = pattern_path,
+            .first = first,
+            .count = options.patterns.items.len - first,
+        });
     }
 
     var filter_storage: std.ArrayList([]u8) = .empty;
@@ -85,7 +128,7 @@ fn run(init: std.process.Init) !u8 {
             const data = readPatternFile(init, filter_path) catch |err| {
                 var buffer: [4096]u8 = undefined;
                 var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
-                try stderr.interface.print("zgr: {s}: {s}\n", .{ filter_path, @errorName(err) });
+                try writeDiagnostic(&stderr.interface, filter_path, errnoMessage(err));
                 try stderr.interface.flush();
                 return 2;
             };
@@ -98,14 +141,19 @@ fn run(init: std.process.Init) !u8 {
         .exclude_dirs = options.exclude_dirs.items,
     };
 
-    var matchers = try init.gpa.alloc(zgrep.matcher.Matcher, options.patterns.items.len);
-    defer init.gpa.free(matchers);
-    var initialized: usize = 0;
-    defer for (matchers[0..initialized]) |*matcher| matcher.deinit();
-
+    var compiled_matchers: std.ArrayList(zgrep.matcher.Matcher) = .empty;
+    defer {
+        for (compiled_matchers.items) |*matcher| matcher.deinit();
+        compiled_matchers.deinit(init.gpa);
+    }
+    var seen_patterns = std.StringHashMap(void).init(init.gpa);
+    defer seen_patterns.deinit();
+    var compile_failed = false;
     for (options.patterns.items, 0..) |pattern, index| {
+        if (seen_patterns.contains(pattern)) continue;
+        try seen_patterns.put(pattern, {});
         var error_buffer: [256]u8 = @splat(0);
-        matchers[index] = zgrep.matcher.Matcher.init(
+        const matcher = zgrep.matcher.Matcher.init(
             init.gpa,
             pattern,
             options.mode,
@@ -118,14 +166,37 @@ fn run(init: std.process.Init) !u8 {
         ) catch |err| {
             if (err == error.InvalidRegex) {
                 const message = std.mem.sliceTo(&error_buffer, 0);
-                try std.Io.File.stderr().writeStreamingAll(init.io, message);
-                try std.Io.File.stderr().writeStreamingAll(init.io, "\n");
-                return 2;
+                var found_origin: ?struct { path: []const u8, line: usize } = null;
+                for (pattern_origins.items) |origin| {
+                    if (index >= origin.first and index < origin.first + origin.count) {
+                        found_origin = .{ .path = origin.path, .line = index - origin.first + 1 };
+                        break;
+                    }
+                }
+                var err_buf: [4096]u8 = undefined;
+                var err_writer = std.Io.File.stderr().writerStreaming(init.io, &err_buf);
+                if (found_origin) |origin| {
+                    if (std.mem.eql(u8, message, "stack overflow")) {
+                        try writeDiagnostic(&err_writer.interface, null, message);
+                    } else {
+                        try err_writer.interface.print(
+                            "{s}: {s}:{d}: {s}\n",
+                            .{ diagnostic_name, origin.path, origin.line, message },
+                        );
+                    }
+                } else {
+                    try writeDiagnostic(&err_writer.interface, null, message);
+                }
+                try err_writer.interface.flush();
+                compile_failed = true;
+                continue;
             }
             return err;
         };
-        initialized += 1;
+        try compiled_matchers.append(init.gpa, matcher);
     }
+    if (compile_failed) return 2;
+    const matchers = compiled_matchers.items;
 
     const stdout_file = std.Io.File.stdout();
     var output_buffer: [256 * 1024]u8 = undefined;
@@ -145,7 +216,19 @@ fn run(init: std.process.Init) !u8 {
         .auto => stdout_file.isTty(init.io) catch false,
     } else false;
     const color_config = zgrep.scanner.ColorConfig.fromEnvironment(init.environ_map);
+    if (color_enabled and zgrep.scanner.ColorConfig.grepColorIsSet(init.environ_map)) {
+        const color = init.environ_map.get("GREP_COLOR") orelse "";
+        try stderr.interface.print(
+            "{s}: warning: GREP_COLOR='{s}' is deprecated; use GREP_COLORS='mt={s}'\n",
+            .{ diagnostic_name, color, color },
+        );
+    }
     var context_state: zgrep.scanner.ContextState = .{};
+    const skip_contents = options.max_count == 0 or
+        (options.patterns.items.len == 0 and !options.invert) or
+        (options.invert and matchersMatchEveryLine(matchers));
+    const stdout_id = regularFileId(stdout_file.handle);
+    stdout_identity = stdout_id;
     const scan_options: zgrep.scanner.ScanOptions = .{
         .invert = options.invert,
         .count = options.count,
@@ -158,6 +241,7 @@ fn run(init: std.process.Init) !u8 {
         .only_matching = options.only_matching,
         .before_context = options.before_context,
         .after_context = options.after_context,
+        .context_requested = options.context_requested,
         .context_separator = options.context_separator,
         .context_state = &context_state,
         .binary_mode = options.binary_mode,
@@ -170,6 +254,7 @@ fn run(init: std.process.Init) !u8 {
         .delimiter = if (options.null_data) 0 else '\n',
         .null_filename = options.null_filename,
         .colors = if (color_enabled) &color_config else null,
+        .skip_contents = skip_contents,
     };
 
     var any_match = false;
@@ -184,11 +269,14 @@ fn run(init: std.process.Init) !u8 {
             &stderr.interface,
         ) catch |err| blk: {
             if (err == error.WriteFailed) return stdout.err orelse err;
-            if (!options.no_messages) try stderr.interface.print("zgr: standard input: {s}\n", .{@errorName(err)});
+            if (!options.no_messages) try writeDiagnostic(&stderr.interface, "standard input", errnoMessage(err));
             had_error = true;
             break :blk null;
         };
-        if (result) |value| any_match = value.matched;
+        if (result) |value| {
+            any_match = value.matched;
+            if (value.match_error) had_error = true;
+        }
     } else {
         for (options.operands.items) |path| {
             const result = if (std.mem.eql(u8, path, "-"))
@@ -211,7 +299,7 @@ fn run(init: std.process.Init) !u8 {
                 );
             const value = result catch |err| {
                 if (err == error.WriteFailed) return stdout.err orelse err;
-                if (!options.no_messages) try stderr.interface.print("zgr: {s}: {s}\n", .{ path, @errorName(err) });
+                if (!options.no_messages) try writeDiagnostic(&stderr.interface, path, errnoMessage(err));
                 had_error = true;
                 continue;
             };
@@ -232,6 +320,130 @@ const PathResult = struct {
     had_error: bool = false,
 };
 
+fn programNameFromArgs(args: std.process.Args) []const u8 {
+    var it = std.process.Args.Iterator.init(args);
+    const argv0 = it.next() orelse return "zgr";
+    const base = std.fs.path.basename(argv0);
+    return if (base.len == 0) "zgr" else base;
+}
+
+fn matchersMatchEveryLine(matchers: []const zgrep.matcher.Matcher) bool {
+    if (matchers.len == 0) return false;
+    for (matchers) |matcher| switch (matcher) {
+        .literal => |literal| if (literal.pattern.len != 0) return false,
+        else => return false,
+    };
+    return true;
+}
+
+fn sameFile(a: FileId, b: FileId) bool {
+    return a.ino == b.ino and a.dev == b.dev;
+}
+
+fn regularFileId(fd: std.posix.fd_t) ?FileId {
+    var stx: std.os.linux.Statx = undefined;
+    const rc = std.os.linux.statx(
+        fd,
+        "",
+        std.os.linux.AT.EMPTY_PATH,
+        .BASIC_STATS,
+        &stx,
+    );
+    if (std.posix.errno(rc) != .SUCCESS) return null;
+    if ((stx.mode & std.os.linux.S.IFMT) != std.os.linux.S.IFREG) return null;
+    return .{
+        .ino = stx.ino,
+        .dev = (@as(u64, stx.dev_major) << 32) | stx.dev_minor,
+    };
+}
+
+fn shouldRejectSameFile(options: zgrep.scanner.ScanOptions) bool {
+    if (options.quiet or options.list_files != null) return false;
+    if (options.max_count) |limit| if (limit <= 1) return false;
+    return true;
+}
+
+fn isDotPath(path: []const u8) bool {
+    return std.mem.eql(u8, path, ".") or std.mem.eql(u8, path, "./");
+}
+
+fn shouldStreamAndStop(options: zgrep.scanner.ScanOptions) bool {
+    return options.quiet or options.list_files != null or options.max_count != null;
+}
+
+fn rejectIfSameFile(
+    file: std.Io.File,
+    options: zgrep.scanner.ScanOptions,
+    path: []const u8,
+    diagnostic_writer: *std.Io.Writer,
+) !?zgrep.scanner.Result {
+    if (!shouldRejectSameFile(options)) return null;
+    const out_id = stdout_identity orelse return null;
+    const in_id = regularFileId(file.handle) orelse return null;
+    if (!sameFile(out_id, in_id)) return null;
+    try writeDiagnostic(diagnostic_writer, path, "input file is also the output");
+    return .{ .match_error = true };
+}
+
+fn annotateMatchError(
+    matchers: []const zgrep.matcher.Matcher,
+    path: []const u8,
+    diagnostic_writer: *std.Io.Writer,
+    result: zgrep.scanner.Result,
+) !zgrep.scanner.Result {
+    var out = result;
+    for (matchers) |*matcher| {
+        if (matcher.hadMatchError()) {
+            out.match_error = true;
+            try writeDiagnostic(diagnostic_writer, path, "exceeded PCRE's backtracking limit");
+            break;
+        }
+    }
+    return out;
+}
+
+fn emitSkipContentsName(
+    path: []const u8,
+    options: zgrep.scanner.ScanOptions,
+    writer: *std.Io.Writer,
+) !zgrep.scanner.Result {
+    if (options.list_files == false) {
+        try zgrep.scanner.emitFilename(
+            writer,
+            path,
+            options.null_filename,
+            options.colors,
+            options.line_buffered,
+        );
+    }
+    return .{};
+}
+
+fn scanFileStreaming(
+    init: std.process.Init,
+    file: std.Io.File,
+    path: []const u8,
+    matchers: []const zgrep.matcher.Matcher,
+    options: zgrep.scanner.ScanOptions,
+    writer: *std.Io.Writer,
+    diagnostic_writer: *std.Io.Writer,
+) !zgrep.scanner.Result {
+    var read_buffer: [256 * 1024]u8 = undefined;
+    var reader = file.readerStreaming(init.io, &read_buffer);
+    const result = try zgrep.scanner.scanReader(
+        &reader.interface,
+        init.gpa,
+        matchers,
+        path,
+        options,
+        writer,
+    );
+    if (result.binary_match)
+        try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+    zgrep.scanner.rewindUnread(file, result.leftover_bytes);
+    return annotateMatchError(matchers, path, diagnostic_writer, result);
+}
+
 fn scanStdinPath(
     init: std.process.Init,
     matchers: []const zgrep.matcher.Matcher,
@@ -241,7 +453,7 @@ fn scanStdinPath(
     diagnostic_writer: *std.Io.Writer,
 ) !PathResult {
     const result = try scanStdin(init, matchers, path, options, writer, diagnostic_writer);
-    return .{ .matched = result.matched };
+    return .{ .matched = result.matched, .had_error = result.match_error };
 }
 
 fn scanRegularPath(
@@ -253,7 +465,7 @@ fn scanRegularPath(
     diagnostic_writer: *std.Io.Writer,
 ) !PathResult {
     const result = try scanFile(init, path, matchers, options, writer, diagnostic_writer);
-    return .{ .matched = result.matched };
+    return .{ .matched = result.matched, .had_error = result.match_error };
 }
 
 fn scanPath(
@@ -271,18 +483,22 @@ fn scanPath(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !PathResult {
+    if (options.skip_contents) {
+        _ = try emitSkipContentsName(path, options, writer);
+        return .{};
+    }
     const stat = try std.Io.Dir.cwd().statFile(init.io, path, .{});
     if (stat.kind != .directory) {
         if (device_mode == .skip and stat.kind != .file) return .{};
-        if (!filters.allowsFile(std.fs.path.basename(path))) return .{};
+        if (!filters.allowsFile(path)) return .{};
         const result = try scanFile(init, path, matchers, options, writer, diagnostic_writer);
-        return .{ .matched = result.matched };
+        return .{ .matched = result.matched, .had_error = result.match_error };
     }
     if (!recursive) {
         if (skip_directories) return .{};
         return error.IsDirectory;
     }
-    if (!filters.allowsDir(std.fs.path.basename(path))) return .{};
+    if (!isDotPath(path) and !filters.allowsDir(path)) return .{};
 
     if (options.list_files != null and !options.quiet and device_mode != .read) {
         var list_ancestors = std.StringHashMap(void).init(init.gpa);
@@ -352,8 +568,8 @@ fn scanDirectory(
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
             if (!no_messages) try diagnostic_writer.print(
-                "zgr: {s}: warning: recursive directory loop\n",
-                .{path},
+                "{s}: {s}: warning: recursive directory loop\n",
+                .{ diagnostic_name, path },
             );
             init.gpa.free(resolved);
             return .{};
@@ -379,7 +595,7 @@ fn scanDirectory(
         var kind = entry.kind;
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -388,7 +604,7 @@ fn scanDirectory(
         if (kind == .sym_link) {
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -396,11 +612,11 @@ fn scanDirectory(
         }
 
         const result = switch (kind) {
-            .file => if (filters.allowsFile(entry.name))
+            .file => if (filters.allowsFile(full_path))
                 scanRegularPath(init, full_path, matchers, options, writer, diagnostic_writer)
             else
                 continue,
-            .directory => if (filters.allowsDir(entry.name)) scanDirectory(
+            .directory => if (filters.allowsDir(full_path)) scanDirectory(
                 init,
                 full_path,
                 matchers,
@@ -413,12 +629,12 @@ fn scanDirectory(
                 writer,
                 diagnostic_writer,
             ) else continue,
-            else => if (device_mode == .read and filters.allowsFile(entry.name))
+            else => if (device_mode == .read and filters.allowsFile(full_path))
                 scanRegularPath(init, full_path, matchers, options, writer, diagnostic_writer)
             else
                 continue,
         } catch |err| {
-            if (!no_messages) try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+            if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         };
@@ -491,7 +707,7 @@ fn scanDirectoryOutputParallel(
         for (items.items) |item| {
             if (item.result.err) |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
             } else if (item.result.matched) {
                 try matching_items.append(init.gpa, item);
@@ -503,7 +719,7 @@ fn scanDirectoryOutputParallel(
             for (matching_items.items) |item| {
                 try writer.writeAll(item.output.?[0..item.output_len]);
                 if (item.output_binary_match)
-                    try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{item.path});
+                    try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
             }
             aggregate.matched = true;
             return aggregate;
@@ -529,7 +745,7 @@ fn scanDirectoryOutputParallel(
                     diagnostic_writer,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                        try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                     aggregate.had_error = true;
                     continue;
                 };
@@ -570,7 +786,7 @@ fn scanDirectoryOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -702,19 +918,19 @@ fn scanCollectedOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
             aggregate.matched = aggregate.matched or result.matched;
         } else if (task.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
             aggregate.had_error = true;
         } else {
             try writer.writeAll(task.buffer[0..task.output_len]);
             if (task.result.binary_match)
-                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{item.path});
+                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
             aggregate.matched = aggregate.matched or task.result.matched;
         }
 
@@ -966,7 +1182,7 @@ fn scanDirectoryListParallel(
     for (items.items) |item| {
         if (item.result.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("zgr: {s}: {s}\n", .{ item.path, @errorName(err) });
+                try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         }
@@ -1001,8 +1217,8 @@ fn collectDirectoryFiles(
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
             if (!no_messages) try diagnostic_writer.print(
-                "zgr: {s}: warning: recursive directory loop\n",
-                .{path},
+                "{s}: {s}: warning: recursive directory loop\n",
+                .{ diagnostic_name, path },
             );
             init.gpa.free(resolved);
             return;
@@ -1027,7 +1243,7 @@ fn collectDirectoryFiles(
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1037,7 +1253,7 @@ fn collectDirectoryFiles(
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1046,16 +1262,16 @@ fn collectDirectoryFiles(
 
         switch (kind) {
             .file => {
-                if (!filters.allowsFile(entry.name)) continue;
+                if (!filters.allowsFile(full_path)) continue;
                 const item = try path_allocator.create(ParallelListItem);
                 item.* = .{ .path = full_path };
                 try collector.append(item);
             },
-            .directory => if (filters.allowsDir(entry.name)) {
+            .directory => if (filters.allowsDir(full_path)) {
                 const child_directory = if (ancestors == null)
                     directory.openDir(init.io, entry.name, .{ .iterate = true }) catch |err| {
                         if (!no_messages)
-                            try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                            try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                         aggregate.had_error = true;
                         continue;
                     }
@@ -1075,7 +1291,7 @@ fn collectDirectoryFiles(
                     aggregate,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("zgr: {s}: {s}\n", .{ full_path, @errorName(err) });
+                        try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                     aggregate.had_error = true;
                 };
             } else continue,
@@ -1444,8 +1660,11 @@ fn scanFile(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
+    if (options.skip_contents) return emitSkipContentsName(path, options, writer);
     const file = try std.Io.Dir.cwd().openFile(init.io, path, .{});
     defer file.close(init.io);
+    if (try rejectIfSameFile(file, options, path, diagnostic_writer)) |rejected|
+        return rejected;
     const stat = try file.stat(init.io);
     var file_options = options;
     if (stat.kind == .file and options.initial_tab_width != 0)
@@ -1453,17 +1672,10 @@ fn scanFile(
     if (stat.kind == .file and stat.size > 0) {
         if (stat.size > std.math.maxInt(usize)) return error.FileTooBig;
         const small_file_bytes = 64 * 1024;
-        if (stat.size > small_file_bytes and file_options.quiet and file_options.binary_mode != .without_match) {
-            var quiet_buffer: [64 * 1024]u8 = undefined;
-            var quiet_reader = file.readerStreaming(init.io, &quiet_buffer);
-            return zgrep.scanner.scanReader(
-                &quiet_reader.interface,
-                init.gpa,
-                matchers,
-                path,
-                file_options,
-                writer,
-            );
+        if (stat.size > small_file_bytes and shouldStreamAndStop(file_options) and
+            file_options.binary_mode != .without_match)
+        {
+            return scanFileStreaming(init, file, path, matchers, file_options, writer, diagnostic_writer);
         }
         if (stat.size <= small_file_bytes) {
             var small_buffer: [small_file_bytes]u8 = undefined;
@@ -1472,13 +1684,18 @@ fn scanFile(
                 small_buffer[0..@intCast(stat.size)],
                 0,
             );
-            return scanRegularBuffer(
-                small_buffer[0..bytes_read],
+            return annotateMatchError(
                 matchers,
                 path,
-                file_options,
-                writer,
                 diagnostic_writer,
+                try scanRegularBuffer(
+                    small_buffer[0..bytes_read],
+                    matchers,
+                    path,
+                    file_options,
+                    writer,
+                    diagnostic_writer,
+                ),
             );
         }
         const mapped = try std.posix.mmap(
@@ -1490,30 +1707,43 @@ fn scanFile(
             0,
         );
         defer std.posix.munmap(mapped);
-        return scanRegularBuffer(mapped, matchers, path, file_options, writer, diagnostic_writer);
+        return annotateMatchError(
+            matchers,
+            path,
+            diagnostic_writer,
+            try scanRegularBuffer(mapped, matchers, path, file_options, writer, diagnostic_writer),
+        );
     }
-    if (stat.kind == .file) return zgrep.scanner.scanBuffer(&.{}, matchers, path, file_options, writer);
+    if (stat.kind == .file) {
+        return annotateMatchError(
+            matchers,
+            path,
+            diagnostic_writer,
+            try zgrep.scanner.scanBuffer(&.{}, matchers, path, file_options, writer),
+        );
+    }
 
     if (requiresBufferedScan(options)) {
         var read_buffer: [256 * 1024]u8 = undefined;
         var reader = file.readerStreaming(init.io, &read_buffer);
         const data = try reader.interface.allocRemaining(init.gpa, .unlimited);
         defer init.gpa.free(data);
-        return scanBufferedData(data, matchers, path, options, writer, diagnostic_writer);
+        return annotateMatchError(
+            matchers,
+            path,
+            diagnostic_writer,
+            try scanBufferedData(data, matchers, path, options, writer, diagnostic_writer),
+        );
     }
 
     if (try zgrep.scanner.scanFileLiteralCount(file, init.io, init.gpa, matchers, path, options, writer)) |result| {
-        return result;
+        return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
     if (try zgrep.scanner.scanFileLiteralOutput(file, init.io, init.gpa, matchers, path, options, writer)) |result| {
-        if (result.binary_match) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
-        return result;
+        if (result.binary_match) try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+        return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
-    var read_buffer: [256 * 1024]u8 = undefined;
-    var reader = file.readerStreaming(init.io, &read_buffer);
-    const result = try zgrep.scanner.scanReader(&reader.interface, init.gpa, matchers, path, options, writer);
-    if (result.binary_match) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
-    return result;
+    return scanFileStreaming(init, file, path, matchers, options, writer, diagnostic_writer);
 }
 
 fn decimalDigitCount(value: u64) usize {
@@ -1674,12 +1904,12 @@ fn scanRegularBuffer(
     }
     if (try zgrep.scanner.parallelSelectedOutput(buffer, matchers, path, scan_options, writer)) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
         return result;
     }
     const result = try zgrep.scanner.scanBuffer(buffer, matchers, path, scan_options, writer);
     if (result.binary_match)
-        try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+        try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     return result;
 }
 
@@ -1691,7 +1921,10 @@ fn scanStdin(
     writer: *std.Io.Writer,
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
+    if (options.skip_contents) return emitSkipContentsName(path, options, writer);
     const stdin_file = std.Io.File.stdin();
+    if (try rejectIfSameFile(stdin_file, options, path, diagnostic_writer)) |rejected|
+        return rejected;
     var input_options = options;
     if (options.initial_tab_width != 0) {
         if (stdin_file.stat(init.io)) |stat| {
@@ -1704,13 +1937,18 @@ fn scanStdin(
         var reader = stdin_file.readerStreaming(init.io, &read_buffer);
         const data = try reader.interface.allocRemaining(init.gpa, .unlimited);
         defer init.gpa.free(data);
-        return scanBufferedData(
-            data,
+        return annotateMatchError(
             matchers,
             path,
-            input_options,
-            writer,
             diagnostic_writer,
+            try scanBufferedData(
+                data,
+                matchers,
+                path,
+                input_options,
+                writer,
+                diagnostic_writer,
+            ),
         );
     }
     if (try zgrep.scanner.scanFileLiteralCount(
@@ -1721,7 +1959,7 @@ fn scanStdin(
         path,
         input_options,
         writer,
-    )) |result| return result;
+    )) |result| return annotateMatchError(matchers, path, diagnostic_writer, result);
     if (try zgrep.scanner.scanFileLiteralOutput(
         stdin_file,
         init.io,
@@ -1732,33 +1970,23 @@ fn scanStdin(
         writer,
     )) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
-        return result;
+            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+        return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
 
-    var read_buffer: [256 * 1024]u8 = undefined;
-    var reader = stdin_file.readerStreaming(init.io, &read_buffer);
-    const result = try zgrep.scanner.scanReader(
-        &reader.interface,
-        init.gpa,
-        matchers,
+    return scanFileStreaming(
+        init,
+        stdin_file,
         path,
+        matchers,
         input_options,
         writer,
+        diagnostic_writer,
     );
-    if (result.binary_match)
-        try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
-    return result;
 }
 
 fn requiresBufferedScan(options: zgrep.scanner.ScanOptions) bool {
-    return (contextOutputEnabled(options) and !options.line_buffered) or
-        (options.delimiter != 0 and options.binary_mode == .without_match);
-}
-
-fn contextOutputEnabled(options: zgrep.scanner.ScanOptions) bool {
-    return (options.before_context != 0 or options.after_context != 0) and
-        !options.count and !options.quiet and options.list_files == null and !options.only_matching;
+    return options.delimiter != 0 and options.binary_mode == .without_match;
 }
 
 fn shouldSummarizeBinary(options: zgrep.scanner.ScanOptions) bool {
@@ -1777,14 +2005,14 @@ fn scanBufferedData(
     if (options.delimiter == 0 or options.binary_mode == .text) {
         const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
         if (result.binary_match)
-            try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
         return result;
     }
     const nul_position = try zgrep.scanner.findNulParallel(data) orelse
         {
             const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
             if (result.binary_match)
-                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
             return result;
         };
     if (options.binary_mode == .without_match)
@@ -1863,7 +2091,7 @@ fn scanBinaryBuffer(
         );
         if (aggregate.matched) {
             if (aggregate.binary_match)
-                try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
             if (options.max_count) |limit|
                 if (aggregate.selected_lines >= limit) return aggregate;
         }
@@ -1880,7 +2108,7 @@ fn scanBinaryBuffer(
         quiet_options,
         writer,
     );
-    if (result.matched) try diagnostic_writer.print("zgr: {s}: binary file matches\n", .{path});
+    if (result.matched) try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     aggregate.matched = aggregate.matched or result.matched;
     aggregate.selected_lines += result.selected_lines;
     return aggregate;

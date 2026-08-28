@@ -11,6 +11,10 @@ pub fn initializeLocale() bool {
     return c.zg_initialize_locale();
 }
 
+pub fn pcre2Version() [*:0]const u8 {
+    return c.zg_pcre2_version();
+}
+
 pub const Matcher = union(enum) {
     literal: Literal,
     alternation: LiteralAlternation,
@@ -28,6 +32,13 @@ pub const Matcher = union(enum) {
         dot_matches_newline: bool,
         error_buffer: []u8,
     ) !Matcher {
+        if (hasConfusingCharClass(pattern, mode)) {
+            const msg = "character class syntax is [[:space:]], not [:space:]";
+            const n = @min(msg.len, error_buffer.len - 1);
+            @memcpy(error_buffer[0..n], msg[0..n]);
+            error_buffer[n] = 0;
+            return error.InvalidRegex;
+        }
         const utf8_locale = c.zg_locale_is_utf8();
         const locale_sensitive_literal = utf8_locale and (ignore_case or word_regexp);
         const literal_pattern = isLiteralPattern(pattern, mode);
@@ -171,6 +182,13 @@ pub const Matcher = union(enum) {
             .alternation => |*alternation| alternation.matches(line),
             .regex => |*regex| regex.matches(line),
             .posix_regex => |*regex| regex.matchesPosix(line),
+        };
+    }
+
+    pub fn hadMatchError(self: *const Matcher) bool {
+        return switch (self.*) {
+            .literal, .alternation => false,
+            .regex, .posix_regex => |*regex| c.zg_regex_match_error(regex.compiled),
         };
     }
 
@@ -1090,6 +1108,54 @@ fn hasWordBoundaries(line: []const u8, start: usize, len: usize) bool {
     const end = start + len;
     const right = end == line.len or !isWordByte(line[end]);
     return left and right;
+}
+
+fn hasConfusingCharClass(pattern: []const u8, mode: options.Mode) bool {
+    if (mode == .fixed) return false;
+    const names = [_][]const u8{
+        "alnum", "alpha", "blank", "cntrl", "digit", "graph",
+        "lower", "print", "punct", "space", "upper", "xdigit",
+    };
+    var index: usize = 0;
+    var in_class = false;
+    var class_prefix: u2 = 0;
+    while (index < pattern.len) : (index += 1) {
+        const byte = pattern[index];
+        if (in_class) {
+            if (class_prefix == 0 and byte == '^') {
+                class_prefix = 1;
+                continue;
+            }
+            if (class_prefix < 2 and byte == ']') {
+                class_prefix = 2;
+                continue;
+            }
+            if (byte == ']' and isPosixBracketSubexpressionEnd(pattern, index)) continue;
+            if (byte == ']') {
+                in_class = false;
+            } else {
+                class_prefix = 2;
+            }
+            continue;
+        }
+        if (byte != '[') continue;
+        var content = index + 1;
+        if (content < pattern.len and pattern[content] == '^') content += 1;
+        if (content < pattern.len and pattern[content] == ':') {
+            const rest = pattern[content + 1 ..];
+            for (names) |name| {
+                if (rest.len >= name.len + 2 and
+                    std.mem.eql(u8, rest[0..name.len], name) and
+                    rest[name.len] == ':' and rest[name.len + 1] == ']')
+                {
+                    return true;
+                }
+            }
+        }
+        in_class = true;
+        class_prefix = 0;
+    }
+    return false;
 }
 
 fn isLiteralPattern(pattern: []const u8, mode: options.Mode) bool {

@@ -12,18 +12,37 @@ pub const Filters = struct {
     pub fn allowsFile(self: Filters, name: []const u8) bool {
         var allowed = self.rules.len == 0 or !self.rules[0].include;
         for (self.rules) |rule| {
-            if (globMatches(rule.pattern, name)) allowed = rule.include;
+            if (pathGlobMatches(rule.pattern, name)) allowed = rule.include;
         }
         return allowed;
     }
 
     pub fn allowsDir(self: Filters, name: []const u8) bool {
         for (self.exclude_dirs) |pattern| {
-            if (globMatches(pattern, name)) return false;
+            if (pathGlobMatches(stripTrailingSlashes(pattern), name)) return false;
         }
         return true;
     }
 };
+
+pub fn stripTrailingSlashes(path: []const u8) []const u8 {
+    var end = path.len;
+    while (end > 0 and path[end - 1] == '/') end -= 1;
+    return path[0..end];
+}
+
+fn pathGlobMatches(pattern: []const u8, name: []const u8) bool {
+    if (globMatches(pattern, name)) return true;
+    const base = std.fs.path.basename(name);
+    if (base.len != name.len and globMatches(pattern, base)) return true;
+    var index: usize = 0;
+    while (index < name.len) : (index += 1) {
+        if (name[index] == '/' and index + 1 < name.len and name[index + 1] != '/') {
+            if (globMatches(pattern, name[index + 1 ..])) return true;
+        }
+    }
+    return false;
+}
 
 pub fn globMatches(pattern: []const u8, name: []const u8) bool {
     var pattern_index: usize = 0;
@@ -155,6 +174,17 @@ test "glob wildcards and classes" {
     try std.testing.expect(globMatches("file[[:digit:]].c", "file7.c"));
     try std.testing.expect(!globMatches("file[[:digit:]].c", "filex.c"));
     try std.testing.expect(!globMatches("*.c", "file.h"));
+}
+
+test "path globs match suffixes and trailing slashes" {
+    try std.testing.expect(pathGlobMatches("a", "x/a"));
+    try std.testing.expect(pathGlobMatches("x/a", "x/a"));
+    try std.testing.expect(pathGlobMatches("./x", "./x"));
+    try std.testing.expect(pathGlobMatches("x", "./x"));
+    try std.testing.expectEqualStrings("dir", stripTrailingSlashes("dir/"));
+    const filters: Filters = .{ .exclude_dirs = &.{"dir/"} };
+    try std.testing.expect(!filters.allowsDir("dir"));
+    try std.testing.expect(!filters.allowsDir("x/dir"));
 }
 
 test "ordered file rules use the last match" {

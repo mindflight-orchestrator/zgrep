@@ -16,10 +16,12 @@ pub const ColorConfig = struct {
 
     pub fn fromEnvironment(environ: *const std.process.Environ.Map) ColorConfig {
         var result: ColorConfig = .{};
+        var colors_set_match = false;
         if (environ.get("GREP_COLORS")) |specification| {
-            result.apply(specification);
-        } else if (environ.get("GREP_COLOR")) |match_color| {
-            if (match_color.len != 0) {
+            colors_set_match = result.apply(specification);
+        }
+        if (environ.get("GREP_COLOR")) |match_color| {
+            if (!colors_set_match and match_color.len != 0) {
                 result.selected_match = match_color;
                 result.context_match = match_color;
             }
@@ -27,7 +29,13 @@ pub const ColorConfig = struct {
         return result;
     }
 
-    fn apply(self: *ColorConfig, specification: []const u8) void {
+    pub fn grepColorIsSet(environ: *const std.process.Environ.Map) bool {
+        const value = environ.get("GREP_COLOR") orelse return false;
+        return value.len != 0;
+    }
+
+    fn apply(self: *ColorConfig, specification: []const u8) bool {
+        var set_match = false;
         var fields = std.mem.splitScalar(u8, specification, ':');
         while (fields.next()) |field| {
             if (std.mem.eql(u8, field, "ne")) {
@@ -43,11 +51,13 @@ pub const ColorConfig = struct {
             const value = field[equals + 1 ..];
             if (std.mem.eql(u8, name, "ms")) {
                 self.selected_match = value;
+                set_match = true;
             } else if (std.mem.eql(u8, name, "mc")) {
                 self.context_match = value;
             } else if (std.mem.eql(u8, name, "mt")) {
                 self.selected_match = value;
                 self.context_match = value;
+                set_match = true;
             } else if (std.mem.eql(u8, name, "sl")) {
                 self.selected_line = value;
             } else if (std.mem.eql(u8, name, "cx")) {
@@ -62,6 +72,7 @@ pub const ColorConfig = struct {
                 self.separator = value;
             }
         }
+        return set_match;
     }
 };
 
@@ -77,6 +88,7 @@ pub const ScanOptions = struct {
     only_matching: bool,
     before_context: usize = 0,
     after_context: usize = 0,
+    context_requested: bool = false,
     context_separator: ?[]const u8 = "--",
     context_state: ?*ContextState = null,
     binary_mode: options_mod.BinaryMode,
@@ -87,6 +99,7 @@ pub const ScanOptions = struct {
     delimiter: u8 = '\n',
     null_filename: bool = false,
     colors: ?*const ColorConfig = null,
+    skip_contents: bool = false,
 };
 
 pub const ContextState = struct {
@@ -97,7 +110,14 @@ pub const Result = struct {
     matched: bool = false,
     selected_lines: usize = 0,
     binary_match: bool = false,
+    match_error: bool = false,
+    leftover_bytes: usize = 0,
 };
+
+pub fn rewindUnread(file: std.Io.File, unread: usize) void {
+    if (unread == 0) return;
+    _ = std.os.linux.lseek(file.handle, -@as(i64, @intCast(unread)), std.os.linux.SEEK.CUR);
+}
 
 fn suppressInvalidUtf8(line: []const u8, options: ScanOptions, result: *Result) bool {
     if (!options.utf8_locale or options.binary_mode == .text or
@@ -152,15 +172,29 @@ pub fn scanBuffer(
         if (!invalid_utf8 and matchers.len == 1 and !options.invert) {
             if (try parallelSparseContextOutput(buffer, matchers, path, options, writer)) |result|
                 return result;
-            switch (matchers[0]) {
-                .literal => |*literal| if (!literal.whole_line and literal.pattern.len != 0) {
-                    return scanLiteralContextFast(buffer, matchers, literal, path, options, writer);
-                },
-                .posix_regex => |*regex| if (bufferIsAscii(buffer, options)) {
-                    if (regex.ascii_literal) |*literal| {
-                        if (!literal.whole_line and literal.pattern.len != 0)
-                            return scanLiteralContextFast(buffer, matchers, literal, path, options, writer);
-                    } else if (regex.prefilter) |*prefilter| {
+            if (!options.only_matching) {
+                switch (matchers[0]) {
+                    .literal => |*literal| if (!literal.whole_line and literal.pattern.len != 0) {
+                        return scanLiteralContextFast(buffer, matchers, literal, path, options, writer);
+                    },
+                    .posix_regex => |*regex| if (bufferIsAscii(buffer, options)) {
+                        if (regex.ascii_literal) |*literal| {
+                            if (!literal.whole_line and literal.pattern.len != 0)
+                                return scanLiteralContextFast(buffer, matchers, literal, path, options, writer);
+                        } else if (regex.prefilter) |*prefilter| {
+                            if (shouldUseRegexPrefilter(buffer, prefilter))
+                                return scanRegexPrefilterContextFast(
+                                    buffer,
+                                    matchers,
+                                    regex,
+                                    prefilter,
+                                    path,
+                                    options,
+                                    writer,
+                                );
+                        }
+                    },
+                    .regex => |*regex| if (regex.prefilter) |*prefilter| {
                         if (shouldUseRegexPrefilter(buffer, prefilter))
                             return scanRegexPrefilterContextFast(
                                 buffer,
@@ -171,21 +205,9 @@ pub fn scanBuffer(
                                 options,
                                 writer,
                             );
-                    }
-                },
-                .regex => |*regex| if (regex.prefilter) |*prefilter| {
-                    if (shouldUseRegexPrefilter(buffer, prefilter))
-                        return scanRegexPrefilterContextFast(
-                            buffer,
-                            matchers,
-                            regex,
-                            prefilter,
-                            path,
-                            options,
-                            writer,
-                        );
-                },
-                else => {},
+                    },
+                    else => {},
+                }
             }
         }
         return scanLinesWithContext(buffer, matchers, path, options, writer);
@@ -374,7 +396,10 @@ pub fn scanReader(
                         matchers,
                     );
             }
-            if (options.max_count == result.selected_lines) break;
+            if (options.max_count == result.selected_lines) {
+                result.leftover_bytes = reader.bufferedLen();
+                break;
+            }
         }
         byte_offset += line.len + @intFromBool(!reached_end);
         long_line.clearRetainingCapacity();
@@ -503,7 +528,10 @@ fn scanReaderWithContext(
             else
                 retained.items[retained_head].number;
             const starts_new_group = if (last_emitted_number) |last|
-                context_start_number > last + 1
+                if (options.only_matching)
+                    line_number > last + options.before_context + options.after_context + 1
+                else
+                    context_start_number > last + 1
             else
                 true;
             if (starts_new_group and (!suppress_selected or retained.items.len != 0))
@@ -517,6 +545,7 @@ fn scanReaderWithContext(
             else
                 0;
             for (retained_emit_start..retained.items.len) |retained_index| {
+                if (options.only_matching) break;
                 const index = (retained_head + retained_index) % retained.items.len;
                 const prior = retained.items[index];
                 if (!suppressInvalidUtf8(prior.data, options, &result)) {
@@ -536,22 +565,34 @@ fn scanReaderWithContext(
             }
 
             if (!suppress_selected) {
-                try emitContextLine(
-                    writer,
-                    path,
-                    matchers,
-                    options,
-                    if (options.line_number) line_number else null,
-                    if (options.byte_offset) byte_offset else null,
-                    line,
-                    ':',
-                    true,
-                );
+                if (options.only_matching)
+                    try emitSelectedOnlyMatches(
+                        writer,
+                        path,
+                        options,
+                        if (options.line_number) line_number else null,
+                        byte_offset,
+                        matchers,
+                        line,
+                    )
+                else
+                    try emitContextLine(
+                        writer,
+                        path,
+                        matchers,
+                        options,
+                        if (options.line_number) line_number else null,
+                        if (options.byte_offset) byte_offset else null,
+                        line,
+                        ':',
+                        true,
+                    );
                 last_emitted_number = line_number;
             }
-            after_remaining = if (suppress_selected) 0 else options.after_context;
+            after_remaining = if (suppress_selected or options.only_matching) 0 else options.after_context;
             if (options.max_count == result.selected_lines) {
                 matching_finished = true;
+                result.leftover_bytes = reader.bufferedLen();
                 if (after_remaining == 0) break;
             }
         } else if (after_remaining > 0) {
@@ -1093,19 +1134,18 @@ pub fn scanFileLiteralOutput(
     var reached_end = false;
 
     while (!reached_end) {
-        var filled: usize = 0;
-        while (filled < block.len) {
-            const bytes_read = file.readStreaming(io, &.{block[filled..]}) catch |err| switch (err) {
-                error.EndOfStream => {
-                    reached_end = true;
-                    break;
-                },
-                else => |other| return other,
-            };
-            if (bytes_read == 0) continue;
-            filled += bytes_read;
+        const bytes_read = file.readStreaming(io, &.{block}) catch |err| switch (err) {
+            error.EndOfStream => {
+                reached_end = true;
+                break;
+            },
+            else => |other| return other,
+        };
+        if (bytes_read == 0) {
+            reached_end = true;
+            break;
         }
-        if (filled == 0) break;
+        const filled = bytes_read;
         const chunk = block[0..filled];
 
         if (!binary_detected and options.delimiter != 0 and options.binary_mode == .binary and
@@ -1139,7 +1179,10 @@ pub fn scanFileLiteralOutput(
             writer,
             &line_number,
             &result,
-        )) return result;
+        )) {
+            rewindUnread(file, result.leftover_bytes);
+            return result;
+        }
         block_offset += filled;
     }
 
@@ -1213,7 +1256,10 @@ fn scanStreamingLiteralBlock(
                 options,
                 writer,
                 result,
-            )) return true;
+            )) {
+                result.leftover_bytes += chunk.len - complete_end;
+                return true;
+            }
             line_number.* += std.mem.countScalar(u8, chunk[cursor..complete_end], options.delimiter);
             if (complete_end < chunk.len) {
                 pending_offset.* = block_offset + complete_end;
@@ -1269,7 +1315,10 @@ fn scanCompletedLiteralLines(
                 options.initial_tab_width,
                 options.line_buffered,
             );
-        if (options.max_count == result.selected_lines) return true;
+        if (options.max_count == result.selected_lines) {
+            result.leftover_bytes = data.len - (line_end + 1);
+            return true;
+        }
         search_position = line_end + 1;
     }
     return false;
@@ -2842,7 +2891,10 @@ fn scanLinesWithContext(
                 options.delimiter,
             );
             const starts_new_group = if (last_emitted_number) |last|
-                context_start.number > last + 1
+                if (options.only_matching)
+                    line_number > last + options.before_context + options.after_context + 1
+                else
+                    context_start.number > last + 1
             else
                 true;
             if (starts_new_group and (!suppress_selected or context_start.start < line_start))
@@ -2850,44 +2902,57 @@ fn scanLinesWithContext(
 
             var prior_start = context_start.start;
             var prior_number = context_start.number;
-            while (prior_start < line_start) : (prior_number += 1) {
-                const prior_end = std.mem.findScalarPos(u8, buffer, prior_start, options.delimiter) orelse buffer.len;
-                if (last_emitted_number == null or prior_number > last_emitted_number.?) {
-                    const prior_line = buffer[prior_start..prior_end];
-                    if (!suppressInvalidUtf8(prior_line, options, &result)) {
-                        try emitContextLine(
-                            writer,
-                            path,
-                            matchers,
-                            options,
-                            if (options.line_number) prior_number else null,
-                            if (options.byte_offset) prior_start else null,
-                            prior_line,
-                            '-',
-                            false,
-                        );
-                        last_emitted_number = prior_number;
+            if (!options.only_matching) {
+                while (prior_start < line_start) : (prior_number += 1) {
+                    const prior_end = std.mem.findScalarPos(u8, buffer, prior_start, options.delimiter) orelse buffer.len;
+                    if (last_emitted_number == null or prior_number > last_emitted_number.?) {
+                        const prior_line = buffer[prior_start..prior_end];
+                        if (!suppressInvalidUtf8(prior_line, options, &result)) {
+                            try emitContextLine(
+                                writer,
+                                path,
+                                matchers,
+                                options,
+                                if (options.line_number) prior_number else null,
+                                if (options.byte_offset) prior_start else null,
+                                prior_line,
+                                '-',
+                                false,
+                            );
+                            last_emitted_number = prior_number;
+                        }
                     }
+                    if (prior_end == buffer.len) break;
+                    prior_start = prior_end + 1;
                 }
-                if (prior_end == buffer.len) break;
-                prior_start = prior_end + 1;
             }
 
             if (!suppress_selected) {
-                try emitContextLine(
-                    writer,
-                    path,
-                    matchers,
-                    options,
-                    if (options.line_number) line_number else null,
-                    if (options.byte_offset) line_start else null,
-                    line,
-                    ':',
-                    true,
-                );
+                if (options.only_matching)
+                    try emitSelectedOnlyMatches(
+                        writer,
+                        path,
+                        options,
+                        if (options.line_number) line_number else null,
+                        line_start,
+                        matchers,
+                        line,
+                    )
+                else
+                    try emitContextLine(
+                        writer,
+                        path,
+                        matchers,
+                        options,
+                        if (options.line_number) line_number else null,
+                        if (options.byte_offset) line_start else null,
+                        line,
+                        ':',
+                        true,
+                    );
                 last_emitted_number = line_number;
             }
-            after_remaining = if (suppress_selected) 0 else options.after_context;
+            after_remaining = if (suppress_selected or options.only_matching) 0 else options.after_context;
 
             if (options.max_count == result.selected_lines) {
                 matching_finished = true;
@@ -3454,8 +3519,8 @@ fn rewindLines(
 }
 
 fn contextOutputEnabled(options: ScanOptions) bool {
-    return (options.before_context != 0 or options.after_context != 0) and
-        !options.count and !options.quiet and options.list_files == null and !options.only_matching;
+    return (options.context_requested or options.before_context != 0 or options.after_context != 0) and
+        !options.count and !options.quiet and options.list_files == null;
 }
 
 fn beginContextGroup(writer: *std.Io.Writer, options: ScanOptions, first_in_file: bool) !void {
@@ -3569,7 +3634,7 @@ fn emitDecoratedLine(
         has_prefix = true;
     }
     if (prefix_len != 0) try writer.writeAll(prefix[0..prefix_len]);
-    if (initial_tab_width != 0 and has_prefix) try writer.writeByte('\t');
+    if (initial_tab_width != 0 and has_prefix and line.len != 0) try writer.writeByte('\t');
     try writer.writeAll(line);
     try writer.writeByte(delimiter);
     try finishRecord(writer, line_buffered);

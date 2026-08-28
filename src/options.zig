@@ -49,6 +49,8 @@ pub const Options = struct {
     exclude_dirs: std.ArrayList([]const u8) = .empty,
     before_context_explicit: bool = false,
     after_context_explicit: bool = false,
+    context_requested: bool = false,
+    program_name: []const u8 = "zgr",
 
     pub fn deinit(self: *Options, allocator: std.mem.Allocator) void {
         self.patterns.deinit(allocator);
@@ -63,7 +65,10 @@ pub const Options = struct {
         errdefer result.deinit(allocator);
 
         var it = std.process.Args.Iterator.init(args);
-        _ = it.next();
+        if (it.next()) |argv0| {
+            result.program_name = std.fs.path.basename(argv0);
+            if (result.program_name.len == 0) result.program_name = "zgr";
+        }
 
         var parse_options = true;
         while (it.next()) |arg_z| {
@@ -99,101 +104,93 @@ pub const Options = struct {
         it: *std.process.Args.Iterator,
         allocator: std.mem.Allocator,
     ) !void {
-        if (std.mem.eql(u8, arg, "--extended-regexp")) self.mode = .extended else if (std.mem.eql(u8, arg, "--fixed-strings")) self.mode = .fixed else if (std.mem.eql(u8, arg, "--basic-regexp")) self.mode = .basic else if (std.mem.eql(u8, arg, "--perl-regexp")) self.mode = .perl else if (std.mem.eql(u8, arg, "--ignore-case")) self.ignore_case = true else if (std.mem.eql(u8, arg, "--no-ignore-case")) self.ignore_case = false else if (std.mem.eql(u8, arg, "--invert-match")) self.invert = true else if (std.mem.eql(u8, arg, "--count")) self.count = true else if (std.mem.eql(u8, arg, "--line-number")) self.line_number = true else if (std.mem.eql(u8, arg, "--byte-offset")) self.byte_offset = true else if (std.mem.eql(u8, arg, "--only-matching")) self.only_matching = true else if (std.mem.eql(u8, arg, "--with-filename")) self.with_filename = true else if (std.mem.eql(u8, arg, "--no-filename")) self.with_filename = false else if (std.mem.eql(u8, arg, "--quiet") or std.mem.eql(u8, arg, "--silent")) self.quiet = true else if (std.mem.eql(u8, arg, "--no-messages")) self.no_messages = true else if (std.mem.eql(u8, arg, "--line-regexp")) self.line_regexp = true else if (std.mem.eql(u8, arg, "--word-regexp")) self.word_regexp = true else if (std.mem.eql(u8, arg, "--recursive")) {
+        const raw = arg[2..];
+        const eq = std.mem.findScalar(u8, raw, '=');
+        const given = if (eq) |index| raw[0..index] else raw;
+        const inline_value: ?[]const u8 = if (eq) |index| raw[index + 1 ..] else null;
+        const name = resolveLongOption(given) orelse return error.UnknownOption;
+        if (std.mem.eql(u8, name, "extended-regexp")) self.mode = .extended else if (std.mem.eql(u8, name, "fixed-strings")) self.mode = .fixed else if (std.mem.eql(u8, name, "basic-regexp")) self.mode = .basic else if (std.mem.eql(u8, name, "perl-regexp")) self.mode = .perl else if (std.mem.eql(u8, name, "ignore-case")) self.ignore_case = true else if (std.mem.eql(u8, name, "no-ignore-case")) self.ignore_case = false else if (std.mem.eql(u8, name, "invert-match")) self.invert = true else if (std.mem.eql(u8, name, "count")) self.count = true else if (std.mem.eql(u8, name, "line-number")) self.line_number = true else if (std.mem.eql(u8, name, "byte-offset")) self.byte_offset = true else if (std.mem.eql(u8, name, "only-matching")) self.only_matching = true else if (std.mem.eql(u8, name, "with-filename")) self.with_filename = true else if (std.mem.eql(u8, name, "no-filename")) self.with_filename = false else if (std.mem.eql(u8, name, "quiet") or std.mem.eql(u8, name, "silent")) self.quiet = true else if (std.mem.eql(u8, name, "no-messages")) self.no_messages = true else if (std.mem.eql(u8, name, "line-regexp")) self.line_regexp = true else if (std.mem.eql(u8, name, "word-regexp")) self.word_regexp = true else if (std.mem.eql(u8, name, "recursive")) {
             self.recursive = true;
             self.directory_mode = .recurse;
-        } else if (std.mem.eql(u8, arg, "--dereference-recursive")) {
+        } else if (std.mem.eql(u8, name, "dereference-recursive")) {
             self.recursive = true;
             self.dereference_recursive = true;
             self.directory_mode = .recurse;
-        } else if (std.mem.startsWith(u8, arg, "--directories=")) {
-            try self.setDirectoryMode(arg[14..]);
-        } else if (std.mem.eql(u8, arg, "--directories")) {
-            try self.setDirectoryMode(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--devices=")) {
-            try self.setDeviceMode(arg[10..]);
-        } else if (std.mem.eql(u8, arg, "--devices")) {
-            try self.setDeviceMode(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--after-context=")) {
-            try self.setAfterContext(arg[16..]);
-        } else if (std.mem.eql(u8, arg, "--after-context")) {
-            try self.setAfterContext(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--before-context=")) {
-            try self.setBeforeContext(arg[17..]);
-        } else if (std.mem.eql(u8, arg, "--before-context")) {
-            try self.setBeforeContext(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--context=")) {
-            try self.setContext(arg[10..]);
-        } else if (std.mem.eql(u8, arg, "--context")) {
-            try self.setContext(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--group-separator=")) {
-            self.context_separator = arg[18..];
-        } else if (std.mem.eql(u8, arg, "--group-separator")) {
-            self.context_separator = it.next() orelse return error.MissingOptionArgument;
-        } else if (std.mem.startsWith(u8, arg, "--context-separator=")) {
-            self.context_separator = arg[20..];
-        } else if (std.mem.eql(u8, arg, "--context-separator")) {
-            self.context_separator = it.next() orelse return error.MissingOptionArgument;
-        } else if (std.mem.eql(u8, arg, "--no-group-separator") or
-            std.mem.eql(u8, arg, "--no-context-separator"))
+        } else if (std.mem.eql(u8, name, "directories")) {
+            try self.setDirectoryMode(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "devices")) {
+            try self.setDeviceMode(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "after-context")) {
+            try self.setAfterContext(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "before-context")) {
+            try self.setBeforeContext(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "context")) {
+            try self.setContext(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "group-separator") or std.mem.eql(u8, name, "context-separator")) {
+            self.context_separator = try requireValue(inline_value, it);
+        } else if (std.mem.eql(u8, name, "no-group-separator") or
+            std.mem.eql(u8, name, "no-context-separator"))
         {
             self.context_separator = null;
-        } else if (std.mem.startsWith(u8, arg, "--label=")) {
-            self.label = arg[8..];
-        } else if (std.mem.eql(u8, arg, "--label")) {
-            self.label = it.next() orelse return error.MissingOptionArgument;
-        } else if (std.mem.startsWith(u8, arg, "--include=")) {
-            try self.file_filter_args.append(allocator, .{ .include = arg[10..] });
-        } else if (std.mem.eql(u8, arg, "--include")) {
-            try self.file_filter_args.append(
-                allocator,
-                .{ .include = it.next() orelse return error.MissingOptionArgument },
-            );
-        } else if (std.mem.startsWith(u8, arg, "--exclude=")) {
-            try self.file_filter_args.append(allocator, .{ .exclude = arg[10..] });
-        } else if (std.mem.eql(u8, arg, "--exclude")) {
-            try self.file_filter_args.append(
-                allocator,
-                .{ .exclude = it.next() orelse return error.MissingOptionArgument },
-            );
-        } else if (std.mem.startsWith(u8, arg, "--exclude-from=")) {
-            try self.file_filter_args.append(allocator, .{ .exclude_file = arg[15..] });
-        } else if (std.mem.eql(u8, arg, "--exclude-from")) {
-            try self.file_filter_args.append(
-                allocator,
-                .{ .exclude_file = it.next() orelse return error.MissingOptionArgument },
-            );
-        } else if (std.mem.startsWith(u8, arg, "--exclude-dir=")) {
-            try self.exclude_dirs.append(allocator, arg[14..]);
-        } else if (std.mem.eql(u8, arg, "--exclude-dir")) {
-            try self.exclude_dirs.append(allocator, it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.eql(u8, arg, "--null-data")) self.null_data = true else if (std.mem.eql(u8, arg, "--null")) self.null_filename = true else if (std.mem.eql(u8, arg, "--files-with-matches")) self.list_files = true else if (std.mem.eql(u8, arg, "--files-without-match")) self.list_files = false else if (std.mem.startsWith(u8, arg, "--max-count=")) {
-            self.max_count = std.fmt.parseInt(usize, arg[12..], 10) catch return error.InvalidNumber;
-        } else if (std.mem.eql(u8, arg, "--max-count")) {
-            const value = it.next() orelse return error.MissingOptionArgument;
-            self.max_count = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNumber;
-        } else if (std.mem.eql(u8, arg, "--text")) self.binary_mode = .text else if (std.mem.eql(u8, arg, "--binary")) {
+        } else if (std.mem.eql(u8, name, "label")) {
+            self.label = try requireValue(inline_value, it);
+        } else if (std.mem.eql(u8, name, "include")) {
+            try self.file_filter_args.append(allocator, .{ .include = try requireValue(inline_value, it) });
+        } else if (std.mem.eql(u8, name, "exclude")) {
+            try self.file_filter_args.append(allocator, .{ .exclude = try requireValue(inline_value, it) });
+        } else if (std.mem.eql(u8, name, "exclude-from")) {
+            try self.file_filter_args.append(allocator, .{ .exclude_file = try requireValue(inline_value, it) });
+        } else if (std.mem.eql(u8, name, "exclude-dir")) {
+            try self.exclude_dirs.append(allocator, try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "null-data")) self.null_data = true else if (std.mem.eql(u8, name, "null")) self.null_filename = true else if (std.mem.eql(u8, name, "files-with-matches")) self.list_files = true else if (std.mem.eql(u8, name, "files-without-match")) self.list_files = false else if (std.mem.eql(u8, name, "max-count")) {
+            self.max_count = std.fmt.parseInt(usize, try requireValue(inline_value, it), 10) catch return error.InvalidNumber;
+        } else if (std.mem.eql(u8, name, "text")) self.binary_mode = .text else if (std.mem.eql(u8, name, "binary")) {
             // GNU/Linux already reads files in binary mode; keep -U/--binary
             // as the compatible no-op documented by GNU grep.
-        } else if (std.mem.eql(u8, arg, "--line-buffered")) self.line_buffered = true else if (std.mem.eql(u8, arg, "--initial-tab")) self.initial_tab = true else if (std.mem.startsWith(u8, arg, "--binary-files=")) {
-            try self.setBinaryMode(arg[15..]);
-        } else if (std.mem.eql(u8, arg, "--binary-files")) {
-            try self.setBinaryMode(it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.eql(u8, arg, "--help")) self.help = true else if (std.mem.eql(u8, arg, "--version")) self.version = true else if (std.mem.eql(u8, arg, "--color") or std.mem.eql(u8, arg, "--colour")) {
-            self.color = .auto;
-        } else if (std.mem.startsWith(u8, arg, "--color=")) {
-            self.setColorMode(arg[8..]);
-        } else if (std.mem.startsWith(u8, arg, "--colour=")) {
-            self.setColorMode(arg[9..]);
-        } else if (std.mem.startsWith(u8, arg, "--regexp=")) {
-            try self.appendArgumentPatterns(allocator, arg[9..]);
-        } else if (std.mem.eql(u8, arg, "--regexp")) {
-            try self.appendArgumentPatterns(allocator, it.next() orelse return error.MissingOptionArgument);
-        } else if (std.mem.startsWith(u8, arg, "--file=")) {
-            try self.pattern_files.append(allocator, arg[7..]);
-        } else if (std.mem.eql(u8, arg, "--file")) {
-            try self.pattern_files.append(allocator, it.next() orelse return error.MissingOptionArgument);
+        } else if (std.mem.eql(u8, name, "line-buffered")) self.line_buffered = true else if (std.mem.eql(u8, name, "initial-tab")) self.initial_tab = true else if (std.mem.eql(u8, name, "binary-files")) {
+            try self.setBinaryMode(try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "help")) self.help = true else if (std.mem.eql(u8, name, "version")) self.version = true else if (std.mem.eql(u8, name, "color") or std.mem.eql(u8, name, "colour")) {
+            if (inline_value) |value| self.setColorMode(value) else self.color = .auto;
+        } else if (std.mem.eql(u8, name, "regexp")) {
+            try self.appendArgumentPatterns(allocator, try requireValue(inline_value, it));
+        } else if (std.mem.eql(u8, name, "file")) {
+            try self.pattern_files.append(allocator, try requireValue(inline_value, it));
         } else return error.UnknownOption;
+    }
+
+    fn requireValue(inline_value: ?[]const u8, it: *std.process.Args.Iterator) ![]const u8 {
+        return inline_value orelse (it.next() orelse return error.MissingOptionArgument);
+    }
+
+    fn resolveLongOption(given: []const u8) ?[]const u8 {
+        const names = [_][]const u8{
+            "after-context",        "before-context",     "basic-regexp",
+            "binary",               "binary-files",       "byte-offset",
+            "color",                "colour",             "context",
+            "context-separator",    "count",              "dereference-recursive",
+            "devices",              "directories",        "exclude",
+            "exclude-dir",          "exclude-from",       "extended-regexp",
+            "file",                 "files-with-matches", "files-without-match",
+            "fixed-strings",        "group-separator",    "help",
+            "ignore-case",          "include",            "initial-tab",
+            "invert-match",         "label",              "line-buffered",
+            "line-number",          "line-regexp",        "max-count",
+            "no-context-separator", "no-filename",        "no-group-separator",
+            "no-ignore-case",       "no-messages",        "null",
+            "null-data",            "only-matching",      "perl-regexp",
+            "quiet",                "recursive",          "regexp",
+            "silent",               "text",               "version",
+            "with-filename",        "word-regexp",
+        };
+        var found: ?[]const u8 = null;
+        for (names) |name| {
+            if (std.mem.eql(u8, name, given)) return name;
+            if (std.mem.startsWith(u8, name, given)) {
+                if (found != null) return null;
+                found = name;
+            }
+        }
+        return found;
     }
 
     fn parseShort(
@@ -373,17 +370,20 @@ pub const Options = struct {
     fn setAfterContext(self: *Options, value: []const u8) !void {
         self.after_context = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNumber;
         self.after_context_explicit = true;
+        self.context_requested = true;
     }
 
     fn setBeforeContext(self: *Options, value: []const u8) !void {
         self.before_context = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNumber;
         self.before_context_explicit = true;
+        self.context_requested = true;
     }
 
     fn setContext(self: *Options, value: []const u8) !void {
         const count = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNumber;
         if (!self.before_context_explicit) self.before_context = count;
         if (!self.after_context_explicit) self.after_context = count;
+        self.context_requested = true;
     }
 
     fn appendArgumentPatterns(

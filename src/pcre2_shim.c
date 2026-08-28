@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct zg_regex {
     pcre2_code *code;
@@ -18,6 +19,9 @@ struct zg_regex {
     bool word_regexp;
     bool jit;
     bool ascii_witness_jit;
+    bool match_error;
+    uint8_t *req_lit;
+    size_t req_lit_len;
 };
 
 struct zg_regex_worker {
@@ -25,6 +29,125 @@ struct zg_regex_worker {
     pcre2_match_data *match_data;
     pcre2_match_data *ascii_witness_match_data;
 };
+
+static bool zg_is_pcre_error(int result) {
+    return result < 0 && result != PCRE2_ERROR_NOMATCH;
+}
+
+static bool zg_is_posix_bracket_subexpression_end(const uint8_t *pattern, size_t index) {
+    if (index == 0) return false;
+    const uint8_t previous = pattern[index - 1];
+    return previous == ':' || previous == '.' || previous == '=';
+}
+
+static void zg_finish_literal_run(
+    bool have_run,
+    size_t run_start,
+    size_t end,
+    size_t *best_start,
+    size_t *best_len
+) {
+    if (!have_run || end <= run_start) return;
+    const size_t candidate_len = end - run_start;
+    if (candidate_len > *best_len) {
+        *best_start = run_start;
+        *best_len = candidate_len;
+    }
+}
+
+static void zg_extract_required_literal(zg_regex *regex, const uint8_t *pattern, size_t pattern_len) {
+    size_t best_start = 0;
+    size_t best_len = 0;
+    size_t run_start = 0;
+    bool have_run = false;
+    size_t depth = 0;
+    bool in_class = false;
+    unsigned class_prefix = 0;
+    size_t index = 0;
+
+    while (index < pattern_len) {
+        const uint8_t byte = pattern[index];
+        if (in_class) {
+            if (byte == '\\') return;
+            if (class_prefix < 2 && byte == '^' && class_prefix == 0) {
+                class_prefix = 1;
+                index += 1;
+                continue;
+            }
+            if (class_prefix < 2 && byte == ']') {
+                class_prefix = 2;
+                index += 1;
+                continue;
+            }
+            if (byte == ']' && zg_is_posix_bracket_subexpression_end(pattern, index)) {
+                index += 1;
+                continue;
+            }
+            if (byte == ']') {
+                in_class = false;
+            } else {
+                class_prefix = 2;
+            }
+            index += 1;
+            continue;
+        }
+        if (byte == '\\') return;
+        if (byte == '[') {
+            zg_finish_literal_run(have_run, run_start, index, &best_start, &best_len);
+            have_run = false;
+            in_class = true;
+            class_prefix = 0;
+            index += 1;
+            continue;
+        }
+        if (byte == '(') {
+            zg_finish_literal_run(have_run, run_start, index, &best_start, &best_len);
+            have_run = false;
+            if (index + 1 < pattern_len && (pattern[index + 1] == '?' || pattern[index + 1] == '*'))
+                return;
+            depth += 1;
+            index += 1;
+            continue;
+        }
+        if (byte == ')') {
+            zg_finish_literal_run(have_run, run_start, index, &best_start, &best_len);
+            have_run = false;
+            if (depth == 0) return;
+            depth -= 1;
+            index += 1;
+            continue;
+        }
+        if (byte == '|' && depth == 0) return;
+        if (depth != 0) {
+            index += 1;
+            continue;
+        }
+        if (byte == '{') return;
+        if (byte == '*' || byte == '+' || byte == '?') {
+            have_run = false;
+            index += 1;
+            continue;
+        }
+        if (byte == '.' || byte == '^' || byte == '$' || byte == '}' || byte == '|' || byte == ']') {
+            zg_finish_literal_run(have_run, run_start, index, &best_start, &best_len);
+            have_run = false;
+            index += 1;
+            continue;
+        }
+        if (!have_run) {
+            run_start = index;
+            have_run = true;
+        }
+        index += 1;
+    }
+    if (in_class || depth != 0) return;
+    zg_finish_literal_run(have_run, run_start, pattern_len, &best_start, &best_len);
+    if (best_len < 3) return;
+    regex->req_lit = malloc(best_len);
+    if (regex->req_lit == NULL) return;
+    memcpy(regex->req_lit, pattern + best_start, best_len);
+    regex->req_lit_len = best_len;
+}
 
 zg_regex *zg_regex_compile(
     const uint8_t *pcre_pattern,
@@ -49,6 +172,13 @@ zg_regex *zg_regex_compile(
     }
     regex->line_regexp = line_regexp;
     regex->word_regexp = word_regexp;
+
+    if (zg_pattern_would_overflow(pcre_pattern, pcre_pattern_len) ||
+        zg_pattern_would_overflow(posix_pattern, posix_pattern_len)) {
+        snprintf(error_buffer, error_buffer_len, "stack overflow");
+        free(regex);
+        return NULL;
+    }
 
     if ((syntax == ZG_REGEX_SYNTAX_BASIC || syntax == ZG_REGEX_SYNTAX_EXTENDED)
         && (!pcre_compatible || posix_spans)) {
@@ -105,15 +235,9 @@ zg_regex *zg_regex_compile(
         PCRE2_UCHAR message[192];
         int message_len = pcre2_get_error_message(error_code, message, sizeof(message));
         if (message_len < 0) {
-            snprintf(error_buffer, error_buffer_len, "regex error at byte %zu", error_offset);
+            snprintf(error_buffer, error_buffer_len, "invalid regular expression");
         } else {
-            snprintf(
-                error_buffer,
-                error_buffer_len,
-                "regex error at byte %zu: %s",
-                error_offset,
-                (const char *)message
-            );
+            snprintf(error_buffer, error_buffer_len, "%s", (const char *)message);
         }
         free(regex);
         return NULL;
@@ -157,11 +281,13 @@ zg_regex *zg_regex_compile(
         }
     }
     regex->jit = pcre2_jit_compile(code, PCRE2_JIT_COMPLETE) == 0;
+    zg_extract_required_literal(regex, pcre_pattern, pcre_pattern_len);
     return regex;
 }
 
 bool zg_regex_matches(zg_regex *regex, const uint8_t *subject, size_t subject_len) {
     int result;
+    regex->match_error = false;
     if (regex->jit) {
         result = pcre2_jit_match(
             regex->code,
@@ -183,6 +309,10 @@ bool zg_regex_matches(zg_regex *regex, const uint8_t *subject, size_t subject_le
             NULL
         );
     }
+    if (zg_is_pcre_error(result)) {
+        regex->match_error = true;
+        return false;
+    }
     return result >= 0;
 }
 
@@ -199,10 +329,24 @@ bool zg_regex_required_literal(
     const uint8_t **ptr,
     size_t *len
 ) {
-    (void)regex;
-    (void)ptr;
-    (void)len;
-    return false;
+    if (regex->req_lit == NULL || regex->req_lit_len < 3) return false;
+    *ptr = regex->req_lit;
+    *len = regex->req_lit_len;
+    return true;
+}
+
+bool zg_regex_match_error(const zg_regex *regex) {
+    return regex != NULL && regex->match_error;
+}
+
+const char *zg_pcre2_version(void) {
+    static char version[32];
+    if (version[0] == '\0') {
+        if (pcre2_config(PCRE2_CONFIG_VERSION, version) < 0) {
+            snprintf(version, sizeof(version), "10");
+        }
+    }
+    return version;
 }
 
 bool zg_regex_pcre_find(
@@ -235,7 +379,10 @@ bool zg_regex_pcre_find(
             NULL
         );
     }
-    if (result < 0) return false;
+    if (result < 0) {
+        if (zg_is_pcre_error(result)) regex->match_error = true;
+        return false;
+    }
     PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(regex->match_data);
     *match_start = ovector[0];
     *match_end = ovector[1];
@@ -345,6 +492,10 @@ bool zg_regex_worker_matches(
             NULL
         );
     }
+    if (zg_is_pcre_error(result)) {
+        ((zg_regex *)worker->regex)->match_error = true;
+        return false;
+    }
     return result >= 0;
 }
 
@@ -400,6 +551,7 @@ void zg_regex_free(zg_regex *regex) {
     free(regex->dfa_workspace);
     if (regex->code != NULL) pcre2_code_free(regex->code);
     if (regex->ascii_witness_code != NULL) pcre2_code_free(regex->ascii_witness_code);
+    free(regex->req_lit);
     zg_posix_free(regex->posix);
     free(regex);
 }

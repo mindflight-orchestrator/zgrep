@@ -347,6 +347,12 @@ zg_posix_regex *zg_posix_compile(
     regex->line_regexp = line_regexp;
     regex->word_regexp = word_regexp;
 
+    if (zg_pattern_would_overflow(pattern, pattern_len)) {
+        snprintf(error_buffer, error_buffer_len, "stack overflow");
+        free(regex);
+        return NULL;
+    }
+
     reg_syntax_t posix_syntax = syntax == ZG_REGEX_SYNTAX_EXTENDED
         ? RE_SYNTAX_EGREP
         : RE_SYNTAX_GREP;
@@ -359,7 +365,7 @@ zg_posix_regex *zg_posix_compile(
     );
     re_set_syntax(previous_syntax);
     if (posix_error != NULL) {
-        snprintf(error_buffer, error_buffer_len, "invalid regular expression: %s", posix_error);
+        snprintf(error_buffer, error_buffer_len, "%s", posix_error);
         free(regex);
         return NULL;
     }
@@ -422,4 +428,13 @@ void zg_posix_free(zg_posix_regex *regex) {
     if (regex == NULL) return;
     regfree(&regex->compiled);
     free(regex);
+}
+
+bool zg_pattern_would_overflow(const uint8_t *pattern, size_t pattern_len) {
+    if (pattern_len < 10000) return false;
+    size_t opens = 0;
+    for (size_t index = 0; index < pattern_len; index++) {
+        if (pattern[index] == '(') opens++;
+    }
+    return opens > pattern_len / 2;
 }

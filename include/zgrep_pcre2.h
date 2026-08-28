@@ -31,6 +31,8 @@ bool zg_regex_required_literal(
     const uint8_t **ptr,
     size_t *len
 );
+bool zg_regex_match_error(const zg_regex *regex);
+const char *zg_pcre2_version(void);
 bool zg_regex_find(
     zg_regex *regex,
     const uint8_t *subject,
