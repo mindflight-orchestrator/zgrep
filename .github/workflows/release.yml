@@ -61,7 +61,7 @@ jobs:
           zig build -Doptimize=ReleaseFast
           package="zgr-$GITHUB_REF_NAME-x86_64-linux-gnu"
           mkdir -p "dist/$package"
-          cp zig-out/bin/zgr README.md LICENSE "dist/$package/"
+          cp zig-out/bin/zgr zig-out/bin/zgrc README.md LICENSE "dist/$package/"
           tar -C dist -czf "dist/$package.tar.gz" "$package"
           sha256sum "dist/$package.tar.gz" >"dist/$package.tar.gz.sha256"
 

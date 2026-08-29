@@ -5,9 +5,7 @@ CORPUS=${1:-/tmp/zgrep-bench-nul.dat}
 REPEATS=${2:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
 ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
-ZGREP_ZPCRE2=${ZGR_ZPCRE2:-$(dirname "$ZGREP")/zgr-zpcre2}
-HAVE_ZPCRE2=0
-if [ -x "$ZGREP_ZPCRE2" ]; then HAVE_ZPCRE2=1; fi
+ZGRC=${ZGRC:-$(dirname "$ZGREP")/zgrc}
 SINK=$(mktemp /tmp/zgrep-null-benchmark-output.XXXXXX)
 REFERENCE=$(mktemp /tmp/zgrep-null-benchmark-reference.XXXXXX)
 SAMPLES=$(mktemp /tmp/zgrep-null-benchmark-samples.XXXXXX)
@@ -40,6 +38,12 @@ report_samples() {
 }
 if [ ! -x "$ZGREP" ]; then
     echo "zgr binary not found: $ZGREP" >&2
+    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    exit 2
+fi
+if [ ! -x "$ZGRC" ]; then
+    echo "zgrc binary not found: $ZGRC" >&2
+    echo "run: zig build -Doptimize=ReleaseFast" >&2
     exit 2
 fi
 case $REPEATS in ''|*[!0-9]*|0) echo "repeats must be a positive integer" >&2; exit 2 ;; esac
@@ -106,29 +110,21 @@ benchmark_case() {
         echo "NUL benchmark correctness failure: ripgrep / $label" >&2
         exit 1
     fi
-
-    ZPCRE2_OK=0
-    if [ "$HAVE_ZPCRE2" -eq 1 ]; then
-        run_capture "$SINK" env LC_ALL=C "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-        if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-            echo "NUL benchmark correctness failure: zgr-zpcre2 / $label (skipping timing)" >&2
-        else
-            ZPCRE2_OK=1
-        fi
+    run_capture "$SINK" env LC_ALL=C "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
+    if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
+        echo "NUL benchmark correctness failure: zgrc / $label" >&2
+        exit 1
     fi
 
     printf '%s\n' "$label"
     benchmark zgr env LC_ALL=C "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
-    if [ "$ZPCRE2_OK" -eq 1 ]; then
-        benchmark zgr-zpcre2 env LC_ALL=C "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-    fi
+    benchmark zgrc env LC_ALL=C "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env LC_ALL=C grep $grep_flags "$pattern" "$CORPUS"
     benchmark ripgrep env LC_ALL=C rg $ripgrep_flags "$pattern" "$CORPUS"
 }
 
-printf 'NUL corpus: %s (%s bytes), repeats: %s, batches: %s, zpcre2: %s\n' \
-    "$CORPUS" "$(wc -c <"$CORPUS")" "$REPEATS" "$BENCH_BATCHES" \
-    "$(if [ "$HAVE_ZPCRE2" -eq 1 ]; then echo "$ZGREP_ZPCRE2"; else echo absent; fi)"
+printf 'NUL corpus: %s (%s bytes), repeats: %s, batches: %s, zgr: %s, zgrc: %s\n' \
+    "$CORPUS" "$(wc -c <"$CORPUS")" "$REPEATS" "$BENCH_BATCHES" "$ZGREP" "$ZGRC"
 benchmark_case 'NUL literal miss' \
     '-z -F -c' '-z -F -c' '--null-data -F -c --include-zero' 'not-present-anywhere'
 benchmark_case 'NUL rare literal hit' \

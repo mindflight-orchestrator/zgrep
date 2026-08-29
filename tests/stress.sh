@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ZGREP=${1:?missing zgr binary}
+ZGREP=${1:?missing candidate binary}
 ZGREP=$(realpath "$ZGREP")
+PROG=$(basename "$ZGREP")
 REPO_ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 TEST_DIR=$(mktemp -d /tmp/zgrep-stress.XXXXXX)
 trap 'rm -rf "$TEST_DIR"' EXIT HUP INT TERM
@@ -30,7 +31,7 @@ compare_large_locale() {
     LC_ALL=$locale_name "$ZGREP" "$@" "$corpus" >"$TEST_DIR/zgrep.out" 2>"$TEST_DIR/zgrep.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep.err" >"$TEST_DIR/grep-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep.err" >"$TEST_DIR/grep-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/grep.out" "$TEST_DIR/zgrep.out" || \
         ! cmp -s "$TEST_DIR/grep-normalized.err" "$TEST_DIR/zgrep.err"; then
@@ -267,4 +268,4 @@ if locale -a | grep -Fxq C.utf8; then
         "$PIPELINED_TREE" -E -r -n -b '[Z]{5}[[:space:]]+[Y]{5}'
 fi
 
-printf 'zgr large-file stress differentials passed\n'
+printf '%s large-file stress differentials passed\n' "$PROG"

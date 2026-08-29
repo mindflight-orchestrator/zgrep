@@ -17,22 +17,23 @@ searches while keeping output ordered and memory bounded.
 
 | Item | Value |
 |---|---|
-| Executable | `zgr` |
+| Executables | `zgr` (default, zpcre2) and `zgrc` (GNU-compat C engine) |
 | Default syntax | Basic regular expressions (BRE) |
 | Other modes | ERE with `-E`, fixed strings with `-F`, PCRE with `-P` |
 | Platform | x86_64 GNU/Linux |
 | Toolchain | Zig 0.16.0 |
-| Native dependencies | glibc and PCRE2 8-bit |
+| Native dependencies | `zgrc` needs glibc and PCRE2 8-bit; `zgr` uses zpcre2 and libc |
 | Project status | Early implementation |
 
-The executable is named `zgr` to avoid colliding with the traditional system
-`zgrep` command used for compressed files.
+The default executable is named `zgr` to avoid colliding with the traditional
+system `zgrep` command used for compressed files. `zgrc` is the permanent
+Linux GNU-compat binary (C PCRE2 JIT and glibc regex) and is never dropped.
 
 ## Highlights
 
 - Fast literal search using SIMD and Boyer-Moore-Horspool-style skipping.
-- PCRE2 JIT for compatible BRE, ERE and PCRE workloads, with GNU/POSIX
-  fallbacks where semantics differ.
+- Default `zgr` matches with zpcre2. `zgrc` uses PCRE2 JIT for compatible BRE,
+  ERE and PCRE workloads, with GNU/POSIX fallbacks where semantics differ.
 - Ordered parallel processing for large files and recursive directory trees.
 - Bounded memory for streaming input, dense output and recursive workloads.
 - GNU-style binary handling, context output, colors, filters and diagnostics.
@@ -45,7 +46,7 @@ The executable is named `zgr` to avoid colliding with the traditional system
 
 - Zig 0.16.0
 - x86_64 GNU/Linux
-- PCRE2 8-bit development files
+- PCRE2 8-bit development files (`zgrc`)
 
 ### Build
 
@@ -53,8 +54,8 @@ The executable is named `zgr` to avoid colliding with the traditional system
 zig build -Doptimize=ReleaseFast
 ```
 
-The stripped release executable is written to `zig-out/bin/zgr`. Debug builds
-retain symbols.
+The stripped release executables are written to `zig-out/bin/zgr` and
+`zig-out/bin/zgrc`. Debug builds retain symbols.
 
 ### Install
 
@@ -63,8 +64,8 @@ make
 sudo make install
 ```
 
-This copies `zgr` to `/usr/local/bin`. Override the destination with `PREFIX`,
-for example `make install PREFIX=$HOME/.local`. Uninstall with
+This copies `zgr` and `zgrc` to `/usr/local/bin`. Override the destination with
+`PREFIX`, for example `make install PREFIX=$HOME/.local`. Uninstall with
 `sudo make uninstall`.
 
 ### Examples
@@ -104,7 +105,7 @@ Exit status follows grep conventions:
 | Record formats | Newline or NUL-delimited records with independent NUL-terminated filenames |
 | Terminal output | `--color`/`--colour`, `GREP_COLORS`, `--initial-tab` and `--line-buffered` |
 | Inputs | Regular files, standard input, explicit FIFOs and devices; recursive devices require `-D read` |
-| Locales | GNU-compatible UTF-8 classes, case folding and word boundaries through libc |
+| Locales | `zgrc` uses GNU/libc UTF-8 classes, case folding and word boundaries; `zgr` reads UTF-8 from `LC_*` and uses ASCII classes via Zig std |
 
 Run `zig-out/bin/zgr --help` for the complete option list.
 
@@ -115,7 +116,7 @@ The common paths are selected from the pattern, input type and requested output:
 - large regular files are memory-mapped, while small files use buffered
   positional reads;
 - literal candidates use SIMD and skip-based search;
-- compatible regexes use PCRE2 JIT, with specialized or GNU-compatible paths
+- `zgr` matches with zpcre2; `zgrc` uses PCRE2 JIT, with GNU-compatible paths
   for semantics that PCRE2 would interpret differently;
 - eligible count and output workloads run in parallel while preserving GNU
   ordering;
@@ -127,9 +128,10 @@ The common paths are selected from the pattern, input type and requested output:
 
 ### Matching engines
 
-- Compatible non-literal BRE and ERE patterns use PCRE2 JIT.
-- GNU regex validation or execution is retained for constructs whose behavior
-  differs from PCRE2.
+- Default `zgr` compiles BRE, ERE and PCRE with zpcre2.
+- `zgrc` uses PCRE2 JIT for compatible non-literal BRE and ERE. GNU regex
+  validation or execution is retained for constructs whose behavior differs
+  from PCRE2.
 - Ambiguous compatible `-o` expressions use PCRE2 DFA to preserve POSIX
   leftmost-longest spans.
 - Positive ERE sequences composed of ASCII bracket classes, exact repetitions
@@ -187,7 +189,8 @@ The common paths are selected from the pattern, input type and requested output:
 zig build test
 ```
 
-This runs the Zig unit tests and the main GNU differential lanes, including:
+This runs the Zig unit tests for both engines and the main GNU differential
+lanes against `zgrc`, including:
 
 - the general CLI behavior matrix;
 - 59 BRE/ERE semantic cases;
@@ -198,6 +201,10 @@ This runs the Zig unit tests and the main GNU differential lanes, including:
 The separate [GNU grep 3.12 official-suite comparison](docs/gnu-grep-3.12-compatibility.md)
 records the results of running GNU's unchanged 128-test functional harness
 against both regex backends.
+
+`zig build test-zpcre2` runs the zpcre2 unit tests for `zgr`.
+`zig build test-zpcre2-gnu` runs the GNU differential lanes against `zgr` and
+is experimental: zpcre2 is not a drop-in for every GNU regex/locale case.
 
 ### Deterministic regex fuzzing
 
@@ -236,10 +243,17 @@ behavioral cases and validates their results independently.
 
 The repository includes correctness-gated benchmarks for one large structured
 file and trees containing many small files. Every candidate result is compared
-with GNU grep before it is timed.
+with GNU grep before it is timed. The scripts always time both `zgr` and
+`zgrc`; both binaries are required.
 
 The latest saved comparison is documented in
-[docs/benchmark-v0.3.md](docs/benchmark-v0.3.md).
+[docs/benchmark-zgr-zgrc.md](docs/benchmark-zgr-zgrc.md). That capture times
+both binaries and lists the experimental GNU gaps that `zgr` (zpcre2) still
+misses; the generated ASCII profile itself matched GNU grep for `zgr` and
+`zgrc`. The previous v0.3 A/B remains in
+[docs/benchmark-v0.3.md](docs/benchmark-v0.3.md). A side-by-side of Cursor's
+bundled ripgrep and `zgr` is in
+[docs/cursor-grep-comparison.md](docs/cursor-grep-comparison.md).
 
 ### Generated corpus
 
@@ -285,6 +299,10 @@ BENCH_PROFILE=ripgrep-linux BENCH_BATCHES=5 BENCH_CPUSET=0-15 \
 BENCH_CACHE=cold BENCH_BATCHES=3 BENCH_CPUSET=0-15 \
   ZGR=./zig-out/bin/zgr \
   bench/run-tree.sh /path/to/ripgrep SearcherBuilder 1
+
+# Cursor bundled ripgrep vs zgr (this tree + generated file)
+BENCH_BATCHES=1 TREE_PATTERN=Matcher \
+  bench/run-cursor-rg.sh . 9
 ```
 
 ### Controls
@@ -294,11 +312,14 @@ BENCH_CACHE=cold BENCH_BATCHES=3 BENCH_CPUSET=0-15 \
 - `BENCH_LOCALE` selects the locale; `C` is the default and `C.utf8` exercises
   locale-aware paths.
 - `BENCH_CPUSET` pins commands through `taskset` for stable hybrid-core runs.
+- `CURSOR_RG` selects the ripgrep binary for `bench/run-cursor-rg.sh`. The
+  script otherwise prefers Cursor's bundled `rg`, then `rg` on `PATH`.
 - `BENCH_CACHE=cold` evicts the corpus outside the timed region and requires one
   repeat per batch.
 - Benchmark output is written to regular temporary files rather than
   `/dev/null`, preventing output shortcuts from skewing results.
 - The scripts accept the legacy `ZGREP` variable as a fallback for `ZGR`.
+  `ZGRC` selects the GNU-compat binary and defaults to `zgrc` beside `ZGR`.
 
 The `ripgrep-sherlock`, `ripgrep-linux` and `ripgrep-linux-default` profiles
 adapt ripgrep's literal, word, alternation, required-literal and no-literal
@@ -312,15 +333,16 @@ binary-file behavior; the forced-text profile uses explicit text modes.
 [GitHub Actions](.github/workflows/ci.yml) runs Debug, ReleaseSafe and
 ReleaseFast tests on Ubuntu 24.04. The ReleaseFast lane also runs deterministic
 fuzzing, the greater-than-64-MiB stress suite and a correctness-checked benchmark
-smoke test in `C.utf8`.
+smoke test in `C.utf8` against both `zgr` and `zgrc`.
 
 Annotated `v*` tags trigger the [release workflow](.github/workflows/release.yml).
 The workflow verifies that the tag matches `src/main.zig` and `build.zig.zon`,
 reruns the release gates, and publishes a stripped x86_64 GNU/Linux archive with
-its SHA-256 checksum.
+its SHA-256 checksum. The archive contains both `zgr` and `zgrc`.
 
-Release archives are dynamically linked to glibc and the PCRE2 8-bit runtime;
-they are not advertised as static or universally portable Linux binaries.
+`zgrc` is dynamically linked to glibc and the PCRE2 8-bit runtime; `zgr` is
+dynamically linked to glibc and uses zpcre2. Neither is advertised as a static
+or universally portable Linux binary.
 
 ## License
 

@@ -1,8 +1,7 @@
 const std = @import("std");
 const zgrep = @import("zgrep");
 
-const version = "0.3.1";
-const version_line = "zgr " ++ version ++ " (Zig 0.16)\n";
+const version = "0.4.0";
 
 const FileId = struct { ino: u64, dev: u64 };
 
@@ -62,7 +61,13 @@ fn run(init: std.process.Init) !u8 {
             error.InvalidDeviceMode => try writeDiagnostic(&stderr.interface, null, "invalid argument for --devices"),
             else => return err,
         }
-        try stderr.interface.writeAll("Try 'zgr --help' for more information.\n");
+        var hint_buf: [96]u8 = undefined;
+        const hint = std.fmt.bufPrint(
+            &hint_buf,
+            "Try '{s} --help' for more information.\n",
+            .{diagnostic_name},
+        ) catch "Try 'zgr --help' for more information.\n";
+        try stderr.interface.writeAll(hint);
         try stderr.interface.flush();
         return exit_status;
     };
@@ -73,7 +78,13 @@ fn run(init: std.process.Init) !u8 {
         return 0;
     }
     if (options.version) {
-        try std.Io.File.stdout().writeStreamingAll(init.io, version_line);
+        var name_buf: [96]u8 = undefined;
+        const printed_version = std.fmt.bufPrint(
+            &name_buf,
+            "{s} {s} (Zig 0.16)\n",
+            .{ diagnostic_name, version },
+        ) catch "zgr " ++ version ++ " (Zig 0.16)\n";
+        try std.Io.File.stdout().writeStreamingAll(init.io, printed_version);
         var ver_buf: [128]u8 = undefined;
         const pcre_line = std.fmt.bufPrint(
             &ver_buf,
@@ -2155,7 +2166,7 @@ fn appendFilterRules(
     }
 }
 
-const help_text = version_line ++ "\n" ++
+const help_text = "zgr " ++ version ++ " (Zig 0.16)\n\n" ++
     \\Usage: zgr [OPTION]... PATTERN [FILE]...
     \\Search for PATTERN in each FILE (or standard input).
     \\

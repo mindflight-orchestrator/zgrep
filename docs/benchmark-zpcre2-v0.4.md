@@ -1,5 +1,11 @@
 # zgr vs zpcre2 v0.4 — generated-corpus comparison
 
+Binary names changed after this capture: `zgr` is now the zpcre2 default and
+`zgrc` is the C GNU-compat engine (the former `zgr`). Numbers below keep the
+names used when the run was recorded. The current named capture, including
+experimental GNU gaps for default `zgr`, is
+[benchmark-zgr-zgrc.md](benchmark-zgr-zgrc.md).
+
 Measurement captured on 2026-08-27 at 12:59 CEST on Linux 6.8.0-138 x86_64,
 with an Intel Core i9-13900KF (32 logical CPUs), Zig 0.16.0, GNU grep 3.11
 and ripgrep 15.1.0. The corpus was the generated file

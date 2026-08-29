@@ -6,41 +6,9 @@ pub fn build(b: *std.Build) void {
 
     const pcre2_c = translatePcre2(b, target, optimize);
 
-    const core = addCore(b, target, optimize, pcre2_c, .c);
-    const zgr = addExecutable(b, "zgr", core, target, optimize);
-    b.installArtifact(zgr);
-
-    const run_step = b.step("run", "Run zgr");
-    const run_cmd = b.addRunArtifact(zgr);
-    if (b.args) |args| run_cmd.addArgs(args);
-    run_step.dependOn(&run_cmd.step);
-
-    const unit_tests = b.addTest(.{ .root_module = core });
-    const run_unit_tests = b.addRunArtifact(unit_tests);
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_unit_tests.step);
-
-    const cli_tests = b.addSystemCommand(&.{ "bash", "tests/differential.sh" });
-    cli_tests.addArtifactArg(zgr);
-    test_step.dependOn(&cli_tests.step);
-
-    const regex_tests = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
-    regex_tests.addArtifactArg(zgr);
-    test_step.dependOn(&regex_tests.step);
-
-    const locale_tests = b.addSystemCommand(&.{ "bash", "tests/locale-semantics.sh" });
-    locale_tests.addArtifactArg(zgr);
-    test_step.dependOn(&locale_tests.step);
-
-    const fuzz_step = b.step("test-fuzz", "Run deterministic BRE/ERE differential fuzz tests");
-    const fuzz_tests = b.addSystemCommand(&.{ "bash", "tests/regex-fuzz.sh" });
-    fuzz_tests.addArtifactArg(zgr);
-    fuzz_step.dependOn(&fuzz_tests.step);
-
-    const stress_step = b.step("test-stress", "Run large-file differential stress tests");
-    const stress_tests = b.addSystemCommand(&.{ "bash", "tests/stress.sh" });
-    stress_tests.addArtifactArg(zgr);
-    stress_step.dependOn(&stress_tests.step);
+    const core_c = addCore(b, target, optimize, pcre2_c, .c);
+    const zgrc = addExecutable(b, "zgrc", core_c, target, optimize);
+    b.installArtifact(zgrc);
 
     const zpcre2 = b.dependency("zpcre2", .{
         .target = target,
@@ -56,30 +24,64 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     const core_zpcre2 = addCore(b, target, optimize, engine, .zpcre2);
-    const zgr_zpcre2 = addExecutable(b, "zgr-zpcre2", core_zpcre2, target, optimize);
-    b.installArtifact(zgr_zpcre2);
+    const zgr = addExecutable(b, "zgr", core_zpcre2, target, optimize);
+    b.installArtifact(zgr);
 
+    const run_step = b.step("run", "Run zgr");
+    const run_cmd = b.addRunArtifact(zgr);
+    if (b.args) |args| run_cmd.addArgs(args);
+    run_step.dependOn(&run_cmd.step);
+
+    const unit_tests_c = b.addTest(.{ .root_module = core_c });
+    const run_unit_tests_c = b.addRunArtifact(unit_tests_c);
     const zpcre2_tests = b.addTest(.{ .root_module = core_zpcre2 });
     const run_zpcre2_tests = b.addRunArtifact(zpcre2_tests);
+
+    const test_step = b.step("test", "Run unit tests and GNU differentials against zgrc");
+    test_step.dependOn(&run_unit_tests_c.step);
+    test_step.dependOn(&run_zpcre2_tests.step);
+
+    const cli_tests = b.addSystemCommand(&.{ "bash", "tests/differential.sh" });
+    cli_tests.addArtifactArg(zgrc);
+    test_step.dependOn(&cli_tests.step);
+
+    const regex_tests = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
+    regex_tests.addArtifactArg(zgrc);
+    test_step.dependOn(&regex_tests.step);
+
+    const locale_tests = b.addSystemCommand(&.{ "bash", "tests/locale-semantics.sh" });
+    locale_tests.addArtifactArg(zgrc);
+    test_step.dependOn(&locale_tests.step);
+
+    const fuzz_step = b.step("test-fuzz", "Run deterministic BRE/ERE differential fuzz tests against zgrc");
+    const fuzz_tests = b.addSystemCommand(&.{ "bash", "tests/regex-fuzz.sh" });
+    fuzz_tests.addArtifactArg(zgrc);
+    fuzz_step.dependOn(&fuzz_tests.step);
+
+    const stress_step = b.step("test-stress", "Run large-file differential stress tests against zgrc");
+    const stress_tests = b.addSystemCommand(&.{ "bash", "tests/stress.sh" });
+    stress_tests.addArtifactArg(zgrc);
+    stress_step.dependOn(&stress_tests.step);
+
     const test_zpcre2 = b.step("test-zpcre2", "Run unit tests with the zpcre2 engine");
     test_zpcre2.dependOn(&run_zpcre2_tests.step);
 
     const test_zpcre2_gnu = b.step(
         "test-zpcre2-gnu",
-        "Run GNU differential tests with zgr-zpcre2 (experimental)",
+        "Run GNU differential tests with zgr (zpcre2, experimental)",
     );
     test_zpcre2_gnu.dependOn(&run_zpcre2_tests.step);
 
     const zpcre2_cli = b.addSystemCommand(&.{ "bash", "tests/differential.sh" });
-    zpcre2_cli.addArtifactArg(zgr_zpcre2);
+    zpcre2_cli.addArtifactArg(zgr);
     test_zpcre2_gnu.dependOn(&zpcre2_cli.step);
 
     const zpcre2_regex = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
-    zpcre2_regex.addArtifactArg(zgr_zpcre2);
+    zpcre2_regex.addArtifactArg(zgr);
     test_zpcre2_gnu.dependOn(&zpcre2_regex.step);
 
     const zpcre2_locale = b.addSystemCommand(&.{ "bash", "tests/locale-semantics.sh" });
-    zpcre2_locale.addArtifactArg(zgr_zpcre2);
+    zpcre2_locale.addArtifactArg(zgr);
     test_zpcre2_gnu.dependOn(&zpcre2_locale.step);
 }
 

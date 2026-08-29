@@ -5,9 +5,7 @@ CORPUS=${1:-/tmp/zgrep-bench-varied.txt}
 REPEATS=${2:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
 ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
-ZGREP_ZPCRE2=${ZGR_ZPCRE2:-$(dirname "$ZGREP")/zgr-zpcre2}
-HAVE_ZPCRE2=0
-if [ -x "$ZGREP_ZPCRE2" ]; then HAVE_ZPCRE2=1; fi
+ZGRC=${ZGRC:-$(dirname "$ZGREP")/zgrc}
 BENCH_LOCALE=${BENCH_LOCALE:-C}
 BENCH_CACHE=${BENCH_CACHE:-warm}
 BENCH_CPUSET=${BENCH_CPUSET:-}
@@ -24,6 +22,11 @@ if [ ! -r "$CORPUS" ]; then
 fi
 if [ ! -x "$ZGREP" ]; then
     echo "zgr binary not found: $ZGREP" >&2
+    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    exit 2
+fi
+if [ ! -x "$ZGRC" ]; then
+    echo "zgrc binary not found: $ZGRC" >&2
     echo "run: zig build -Doptimize=ReleaseFast" >&2
     exit 2
 fi
@@ -156,14 +159,10 @@ verify_case() {
         echo "benchmark correctness failure: ripgrep / $label" >&2
         exit 1
     fi
-    ZPCRE2_OK=0
-    if [ "$HAVE_ZPCRE2" -eq 1 ]; then
-        run_capture "$SINK" env LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-        if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-            echo "benchmark correctness failure: zgr-zpcre2 / $label (skipping timing)" >&2
-        else
-            ZPCRE2_OK=1
-        fi
+    run_capture "$SINK" env LC_ALL="$BENCH_LOCALE" "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
+    if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
+        echo "benchmark correctness failure: zgrc / $label" >&2
+        exit 1
     fi
 }
 
@@ -177,9 +176,7 @@ benchmark_case() {
     printf '%s\n' "$label"
     verify_case "$label" "$zgrep_flags" "$grep_flags" "$ripgrep_flags" "$pattern"
     benchmark zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
-    if [ "${ZPCRE2_OK:-0}" -eq 1 ]; then
-        benchmark zgr-zpcre2 env LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-    fi
+    benchmark zgrc env LC_ALL="$BENCH_LOCALE" "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$CORPUS"
     benchmark ripgrep env LC_ALL="$BENCH_LOCALE" rg $ripgrep_flags "$pattern" "$CORPUS"
 }
@@ -198,25 +195,19 @@ benchmark_color_case() {
         echo "benchmark correctness failure: zgr / $label" >&2
         exit 1
     fi
-    ZPCRE2_OK=0
-    if [ "$HAVE_ZPCRE2" -eq 1 ]; then
-        run_capture "$SINK" env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-        if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
-            echo "benchmark correctness failure: zgr-zpcre2 / $label (skipping timing)" >&2
-        else
-            ZPCRE2_OK=1
-        fi
+    run_capture "$SINK" env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
+    if [ "$captured_status" -ne "$reference_status" ] || ! cmp -s "$REFERENCE" "$SINK"; then
+        echo "benchmark correctness failure: zgrc / $label" >&2
+        exit 1
     fi
     benchmark zgr env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP" $zgrep_flags "$pattern" "$CORPUS"
-    if [ "$ZPCRE2_OK" -eq 1 ]; then
-        benchmark zgr-zpcre2 env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" $zgrep_flags "$pattern" "$CORPUS"
-    fi
+    benchmark zgrc env GREP_COLORS= LC_ALL="$BENCH_LOCALE" "$ZGRC" $zgrep_flags "$pattern" "$CORPUS"
     benchmark grep env GREP_COLORS= LC_ALL="$BENCH_LOCALE" grep $grep_flags "$pattern" "$CORPUS"
 }
 
-printf 'corpus: %s (%s bytes), profile: %s, repeats: %s, batches: %s, locale: %s, cache: %s, cpuset: %s, zpcre2: %s\n' \
+printf 'corpus: %s (%s bytes), profile: %s, repeats: %s, batches: %s, locale: %s, cache: %s, cpuset: %s, zgr: %s, zgrc: %s\n' \
     "$CORPUS" "$(wc -c <"$CORPUS")" "$BENCH_PROFILE" "$REPEATS" "$BENCH_BATCHES" "$BENCH_LOCALE" \
-    "$BENCH_CACHE" "${BENCH_CPUSET:-unrestricted}" "$(if [ "$HAVE_ZPCRE2" -eq 1 ]; then echo "$ZGREP_ZPCRE2"; else echo absent; fi)"
+    "$BENCH_CACHE" "${BENCH_CPUSET:-unrestricted}" "$ZGREP" "$ZGRC"
 # Case selection is adapted from ripgrep's dual MIT/Unlicense benchsuite at
 # commit 3fce3b5bb0236da2df6d99672afb8a719642eca7. Every case is checked against
 # GNU grep before it is timed.
@@ -282,8 +273,6 @@ benchmark_case 'regexp output with context' \
 
 printf '%s\n' 'rare literal hit from stdin'
 benchmark_stream zgr env LC_ALL="$BENCH_LOCALE" "$ZGREP" -F -c rare-needle
-if [ "$HAVE_ZPCRE2" -eq 1 ]; then
-    benchmark_stream zgr-zpcre2 env LC_ALL="$BENCH_LOCALE" "$ZGREP_ZPCRE2" -F -c rare-needle
-fi
+benchmark_stream zgrc env LC_ALL="$BENCH_LOCALE" "$ZGRC" -F -c rare-needle
 benchmark_stream grep env LC_ALL="$BENCH_LOCALE" grep -F -c rare-needle
 benchmark_stream ripgrep env LC_ALL="$BENCH_LOCALE" rg -a -F -c rare-needle

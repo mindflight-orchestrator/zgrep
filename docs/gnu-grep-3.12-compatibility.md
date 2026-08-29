@@ -2,6 +2,10 @@
 
 [English](gnu-grep-3.12-compatibility.md) | [Français](gnu-grep-3.12-compatibility.fr.md)
 
+Binary names changed after this capture: `zgr` is now the zpcre2 default and
+`zgrc` is the C GNU-compat engine (the former `zgr`). The table below keeps the
+names used when the suite was run.
+
 This comparison was captured on 2026-08-28 from commit `0e97e41` on Linux
 6.8.0-138 x86_64 with Zig 0.16.0. It complements the repository's focused
 differential tests by running GNU grep's own functional test suite unchanged

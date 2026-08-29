@@ -2,6 +2,10 @@
 
 [English](gnu-grep-3.12-compatibility.md) | [Français](gnu-grep-3.12-compatibility.fr.md)
 
+Les noms des binaires ont changé après cette capture : `zgr` est désormais le
+défaut zpcre2 et `zgrc` est le moteur C de compatibilité GNU (l'ancien `zgr`).
+Le tableau ci-dessous conserve les noms utilisés lors de l'exécution.
+
 Cette comparaison a été enregistrée le 28 août 2026 depuis le commit
 `0e97e41`, sous Linux 6.8.0-138 x86_64 avec Zig 0.16.0. Elle complète les tests
 différentiels ciblés du dépôt en exécutant sans modification la propre suite

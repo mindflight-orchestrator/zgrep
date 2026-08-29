@@ -61,5 +61,5 @@ jobs:
           zig build test-stress -Doptimize=ReleaseFast
           zig build -Doptimize=ReleaseFast
           bench/generate.sh /tmp/zgrep-ci-bench.txt 100000
-          BENCH_LOCALE=C.utf8 ZGR=./zig-out/bin/zgr \
+          BENCH_LOCALE=C.utf8 ZGR=./zig-out/bin/zgr ZGRC=./zig-out/bin/zgrc \
             bench/run.sh /tmp/zgrep-ci-bench.txt 1

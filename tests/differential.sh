@@ -7,8 +7,9 @@ set -euo pipefail
 # tests/feature.rs and r1159, r1176, r1259, r1334 and r2658 in
 # tests/regression.rs. NUL-data coverage also adapts f993 from feature.rs.
 
-ZGREP=${1:?missing zgr binary}
+ZGREP=${1:?missing candidate binary}
 ZGREP=$(realpath "$ZGREP")
+PROG=$(basename "$ZGREP")
 TEST_DIR=$(mktemp -d /tmp/zgrep-differential.XXXXXX)
 trap 'rm -rf "$TEST_DIR"' EXIT HUP INT TERM
 CORPUS="$TEST_DIR/corpus.txt"
@@ -127,7 +128,7 @@ compare_color_file() {
         >"$TEST_DIR/zgrep-color.out" 2>"$TEST_DIR/zgrep-color.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-color.err" >"$TEST_DIR/grep-color-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-color.err" >"$TEST_DIR/grep-color-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/grep-color.out" "$TEST_DIR/zgrep-color.out" || \
         ! cmp -s "$TEST_DIR/grep-color-normalized.err" "$TEST_DIR/zgrep-color.err"; then
@@ -196,7 +197,7 @@ compare_broken_pipe() {
     zgrep_pipeline_status=("${PIPESTATUS[@]}")
     set -e
 
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-broken-pipe.err" \
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-broken-pipe.err" \
         >"$TEST_DIR/grep-broken-pipe-normalized.err"
     if [ "${grep_pipeline_status[0]}" -ne "${zgrep_pipeline_status[0]}" ] || \
         ! cmp -s "$TEST_DIR/grep-broken-pipe.out" "$TEST_DIR/zgrep-broken-pipe.out" || \
@@ -262,7 +263,7 @@ compare_fifo_read() {
             exit 1
         fi
     done
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-fifo.err" >"$TEST_DIR/grep-fifo-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-fifo.err" >"$TEST_DIR/grep-fifo-normalized.err"
     if [ "$grep_status" -ne "$zgr_status" ] || \
         ! cmp -s "$TEST_DIR/grep-fifo.out" "$TEST_DIR/zgr-fifo.out" || \
         ! cmp -s "$TEST_DIR/grep-fifo-normalized.err" "$TEST_DIR/zgr-fifo.err"; then
@@ -281,7 +282,7 @@ compare_binary_file() {
     LC_ALL=C "$ZGREP" "$@" "$corpus" >"$TEST_DIR/zgrep-binary.out" 2>"$TEST_DIR/zgrep-binary.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-binary.err" >"$TEST_DIR/grep-binary-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-binary.err" >"$TEST_DIR/grep-binary-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! diff -u "$TEST_DIR/grep-binary.out" "$TEST_DIR/zgrep-binary.out" || \
         ! diff -u "$TEST_DIR/grep-binary-normalized.err" "$TEST_DIR/zgrep-binary.err"; then
@@ -300,7 +301,7 @@ compare_binary_stdin() {
     LC_ALL=C "$ZGREP" "$@" <"$corpus" >"$TEST_DIR/zgrep-binary.out" 2>"$TEST_DIR/zgrep-binary.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-binary.err" >"$TEST_DIR/grep-binary-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-binary.err" >"$TEST_DIR/grep-binary-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! diff -u "$TEST_DIR/grep-binary.out" "$TEST_DIR/zgrep-binary.out" || \
         ! diff -u "$TEST_DIR/grep-binary-normalized.err" "$TEST_DIR/zgrep-binary.err"; then
@@ -319,7 +320,7 @@ compare_null_file() {
     LC_ALL=C "$ZGREP" "$@" "$corpus" >"$TEST_DIR/zgrep-null.out" 2>"$TEST_DIR/zgrep-null.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-null.err" >"$TEST_DIR/grep-null-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-null.err" >"$TEST_DIR/grep-null-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/grep-null.out" "$TEST_DIR/zgrep-null.out" || \
         ! cmp -s "$TEST_DIR/grep-null-normalized.err" "$TEST_DIR/zgrep-null.err"; then
@@ -342,7 +343,7 @@ compare_null_stdin() {
     LC_ALL=C "$ZGREP" "$@" <"$corpus" >"$TEST_DIR/zgrep-null.out" 2>"$TEST_DIR/zgrep-null.err"
     zgrep_status=$?
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-null.err" >"$TEST_DIR/grep-null-normalized.err"
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-null.err" >"$TEST_DIR/grep-null-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/grep-null.out" "$TEST_DIR/zgrep-null.out" || \
         ! cmp -s "$TEST_DIR/grep-null-normalized.err" "$TEST_DIR/zgrep-null.err"; then
@@ -363,7 +364,7 @@ compare_pattern_stdin() {
         >"$TEST_DIR/zgrep-pattern-stdin.out" 2>"$TEST_DIR/zgrep-pattern-stdin.err"
     zgrep_status=${PIPESTATUS[1]}
     set -e
-    sed 's/^grep:/zgr:/' "$TEST_DIR/grep-pattern-stdin.err" \
+    sed "s/^grep:/${PROG}:/" "$TEST_DIR/grep-pattern-stdin.err" \
         >"$TEST_DIR/grep-pattern-stdin-normalized.err"
     if [ "$grep_status" -ne "$zgrep_status" ] || \
         ! cmp -s "$TEST_DIR/grep-pattern-stdin.out" "$TEST_DIR/zgrep-pattern-stdin.out" || \
@@ -749,4 +750,4 @@ compare_status "files without match with no matching file" -L absent "$CORPUS"
 compare_broken_pipe "buffered output"
 compare_broken_pipe "line-buffered output" --line-buffered
 
-printf 'zgr differential tests passed\n'
+printf '%s differential tests passed\n' "$PROG"

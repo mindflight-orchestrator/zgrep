@@ -1,3 +1,7 @@
+Binary names changed after this note: `zgr` is the zpcre2 default and `zgrc` is
+the C GNU-compat engine (the former `zgr`). The investigation below still uses
+the old names.
+
 The engine is not what is slow. `zgr-zpcre2` often never calls zpcre2 on BRE/ERE.
 
 I cloned GNU grep and compared it with both of our shims. Isolated zpcre2 can beat C PCRE2; the grep binary is slower because the wrapper takes a different path from `pcre2_shim.c`.
