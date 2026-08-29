@@ -4,10 +4,9 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const gnu = translateGnu(b, target, optimize);
     const pcre2_c = translatePcre2(b, target, optimize);
 
-    const core = addCore(b, target, optimize, pcre2_c, gnu, .c);
+    const core = addCore(b, target, optimize, pcre2_c, .c);
     const zgr = addExecutable(b, "zgr", core, target, optimize);
     b.installArtifact(zgr);
 
@@ -53,11 +52,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .imports = &.{
             .{ .name = "zpcre2", .module = zpcre2 },
-            .{ .name = "gnu", .module = gnu },
         },
         .link_libc = true,
     });
-    const core_zpcre2 = addCore(b, target, optimize, engine, gnu, .zpcre2);
+    const core_zpcre2 = addCore(b, target, optimize, engine, .zpcre2);
     const zgr_zpcre2 = addExecutable(b, "zgr-zpcre2", core_zpcre2, target, optimize);
     b.installArtifact(zgr_zpcre2);
 
@@ -92,10 +90,8 @@ fn addCore(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     pcre2: *std.Build.Module,
-    gnu: *std.Build.Module,
     backend: RegexBackend,
 ) *std.Build.Module {
-    _ = gnu;
     const core = if (backend == .c)
         b.addModule("zgrep", .{
             .root_source_file = b.path("src/root.zig"),
@@ -112,12 +108,12 @@ fn addCore(
             .imports = &.{.{ .name = "pcre2", .module = pcre2 }},
             .link_libc = true,
         });
-    core.addIncludePath(b.path("include"));
-    core.addCSourceFile(.{
-        .file = b.path("src/gnu_regex.c"),
-        .flags = &.{ "-std=c11", "-O3" },
-    });
     if (backend == .c) {
+        core.addIncludePath(b.path("include"));
+        core.addCSourceFile(.{
+            .file = b.path("src/gnu_regex.c"),
+            .flags = &.{ "-std=c11", "-O3" },
+        });
         core.addCSourceFile(.{
             .file = b.path("src/pcre2_shim.c"),
             .flags = &.{ "-std=c11", "-O3" },
@@ -144,20 +140,6 @@ fn addExecutable(
             .imports = &.{.{ .name = "zgrep", .module = core }},
         }),
     });
-}
-
-fn translateGnu(
-    b: *std.Build,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Module {
-    const translated = b.addTranslateC(.{
-        .root_source_file = b.path("include/zgrep_gnu.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-    translated.addIncludePath(b.path("include"));
-    return translated.createModule();
 }
 
 fn translatePcre2(

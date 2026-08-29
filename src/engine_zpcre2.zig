@@ -1,36 +1,33 @@
 const std = @import("std");
-const gnu = @import("gnu");
 const zpcre2 = @import("zpcre2");
+const locale = @import("locale.zig");
 
-pub const ZG_REGEX_SYNTAX_BASIC = gnu.ZG_REGEX_SYNTAX_BASIC;
-pub const ZG_REGEX_SYNTAX_EXTENDED = gnu.ZG_REGEX_SYNTAX_EXTENDED;
-pub const ZG_REGEX_SYNTAX_PERL = gnu.ZG_REGEX_SYNTAX_PERL;
+pub const ZG_REGEX_SYNTAX_BASIC: c_int = 0;
+pub const ZG_REGEX_SYNTAX_EXTENDED: c_int = 1;
+pub const ZG_REGEX_SYNTAX_PERL: c_int = 2;
 
-pub const ZG_LOCALE_CLASS_ALNUM = gnu.ZG_LOCALE_CLASS_ALNUM;
-pub const ZG_LOCALE_CLASS_ALPHA = gnu.ZG_LOCALE_CLASS_ALPHA;
-pub const ZG_LOCALE_CLASS_BLANK = gnu.ZG_LOCALE_CLASS_BLANK;
-pub const ZG_LOCALE_CLASS_DIGIT = gnu.ZG_LOCALE_CLASS_DIGIT;
-pub const ZG_LOCALE_CLASS_GRAPH = gnu.ZG_LOCALE_CLASS_GRAPH;
-pub const ZG_LOCALE_CLASS_LOWER = gnu.ZG_LOCALE_CLASS_LOWER;
-pub const ZG_LOCALE_CLASS_PRINT = gnu.ZG_LOCALE_CLASS_PRINT;
-pub const ZG_LOCALE_CLASS_PUNCT = gnu.ZG_LOCALE_CLASS_PUNCT;
-pub const ZG_LOCALE_CLASS_UPPER = gnu.ZG_LOCALE_CLASS_UPPER;
-pub const ZG_LOCALE_CLASS_XDIGIT = gnu.ZG_LOCALE_CLASS_XDIGIT;
+pub const ZG_LOCALE_CLASS_ALNUM = locale.ZG_LOCALE_CLASS_ALNUM;
+pub const ZG_LOCALE_CLASS_ALPHA = locale.ZG_LOCALE_CLASS_ALPHA;
+pub const ZG_LOCALE_CLASS_BLANK = locale.ZG_LOCALE_CLASS_BLANK;
+pub const ZG_LOCALE_CLASS_DIGIT = locale.ZG_LOCALE_CLASS_DIGIT;
+pub const ZG_LOCALE_CLASS_GRAPH = locale.ZG_LOCALE_CLASS_GRAPH;
+pub const ZG_LOCALE_CLASS_LOWER = locale.ZG_LOCALE_CLASS_LOWER;
+pub const ZG_LOCALE_CLASS_PRINT = locale.ZG_LOCALE_CLASS_PRINT;
+pub const ZG_LOCALE_CLASS_PUNCT = locale.ZG_LOCALE_CLASS_PUNCT;
+pub const ZG_LOCALE_CLASS_UPPER = locale.ZG_LOCALE_CLASS_UPPER;
+pub const ZG_LOCALE_CLASS_XDIGIT = locale.ZG_LOCALE_CLASS_XDIGIT;
 
-pub const zg_initialize_locale = gnu.zg_initialize_locale;
-pub const zg_locale_is_utf8 = gnu.zg_locale_is_utf8;
-pub const zg_locale_has_simple_ascii_casefold = gnu.zg_locale_has_simple_ascii_casefold;
-pub const zg_locale_has_standard_ascii_classes = gnu.zg_locale_has_standard_ascii_classes;
-pub const zg_locale_ascii_case_literal_matches = gnu.zg_locale_ascii_case_literal_matches;
-pub const zg_locale_ascii_literal_word_matches = gnu.zg_locale_ascii_literal_word_matches;
-pub const zg_locale_class_run_matches = gnu.zg_locale_class_run_matches;
+pub const zg_initialize_locale = locale.zg_initialize_locale;
+pub const zg_locale_is_utf8 = locale.zg_locale_is_utf8;
+pub const zg_locale_has_simple_ascii_casefold = locale.zg_locale_has_simple_ascii_casefold;
+pub const zg_locale_has_standard_ascii_classes = locale.zg_locale_has_standard_ascii_classes;
+pub const zg_locale_ascii_case_literal_matches = locale.zg_locale_ascii_case_literal_matches;
+pub const zg_locale_ascii_literal_word_matches = locale.zg_locale_ascii_literal_word_matches;
+pub const zg_locale_class_run_matches = locale.zg_locale_class_run_matches;
 
 pub const zg_regex = struct {
     pcre: ?zpcre2.Allocated = null,
     witness: ?zpcre2.Allocated = null,
-    posix: ?*gnu.zg_posix_regex = null,
-    posix_spans: bool = false,
-    word_regexp: bool = false,
     match_error: bool = false,
 };
 
@@ -51,27 +48,6 @@ fn setError(buf: [*]u8, len: usize, comptime fmt: []const u8, args: anytype) voi
         return;
     };
     buf[msg.len] = 0;
-}
-
-fn compilePosix(
-    pattern: []const u8,
-    syntax: c_int,
-    ignore_case: bool,
-    line_regexp: bool,
-    word_regexp: bool,
-    error_buffer: [*]u8,
-    error_buffer_len: usize,
-) ?*gnu.zg_posix_regex {
-    return gnu.zg_posix_compile(
-        pattern.ptr,
-        pattern.len,
-        syntax,
-        ignore_case,
-        line_regexp,
-        word_regexp,
-        @ptrCast(error_buffer),
-        error_buffer_len,
-    );
 }
 
 fn compileZpcre(
@@ -103,61 +79,33 @@ pub fn zg_regex_compile(
     error_buffer: [*]u8,
     error_buffer_len: usize,
 ) ?*zg_regex {
+    _ = syntax;
+    _ = pcre_compatible;
+    _ = posix_spans;
+    _ = line_regexp;
+    _ = word_regexp;
+
     const regex = allocator.create(zg_regex) catch {
         setError(error_buffer, error_buffer_len, "out of memory compiling regex", .{});
         return null;
     };
-    regex.* = .{
-        .posix_spans = posix_spans,
-        .word_regexp = word_regexp,
-    };
+    regex.* = .{};
 
-    const posix_bytes = slice(posix_pattern, posix_pattern_len);
     const pcre_bytes = slice(pcre_pattern, pcre_pattern_len);
-    if (gnu.zg_pattern_would_overflow(pcre_pattern, pcre_pattern_len) or
-        gnu.zg_pattern_would_overflow(posix_pattern, posix_pattern_len))
+    if (locale.zg_pattern_would_overflow(pcre_pattern, pcre_pattern_len) or
+        locale.zg_pattern_would_overflow(posix_pattern, posix_pattern_len))
     {
         setError(error_buffer, error_buffer_len, "stack overflow", .{});
         allocator.destroy(regex);
         return null;
     }
-    const basic_or_extended = syntax == gnu.ZG_REGEX_SYNTAX_BASIC or
-        syntax == gnu.ZG_REGEX_SYNTAX_EXTENDED;
 
-    if (basic_or_extended) {
-        regex.posix = compilePosix(
-            posix_bytes,
-            syntax,
-            ignore_case,
-            line_regexp,
-            word_regexp,
-            error_buffer,
-            error_buffer_len,
-        );
-        if (regex.posix == null) {
-            allocator.destroy(regex);
-            return null;
-        }
-        if (!pcre_compatible) return regex;
-    }
-
-    const utf = gnu.zg_locale_is_utf8();
-    regex.pcre = compileZpcre(pcre_bytes, ignore_case, dot_matches_newline, utf) catch |err| {
-        if (regex.posix != null) return regex;
-        if (basic_or_extended) {
-            regex.posix = compilePosix(
-                posix_bytes,
-                syntax,
-                ignore_case,
-                line_regexp,
-                word_regexp,
-                error_buffer,
-                error_buffer_len,
-            );
-            if (regex.posix != null) return regex;
-            allocator.destroy(regex);
-            return null;
-        }
+    regex.pcre = compileZpcre(
+        pcre_bytes,
+        ignore_case,
+        dot_matches_newline,
+        locale.zg_locale_is_utf8(),
+    ) catch |err| {
         setError(
             error_buffer,
             error_buffer_len,
@@ -192,9 +140,6 @@ pub fn zg_regex_required_literal(
 
 pub fn zg_regex_matches(regex: *zg_regex, subject: [*]const u8, subject_len: usize) bool {
     regex.match_error = false;
-    if (regex.posix != null) {
-        return gnu.zg_posix_matches(regex.posix, subject, subject_len);
-    }
     const compiled = regex.pcre orelse return false;
     return compiled.isMatch(slice(subject, subject_len));
 }
@@ -208,8 +153,7 @@ pub fn zg_pcre2_version() [*:0]const u8 {
 }
 
 pub fn zg_regex_posix_matches(regex: *zg_regex, subject: [*]const u8, subject_len: usize) bool {
-    const posix = regex.posix orelse return false;
-    return gnu.zg_posix_matches(posix, subject, subject_len);
+    return zg_regex_matches(regex, subject, subject_len);
 }
 
 pub fn zg_regex_pcre_find(
@@ -235,16 +179,6 @@ pub fn zg_regex_find(
     match_start: *usize,
     match_end: *usize,
 ) bool {
-    if (regex.posix != null and (regex.posix_spans or !regex.word_regexp or regex.pcre == null)) {
-        return gnu.zg_posix_find(
-            regex.posix,
-            subject,
-            subject_len,
-            start_offset,
-            match_start,
-            match_end,
-        );
-    }
     return zg_regex_pcre_find(regex, subject, subject_len, start_offset, match_start, match_end);
 }
 
@@ -288,6 +222,9 @@ pub fn zg_regex_free(regex: ?*zg_regex) void {
     const value = regex orelse return;
     if (value.pcre) |*pcre| pcre.deinit();
     if (value.witness) |*witness| witness.deinit();
-    if (value.posix) |posix| gnu.zg_posix_free(posix);
     allocator.destroy(value);
+}
+
+test {
+    _ = locale;
 }
