@@ -1,0 +1,18 @@
+file -F INFO all zgr                         total     256.6 ms first    10.24 ms bytes 140684742
+file -F INFO all zgr --lb                    total     988.0 ms first    10.32 ms bytes 140684742
+file -F INFO all GNU                         total     937.1 ms first     0.84 ms bytes 140684742
+file -F rare sparse zgr                      total      11.2 ms first    10.50 ms bytes 158639
+file -F rare sparse zgr --lb                 total      11.3 ms first     8.40 ms bytes 158639
+file -F rare sparse GNU                      total      48.6 ms first     0.76 ms bytes 158639
+file regex late zgr                          total      11.6 ms first    11.22 ms bytes 1316
+file regex late zgr --lb                     total      11.4 ms first     8.99 ms bytes 1316
+file regex late GNU                          total      33.0 ms first     3.44 ms bytes 1316
+file -A1 sparse zgr                          total      14.2 ms first    11.25 ms bytes 303805
+file -A1 sparse zgr --lb                     total      17.9 ms first    10.90 ms bytes 303805
+file -A1 sparse GNU                          total      47.6 ms first     0.69 ms bytes 303805
+stdin -F INFO all zgr                        total     254.4 ms first     1.02 ms bytes 140684742
+stdin -F INFO all zgr --lb                   total     961.6 ms first     0.96 ms bytes 140684742
+stdin -F INFO all GNU                        total     941.0 ms first     1.07 ms bytes 140684742
+stdin -F rare sparse zgr                     total      36.1 ms first     1.07 ms bytes 158639
+stdin -F rare sparse zgr --lb                total      98.8 ms first     1.01 ms bytes 158639
+stdin -F rare sparse GNU                     total      52.6 ms first     1.07 ms bytes 158639

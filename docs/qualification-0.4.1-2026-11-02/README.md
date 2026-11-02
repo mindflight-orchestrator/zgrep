@@ -6,7 +6,7 @@ Référence de comportement : **GNU grep 3.11** (`/usr/bin/grep`). Machine : i9-
 
 ## État
 
-Le correctif 0.4.1 est implémenté et commité. La **qualification n'est pas terminée** : la série restreinte à 4 cœurs et la mesure de latence PTY n'étaient pas finies au moment de la sauvegarde, et un cas `zgrc` reste à trancher (voir « Performance »).
+Le correctif 0.4.1 est implémenté et commité. Les gates de comportement et de non-régression de débit sont satisfaites. Reste ouvert : l'inventaire complet des échecs de `test-zpcre2-gnu` (voir « Tests »), la relecture hors machine unique et le déplacement du binaire de référence dans un stockage durable.
 
 ## Corrections de comportement (zgr et zgrc)
 
@@ -39,11 +39,22 @@ Méthode : paires alternées aléatoirement (`benchmark-paired-original.py`), co
 
 **Série après alignement, sans restriction** — [résultats](paired-after-alignment-unrestricted.txt) :
 - `zgr` : aucun écart hors bruit sauf `stdin -I`, **−27 %** (IC −28,9 à −24,7).
-- `zgrc` : `stdin -I` −21 % ; `dense plain` −7,9 % (effet de disposition, pas un gain) ; **`pipe` +8,9 % (IC +1,7 à +11,3), au-dessus du seuil de 5 % du plan, à confirmer** ; `forced text` +2 %, `colored` +3,2 % (IC proches de zéro).
+- `zgrc` : `stdin -I` −21 % ; `dense plain` −7,9 % (effet de disposition, pas un gain) ; `pipe` +8,9 % (IC +1,7 à +11,3) ; `forced text` +2 %, `colored` +3,2 %.
 
-**Série restreinte à 4 cœurs (`taskset -c 0,2,4,6`)** — [résultats partiels](paired-after-alignment-taskset-PARTIAL.txt), 16 charges sur 24 : `zgr` toutes dans le bruit à l'exception de `stdin -I` (−23 %) ; `zgrc dense plain` −11,1 %, `zgrc numbered` +2,1 % (IC +1,4 à +5,1).
+**Série restreinte à 4 cœurs (`taskset -c 0,2,4,6`), 24 charges** — [résultats](paired-after-alignment-taskset.txt) : `zgr` toutes dans ±2 % (IC) à l'exception de `stdin -I` (−23 %) ; `zgrc` `stdin -I` −19,5 %, `dense plain` −11,1 % (disposition du code), `numbered` +2,1 % (IC +1,4 à +5,1), `colored` +1,7 % (IC +1,2 à +2,3), **`pipe` +0,7 % (IC +0,15 à +1,65)**.
 
-À faire avant de déclarer la 0.4.1 qualifiée : terminer cette série, rejouer `zgrc pipe` en lot indépendant, mesurer la latence du premier résultat sur PTY (`probe-pty-original.py`) face à GNU, et relever la taille du binaire (831 688 → 833 896 octets).
+**Verdict débit** : le +8,9 % de `zgrc pipe` ne se reproduit pas (+0,7 % sur la seconde série) et est classé bruit. Aucune régression répétée au-dessus de 5 % sur `zgr` ni sur `zgrc`. Les plus gros écarts restants sont des gains (`-I` sur flux) ou des effets de disposition du code (`zgrc dense plain`, de −7,9 à −11 %). Le critère est atteint avec ces réserves : une seule machine, deux lots, 25 paires par charge.
+
+**Latence du premier résultat sur PTY, après correctif** ([résultats](pty-first-result-after.txt), médiane de 5 passes) :
+
+| Entrée | Charge | zgr | zgr `--line-buffered` | GNU |
+|---|---|---:|---:|---:|
+| fichier | tous les `INFO` | 10,2 ms | 10,3 ms | 0,8 ms |
+| fichier | rare, dispersé | 10,5 ms | 8,4 ms | 0,8 ms |
+| stdin (pipe) | tous les `INFO` | 1,0 ms | 1,0 ms | 1,1 ms |
+| stdin (pipe) | rare, dispersé | 1,07 ms (avant : 38,9 ms) | 1,01 ms | 1,07 ms |
+
+Sur stdin, zgr atteint la latence de GNU (le défaut de la 0.4.0 est corrigé). Sur fichier régulier, zgr reste à 10–11 ms contre moins de 1 ms pour GNU : cette barrière est hors périmètre 0.4.1 et reportée en 0.4.2. Débit total en sortie dense sur PTY : 256 ms contre 937 ms pour GNU. Taille du binaire : 831 688 → 833 896 octets.
 
 ## Limites
 

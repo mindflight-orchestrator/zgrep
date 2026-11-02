@@ -18,3 +18,7 @@ zgrc colored            base   138.20 cand   140.87 diff  +1.74% CI[ +1.16, +2.3
 zgrc sparse             base     8.23 cand     8.19 diff  -0.59% CI[ -1.73, +1.57] bytes_same=True
 zgrc regex              base     8.90 cand     8.74 diff  -1.12% CI[ -3.21, +0.55] bytes_same=True
 zgrc stdin redirected   base    76.58 cand    76.56 diff  +0.41% CI[ -0.33, +0.98] bytes_same=True
+zgrc stdin regex        base   109.56 cand   109.82 diff  +0.28% CI[ -0.13, +0.94] bytes_same=True
+zgrc stdin -I           base    92.49 cand    73.90 diff -19.53% CI[-20.68,-19.03] bytes_same=True
+zgrc pipe               base    79.02 cand    79.46 diff  +0.74% CI[ +0.15, +1.65] bytes_same=True
+zgrc pipe regex         base   113.53 cand   112.60 diff  -0.62% CI[ -1.22, +0.18] bytes_same=True
