@@ -162,8 +162,17 @@ The common paths are selected from the pattern, input type and requested output:
   input record.
 - Matching candidates containing NUL bytes fall back before ordered emission;
   invalid UTF-8 summaries propagate in traversal order.
-- Buffered and line-buffered write failures preserve the underlying Zig file
-  error, including `zgr: write error: Broken pipe`.
+- An early-closing consumer ends the search through SIGPIPE, silently, as with
+  GNU grep. If the parent ignores SIGPIPE, the write failure is reported as
+  `zgr: write error: Broken pipe` with status 2.
+- On a terminal, results from pipes, FIFOs and devices appear before each input
+  read, including NUL-delimited records, which GNU grep holds until EOF.
+- Results are flushed before every diagnostic on any kind of stdout, so merged
+  output keeps GNU's ordering.
+- `-I` streams non-regular input and stops at the first buffer containing a NUL.
+  GNU grep drains its input at that point; the output bytes are the same.
+- Binary detection uses GNU grep 3.11's 96 KiB buffer boundaries. On pipes the
+  outcome depends on how the producer's writes are timed, as it does for GNU.
 
 ### GNU-oriented details
 

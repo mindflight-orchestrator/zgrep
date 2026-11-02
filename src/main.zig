@@ -1,14 +1,16 @@
 const std = @import("std");
 const zgrep = @import("zgrep");
 
-const version = "0.4.0";
+const version = "0.4.1";
 
 const FileId = struct { ino: u64, dev: u64 };
 
 var diagnostic_name: []const u8 = "zgr";
 var stdout_identity: ?FileId = null;
+var results_writer: ?*std.Io.Writer = null;
 
 fn writeDiagnostic(writer: *std.Io.Writer, path: ?[]const u8, msg: []const u8) !void {
+    try flushResultsForDiagnostic();
     try writer.writeAll(diagnostic_name);
     try writer.writeAll(": ");
     if (path) |value| {
@@ -17,6 +19,33 @@ fn writeDiagnostic(writer: *std.Io.Writer, path: ?[]const u8, msg: []const u8) !
     }
     try writer.writeAll(msg);
     try writer.writeByte('\n');
+    finishDiagnostic(writer);
+}
+
+/// Prints one diagnostic in sequence with the results already produced, as GNU
+/// does on every kind of stdout. A failing stderr never stops the search.
+fn printDiagnostic(writer: *std.Io.Writer, comptime format: []const u8, args: anytype) !void {
+    try flushResultsForDiagnostic();
+    writer.print(format, args) catch {};
+    finishDiagnostic(writer);
+}
+
+fn flushResultsForDiagnostic() !void {
+    if (results_writer) |writer| try writer.flush();
+}
+
+fn finishDiagnostic(writer: *std.Io.Writer) void {
+    writer.flush() catch {
+        writer.end = 0;
+    };
+}
+
+/// Zig's threaded I/O replaces the inherited SIGPIPE disposition with a no-op
+/// handler. Put it back so an early-closing consumer ends the search silently,
+/// while a parent that ignores SIGPIPE still gets the EPIPE diagnostic.
+fn restoreInheritedSigpipe(io: std.Io) void {
+    const threaded: *std.Io.Threaded = @ptrCast(@alignCast(io.userdata.?));
+    std.posix.sigaction(.PIPE, &threaded.old_sig_pipe, null);
 }
 
 fn errnoMessage(err: anyerror) []const u8 {
@@ -24,6 +53,7 @@ fn errnoMessage(err: anyerror) []const u8 {
         error.NoSpaceLeft => "write error: No space left on device",
         error.WriteFailed => "write error: No space left on device",
         error.BrokenPipe => "write error: Broken pipe",
+        error.NotOpenForWriting => "write error: Bad file descriptor",
         error.FileNotFound => "No such file or directory",
         error.IsDirectory => "Is a directory",
         error.AccessDenied => "Permission denied",
@@ -34,7 +64,9 @@ fn errnoMessage(err: anyerror) []const u8 {
 }
 
 pub fn main(init: std.process.Init) !void {
+    restoreInheritedSigpipe(init.io);
     const exit_code = run(init) catch |err| {
+        results_writer = null;
         var buffer: [4096]u8 = undefined;
         var stderr = std.Io.File.stderr().writerStreaming(init.io, &buffer);
         try writeDiagnostic(&stderr.interface, null, errnoMessage(err));
@@ -214,6 +246,8 @@ fn run(init: std.process.Init) !u8 {
     var stdout = stdout_file.writerStreaming(init.io, &output_buffer);
     var diagnostic_buffer: [4096]u8 = undefined;
     var stderr = std.Io.File.stderr().writerStreaming(init.io, &diagnostic_buffer);
+    results_writer = &stdout.interface;
+    const stdout_is_tty = stdout_file.isTty(init.io) catch false;
 
     const implicit_recursive = options.operands.items.len == 0 and options.recursive;
     if (implicit_recursive)
@@ -224,7 +258,7 @@ fn run(init: std.process.Init) !u8 {
     const color_enabled = if (options.color) |mode| switch (mode) {
         .always => true,
         .never => false,
-        .auto => stdout_file.isTty(init.io) catch false,
+        .auto => stdout_is_tty,
     } else false;
     const color_config = zgrep.scanner.ColorConfig.fromEnvironment(init.environ_map);
     if (color_enabled and zgrep.scanner.ColorConfig.grepColorIsSet(init.environ_map)) {
@@ -257,6 +291,7 @@ fn run(init: std.process.Init) !u8 {
         .context_state = &context_state,
         .binary_mode = options.binary_mode,
         .line_buffered = options.line_buffered,
+        .flush_before_read = stdout_is_tty,
         .initial_tab_width = if (options.initial_tab)
             zgrep.scanner.unknown_initial_tab_width
         else
@@ -317,11 +352,15 @@ fn run(init: std.process.Init) !u8 {
             any_match = any_match or value.matched;
             had_error = had_error or value.had_error;
             if (options.quiet and any_match) break;
+            if (stdout_is_tty) stdout.interface.flush() catch |err| {
+                if (err == error.WriteFailed) return stdout.err orelse err;
+                return err;
+            };
         }
     }
 
     try stdout.flush();
-    try stderr.flush();
+    finishDiagnostic(&stderr.interface);
     if (had_error and !(options.quiet and any_match)) return 2;
     return if (any_match) 0 else 1;
 }
@@ -440,17 +479,28 @@ fn scanFileStreaming(
     diagnostic_writer: *std.Io.Writer,
 ) !zgrep.scanner.Result {
     var read_buffer: [256 * 1024]u8 = undefined;
-    var reader = file.readerStreaming(init.io, &read_buffer);
-    const result = try zgrep.scanner.scanReader(
+    var reader = zgrep.scanner.InputReader.init(
+        file,
+        init.io,
+        &read_buffer,
+        if (options.flush_before_read) writer else null,
+    );
+    const result = zgrep.scanner.scanReader(
         &reader.interface,
         init.gpa,
         matchers,
         path,
         options,
         writer,
-    );
+    ) catch |err| {
+        if (err == error.ReadFailed) {
+            if (reader.flush_failed) return error.WriteFailed;
+            if (reader.read_error) |read_error| return read_error;
+        }
+        return err;
+    };
     if (result.binary_match)
-        try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+        try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     zgrep.scanner.rewindUnread(file, result.leftover_bytes);
     return annotateMatchError(matchers, path, diagnostic_writer, result);
 }
@@ -578,7 +628,8 @@ fn scanDirectory(
     if (ancestors) |set| {
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
-            if (!no_messages) try diagnostic_writer.print(
+            if (!no_messages) try printDiagnostic(
+                diagnostic_writer,
                 "{s}: {s}: warning: recursive directory loop\n",
                 .{ diagnostic_name, path },
             );
@@ -606,7 +657,7 @@ fn scanDirectory(
         var kind = entry.kind;
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                if (!no_messages) try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -615,7 +666,7 @@ fn scanDirectory(
         if (kind == .sym_link) {
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
-                if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                if (!no_messages) try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -645,7 +696,7 @@ fn scanDirectory(
             else
                 continue,
         } catch |err| {
-            if (!no_messages) try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+            if (!no_messages) try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         };
@@ -718,7 +769,7 @@ fn scanDirectoryOutputParallel(
         for (items.items) |item| {
             if (item.result.err) |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
             } else if (item.result.matched) {
                 try matching_items.append(init.gpa, item);
@@ -730,7 +781,7 @@ fn scanDirectoryOutputParallel(
             for (matching_items.items) |item| {
                 try writer.writeAll(item.output.?[0..item.output_len]);
                 if (item.output_binary_match)
-                    try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
             }
             aggregate.matched = true;
             return aggregate;
@@ -756,7 +807,7 @@ fn scanDirectoryOutputParallel(
                     diagnostic_writer,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                        try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                     aggregate.had_error = true;
                     continue;
                 };
@@ -797,7 +848,7 @@ fn scanDirectoryOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -929,19 +980,19 @@ fn scanCollectedOutputParallel(
                 diagnostic_writer,
             ) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
             aggregate.matched = aggregate.matched or result.matched;
         } else if (task.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
             aggregate.had_error = true;
         } else {
             try writer.writeAll(task.buffer[0..task.output_len]);
             if (task.result.binary_match)
-                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
+                try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, item.path });
             aggregate.matched = aggregate.matched or task.result.matched;
         }
 
@@ -1193,7 +1244,7 @@ fn scanDirectoryListParallel(
     for (items.items) |item| {
         if (item.result.err) |err| {
             if (!no_messages)
-                try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
+                try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, item.path, @errorName(err) });
             aggregate.had_error = true;
             continue;
         }
@@ -1227,7 +1278,8 @@ fn collectDirectoryFiles(
     if (ancestors) |set| {
         const resolved = try std.Io.Dir.cwd().realPathFileAlloc(init.io, path, init.gpa);
         if (set.contains(resolved)) {
-            if (!no_messages) try diagnostic_writer.print(
+            if (!no_messages) try printDiagnostic(
+                diagnostic_writer,
                 "{s}: {s}: warning: recursive directory loop\n",
                 .{ diagnostic_name, path },
             );
@@ -1254,7 +1306,7 @@ fn collectDirectoryFiles(
         if (kind == .unknown) {
             const stat = directory.statFile(init.io, entry.name, .{ .follow_symlinks = false }) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1264,7 +1316,7 @@ fn collectDirectoryFiles(
             if (ancestors == null) continue;
             const stat = directory.statFile(init.io, entry.name, .{}) catch |err| {
                 if (!no_messages)
-                    try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                    try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                 aggregate.had_error = true;
                 continue;
             };
@@ -1282,7 +1334,7 @@ fn collectDirectoryFiles(
                 const child_directory = if (ancestors == null)
                     directory.openDir(init.io, entry.name, .{ .iterate = true }) catch |err| {
                         if (!no_messages)
-                            try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                            try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                         aggregate.had_error = true;
                         continue;
                     }
@@ -1302,7 +1354,7 @@ fn collectDirectoryFiles(
                     aggregate,
                 ) catch |err| {
                     if (!no_messages)
-                        try diagnostic_writer.print("{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
+                        try printDiagnostic(diagnostic_writer, "{s}: {s}: {s}\n", .{ diagnostic_name, full_path, @errorName(err) });
                     aggregate.had_error = true;
                 };
             } else continue,
@@ -1678,6 +1730,7 @@ fn scanFile(
         return rejected;
     const stat = try file.stat(init.io);
     var file_options = options;
+    if (stat.kind == .file) file_options.flush_before_read = false;
     if (stat.kind == .file and options.initial_tab_width != 0)
         file_options.initial_tab_width = decimalDigitCount(stat.size);
     if (stat.kind == .file and stat.size > 0) {
@@ -1734,24 +1787,11 @@ fn scanFile(
         );
     }
 
-    if (requiresBufferedScan(options)) {
-        var read_buffer: [256 * 1024]u8 = undefined;
-        var reader = file.readerStreaming(init.io, &read_buffer);
-        const data = try reader.interface.allocRemaining(init.gpa, .unlimited);
-        defer init.gpa.free(data);
-        return annotateMatchError(
-            matchers,
-            path,
-            diagnostic_writer,
-            try scanBufferedData(data, matchers, path, options, writer, diagnostic_writer),
-        );
-    }
-
     if (try zgrep.scanner.scanFileLiteralCount(file, init.io, init.gpa, matchers, path, options, writer)) |result| {
         return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
     if (try zgrep.scanner.scanFileLiteralOutput(file, init.io, init.gpa, matchers, path, options, writer)) |result| {
-        if (result.binary_match) try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+        if (result.binary_match) try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
         return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
     return scanFileStreaming(init, file, path, matchers, options, writer, diagnostic_writer);
@@ -1915,12 +1955,12 @@ fn scanRegularBuffer(
     }
     if (try zgrep.scanner.parallelSelectedOutput(buffer, matchers, path, scan_options, writer)) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+            try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
         return result;
     }
     const result = try zgrep.scanner.scanBuffer(buffer, matchers, path, scan_options, writer);
     if (result.binary_match)
-        try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+        try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     return result;
 }
 
@@ -1937,31 +1977,13 @@ fn scanStdin(
     if (try rejectIfSameFile(stdin_file, options, path, diagnostic_writer)) |rejected|
         return rejected;
     var input_options = options;
-    if (options.initial_tab_width != 0) {
-        if (stdin_file.stat(init.io)) |stat| {
-            if (stat.kind == .file)
+    if (stdin_file.stat(init.io)) |stat| {
+        if (stat.kind == .file) {
+            input_options.flush_before_read = false;
+            if (options.initial_tab_width != 0)
                 input_options.initial_tab_width = decimalDigitCount(stat.size);
-        } else |_| {}
-    }
-    if (requiresBufferedScan(input_options)) {
-        var read_buffer: [256 * 1024]u8 = undefined;
-        var reader = stdin_file.readerStreaming(init.io, &read_buffer);
-        const data = try reader.interface.allocRemaining(init.gpa, .unlimited);
-        defer init.gpa.free(data);
-        return annotateMatchError(
-            matchers,
-            path,
-            diagnostic_writer,
-            try scanBufferedData(
-                data,
-                matchers,
-                path,
-                input_options,
-                writer,
-                diagnostic_writer,
-            ),
-        );
-    }
+        }
+    } else |_| {}
     if (try zgrep.scanner.scanFileLiteralCount(
         stdin_file,
         init.io,
@@ -1981,7 +2003,7 @@ fn scanStdin(
         writer,
     )) |result| {
         if (result.binary_match)
-            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+            try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
         return annotateMatchError(matchers, path, diagnostic_writer, result);
     }
 
@@ -1996,54 +2018,9 @@ fn scanStdin(
     );
 }
 
-fn requiresBufferedScan(options: zgrep.scanner.ScanOptions) bool {
-    return options.delimiter != 0 and options.binary_mode == .without_match;
-}
-
 fn shouldSummarizeBinary(options: zgrep.scanner.ScanOptions) bool {
     return options.delimiter != 0 and
         !options.count and options.list_files == null and !options.quiet;
-}
-
-fn scanBufferedData(
-    data: []const u8,
-    matchers: []const zgrep.matcher.Matcher,
-    path: []const u8,
-    options: zgrep.scanner.ScanOptions,
-    writer: *std.Io.Writer,
-    diagnostic_writer: *std.Io.Writer,
-) !zgrep.scanner.Result {
-    if (options.delimiter == 0 or options.binary_mode == .text) {
-        const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
-        if (result.binary_match)
-            try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
-        return result;
-    }
-    const nul_position = try zgrep.scanner.findNulParallel(data) orelse
-        {
-            const result = try zgrep.scanner.scanBuffer(data, matchers, path, options, writer);
-            if (result.binary_match)
-                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
-            return result;
-        };
-    if (options.binary_mode == .without_match)
-        return scanWithoutMatchBinaryBuffer(
-            data,
-            nul_position,
-            matchers,
-            path,
-            options,
-            writer,
-        );
-    return scanBinaryBuffer(
-        data,
-        nul_position,
-        matchers,
-        path,
-        options,
-        writer,
-        diagnostic_writer,
-    );
 }
 
 fn scanWithoutMatchBinaryBuffer(
@@ -2102,7 +2079,7 @@ fn scanBinaryBuffer(
         );
         if (aggregate.matched) {
             if (aggregate.binary_match)
-                try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+                try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
             if (options.max_count) |limit|
                 if (aggregate.selected_lines >= limit) return aggregate;
         }
@@ -2119,7 +2096,7 @@ fn scanBinaryBuffer(
         quiet_options,
         writer,
     );
-    if (result.matched) try diagnostic_writer.print("{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+    if (result.matched) try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     aggregate.matched = aggregate.matched or result.matched;
     aggregate.selected_lines += result.selected_lines;
     return aggregate;

@@ -177,8 +177,19 @@ demandée :
   par la longueur du plus grand enregistrement d'entrée.
 - Les candidats contenant des octets NUL basculent avant l'émission ordonnée ;
   les résumés UTF-8 invalides se propagent dans l'ordre de parcours.
-- Les échecs d'écriture avec tampon ou ligne par ligne préservent l'erreur de
-  fichier Zig sous-jacente, notamment `zgr: write error: Broken pipe`.
+- Un consommateur qui ferme tôt termine la recherche par SIGPIPE, en silence,
+  comme GNU grep. Si le parent ignore SIGPIPE, l'échec d'écriture est signalé
+  par `zgr: write error: Broken pipe` avec le statut 2.
+- Sur un terminal, les résultats issus de pipes, FIFO et périphériques
+  apparaissent avant chaque lecture, y compris les enregistrements délimités
+  par NUL, que GNU grep retient jusqu'à EOF.
+- Les résultats sont vidés avant chaque diagnostic, quel que soit stdout : une
+  sortie fusionnée garde l'ordre de GNU.
+- `-I` diffuse les entrées non régulières et s'arrête au premier tampon contenant
+  un NUL. GNU grep draine alors son entrée ; les octets produits sont identiques.
+- La détection binaire suit les frontières de tampon de 96 KiB de GNU grep 3.11.
+  Sur un pipe, le résultat dépend du rythme d'écriture du producteur, comme chez
+  GNU.
 
 ### Détails orientés GNU
 

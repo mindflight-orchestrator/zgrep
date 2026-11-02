@@ -93,6 +93,9 @@ pub const ScanOptions = struct {
     context_state: ?*ContextState = null,
     binary_mode: options_mod.BinaryMode,
     line_buffered: bool = false,
+    /// Show complete results before waiting for more input. Only meaningful for
+    /// streaming scans whose writer is the final output.
+    flush_before_read: bool = false,
     initial_tab_width: usize = 0,
     utf8_locale: bool = false,
     ascii_input: ?bool = null,
@@ -118,6 +121,79 @@ pub fn rewindUnread(file: std.Io.File, unread: usize) void {
     if (unread == 0) return;
     _ = std.os.linux.lseek(file.handle, -@as(i64, @intCast(unread)), std.os.linux.SEEK.CUR);
 }
+
+/// GNU grep 3.11 decides whether input is binary one buffer at a time, and its
+/// buffer boundaries fall on multiples of this size.
+pub const binary_detection_block_bytes = 96 * 1024;
+
+/// Alignment of the dense-output hot functions. Without it, unrelated code
+/// changes moved them enough to swing dense plain output by more than 10%.
+const hot_function_alignment = 64;
+
+/// Streaming input that keeps GNU's detection boundaries and gives the output
+/// policy a single point before each read, including reads that happen inside
+/// `std.Io.Reader.takeDelimiter`.
+pub const InputReader = struct {
+    file: std.Io.File,
+    io: std.Io,
+    flush_target: ?*std.Io.Writer,
+    total_read: u64 = 0,
+    flush_failed: bool = false,
+    read_error: ?std.Io.File.Reader.Error = null,
+    interface: std.Io.Reader,
+
+    pub fn init(
+        file: std.Io.File,
+        io: std.Io,
+        buffer: []u8,
+        flush_target: ?*std.Io.Writer,
+    ) InputReader {
+        return .{
+            .file = file,
+            .io = io,
+            .flush_target = flush_target,
+            .interface = .{
+                .vtable = &.{ .stream = stream, .readVec = readVec },
+                .buffer = buffer,
+                .seek = 0,
+                .end = 0,
+            },
+        };
+    }
+
+    /// Keeps room for a whole detection block, so that a read never stops short
+    /// of a boundary and exposes bytes GNU would classify together.
+    fn readVec(reader: *std.Io.Reader, data: [][]u8) std.Io.Reader.Error!usize {
+        const wanted = reader.bufferedLen() + binary_detection_block_bytes;
+        try reader.rebase(@min(wanted, reader.buffer.len));
+        return std.Io.Reader.defaultReadVec(reader, data);
+    }
+
+    fn stream(
+        reader: *std.Io.Reader,
+        writer: *std.Io.Writer,
+        limit: std.Io.Limit,
+    ) std.Io.Reader.StreamError!usize {
+        const self: *InputReader = @alignCast(@fieldParentPtr("interface", reader));
+        const destination = limit.slice(try writer.writableSliceGreedy(1));
+        if (self.flush_target) |target| target.flush() catch {
+            self.flush_failed = true;
+            return error.ReadFailed;
+        };
+        const block_used: usize = @intCast(self.total_read % binary_detection_block_bytes);
+        const length = @min(destination.len, binary_detection_block_bytes - block_used);
+        const bytes_read = self.file.readStreaming(self.io, &.{destination[0..length]}) catch |err| switch (err) {
+            error.EndOfStream => return error.EndOfStream,
+            else => |other| {
+                self.read_error = other;
+                return error.ReadFailed;
+            },
+        };
+        writer.advance(bytes_read);
+        self.total_read += bytes_read;
+        return bytes_read;
+    }
+};
 
 fn suppressInvalidUtf8(line: []const u8, options: ScanOptions, result: *Result) bool {
     if (!options.utf8_locale or options.binary_mode == .text or
@@ -307,24 +383,15 @@ pub fn scanReader(
     while (!reached_end) : (line_number += 1) {
         var line: []const u8 = undefined;
         while (true) {
-            if (shouldSummarizeBinary(options) and !binary_detected) {
-                if (reader.bufferedLen() == 0) {
-                    reader.fillMore() catch |err| switch (err) {
-                        error.EndOfStream => {},
-                        error.ReadFailed => return error.ReadFailed,
-                    };
-                }
-                const buffered = reader.buffered();
-                const buffered_start = byte_offset + long_line.items.len;
-                const unchecked_start = if (binary_checked_through > buffered_start)
-                    @min(binary_checked_through - buffered_start, buffered.len)
-                else
-                    0;
-                if (std.mem.findScalar(u8, buffered[unchecked_start..], 0) != null) {
+            if (detectsStreamBinary(options) and !binary_detected and reader.bufferedLen() == 0) {
+                reader.fillMore() catch |err| switch (err) {
+                    error.EndOfStream => {},
+                    error.ReadFailed => return error.ReadFailed,
+                };
+                if (bufferedHasNul(reader, byte_offset + long_line.items.len, &binary_checked_through)) {
+                    if (stopsAtBinaryInput(options)) return finishWithoutMatchStream(writer, path, options);
                     binary_detected = true;
-                    if (result.matched) return result;
                 }
-                binary_checked_through = @max(binary_checked_through, buffered_start + buffered.len);
             }
             const maybe_line = reader.takeDelimiter(options.delimiter) catch |err| switch (err) {
                 error.StreamTooLong => {
@@ -350,11 +417,16 @@ pub fn scanReader(
             break;
         }
         if (reached_end and long_line.items.len == 0) break;
-        if (shouldSummarizeBinary(options) and !binary_detected and
-            std.mem.findScalar(u8, line, 0) != null)
-        {
-            binary_detected = true;
-            if (result.matched) return result;
+        if (detectsStreamBinary(options) and !binary_detected) {
+            // Reads inside takeDelimiter may have delivered a NUL beyond this
+            // line; GNU classifies the whole buffer before printing from it.
+            const next_offset = byte_offset + line.len + @intFromBool(!reached_end);
+            if (std.mem.findScalar(u8, line, 0) != null or
+                (!reached_end and bufferedHasNul(reader, next_offset, &binary_checked_through)))
+            {
+                if (stopsAtBinaryInput(options)) return finishWithoutMatchStream(writer, path, options);
+                binary_detected = true;
+            }
         }
 
         var raw_match = false;
@@ -453,24 +525,15 @@ fn scanReaderWithContext(
     while (!reached_end) : (line_number += 1) {
         var line: []const u8 = undefined;
         while (true) {
-            if (shouldSummarizeBinary(options) and !binary_detected) {
-                if (reader.bufferedLen() == 0) {
-                    reader.fillMore() catch |err| switch (err) {
-                        error.EndOfStream => {},
-                        error.ReadFailed => return error.ReadFailed,
-                    };
-                }
-                const buffered = reader.buffered();
-                const buffered_start = byte_offset + long_line.items.len;
-                const unchecked_start = if (binary_checked_through > buffered_start)
-                    @min(binary_checked_through - buffered_start, buffered.len)
-                else
-                    0;
-                if (std.mem.findScalar(u8, buffered[unchecked_start..], 0) != null) {
+            if (detectsStreamBinary(options) and !binary_detected and reader.bufferedLen() == 0) {
+                reader.fillMore() catch |err| switch (err) {
+                    error.EndOfStream => {},
+                    error.ReadFailed => return error.ReadFailed,
+                };
+                if (bufferedHasNul(reader, byte_offset + long_line.items.len, &binary_checked_through)) {
+                    if (stopsAtBinaryInput(options)) return finishWithoutMatchStream(writer, path, options);
                     binary_detected = true;
-                    if (result.matched) return result;
                 }
-                binary_checked_through = @max(binary_checked_through, buffered_start + buffered.len);
             }
             const maybe_line = reader.takeDelimiter(options.delimiter) catch |err| switch (err) {
                 error.StreamTooLong => {
@@ -496,11 +559,16 @@ fn scanReaderWithContext(
             break;
         }
         if (reached_end and long_line.items.len == 0) break;
-        if (shouldSummarizeBinary(options) and !binary_detected and
-            std.mem.findScalar(u8, line, 0) != null)
-        {
-            binary_detected = true;
-            if (result.matched) return result;
+        if (detectsStreamBinary(options) and !binary_detected) {
+            // Reads inside takeDelimiter may have delivered a NUL beyond this
+            // line; GNU classifies the whole buffer before printing from it.
+            const next_offset = byte_offset + line.len + @intFromBool(!reached_end);
+            if (std.mem.findScalar(u8, line, 0) != null or
+                (!reached_end and bufferedHasNul(reader, next_offset, &binary_checked_through)))
+            {
+                if (stopsAtBinaryInput(options)) return finishWithoutMatchStream(writer, path, options);
+                binary_detected = true;
+            }
         }
 
         var selected = false;
@@ -1001,13 +1069,52 @@ fn shouldSummarizeBinary(options: ScanOptions) bool {
         options.list_files == null and !options.quiet;
 }
 
+fn stopsAtBinaryInput(options: ScanOptions) bool {
+    return options.binary_mode == .without_match and options.delimiter != 0;
+}
+
+fn detectsStreamBinary(options: ScanOptions) bool {
+    return shouldSummarizeBinary(options) or stopsAtBinaryInput(options);
+}
+
+/// Whether bytes already read but not yet consumed contain a NUL. `consumed`
+/// is the stream offset of the first buffered byte.
+fn bufferedHasNul(reader: *std.Io.Reader, consumed: usize, checked_through: *usize) bool {
+    const buffered = reader.buffered();
+    const unchecked_start = if (checked_through.* > consumed)
+        @min(checked_through.* - consumed, buffered.len)
+    else
+        0;
+    const found = std.mem.findScalar(u8, buffered[unchecked_start..], 0) != null;
+    checked_through.* = @max(checked_through.*, consumed + buffered.len);
+    return found;
+}
+
+/// `--binary-files=without-match` stops without selecting anything, keeping the
+/// text output that GNU had already written from earlier buffers.
+fn finishWithoutMatchStream(
+    writer: *std.Io.Writer,
+    path: []const u8,
+    options: ScanOptions,
+) !Result {
+    if (options.count and !options.quiet) try emitCount(
+        writer,
+        path,
+        options.show_filename,
+        options.null_filename,
+        options.colors,
+        0,
+        options.line_buffered,
+    );
+    return .{};
+}
+
 pub fn binaryTextPrefixEnd(
     buffer: []const u8,
     nul_position: usize,
     delimiter: u8,
 ) usize {
-    const detection_block_bytes = 256 * 1024;
-    const nominal_start = nul_position / detection_block_bytes * detection_block_bytes;
+    const nominal_start = nul_position / binary_detection_block_bytes * binary_detection_block_bytes;
     if (nominal_start == 0) return 0;
     return if (std.mem.findScalarLast(u8, buffer[0..nominal_start], delimiter)) |record_end|
         record_end + 1
@@ -1025,7 +1132,7 @@ pub fn scanFileLiteralCount(
     writer: *std.Io.Writer,
 ) !?Result {
     if (!options.count or options.quiet or options.list_files != null or
-        options.max_count != null or matchers.len != 1) return null;
+        options.max_count != null or matchers.len != 1 or stopsAtBinaryInput(options)) return null;
     const literal = switch (matchers[0]) {
         .literal => |*value| value,
         .alternation => return null,
@@ -1112,7 +1219,8 @@ pub fn scanFileLiteralOutput(
     writer: *std.Io.Writer,
 ) !?Result {
     if (options.colors != null or options.line_buffered or options.count or options.quiet or options.list_files != null or options.invert or
-        options.only_matching or contextOutputEnabled(options) or matchers.len != 1) return null;
+        options.only_matching or contextOutputEnabled(options) or matchers.len != 1 or
+        stopsAtBinaryInput(options)) return null;
     const literal = switch (matchers[0]) {
         .literal => |*value| value,
         else => return null,
@@ -1120,8 +1228,7 @@ pub fn scanFileLiteralOutput(
     if (literal.whole_line or literal.pattern.len == 0 or
         std.mem.findScalar(u8, literal.pattern, options.delimiter) != null) return null;
 
-    const detection_block_bytes = 256 * 1024;
-    const block = try allocator.alloc(u8, detection_block_bytes);
+    const block = try allocator.alloc(u8, binary_detection_block_bytes);
     defer allocator.free(block);
     var pending: std.ArrayList(u8) = .empty;
     defer pending.deinit(allocator);
@@ -1134,7 +1241,9 @@ pub fn scanFileLiteralOutput(
     var reached_end = false;
 
     while (!reached_end) {
-        const bytes_read = file.readStreaming(io, &.{block}) catch |err| switch (err) {
+        if (options.flush_before_read) try writer.flush();
+        const block_used = block_offset % binary_detection_block_bytes;
+        const bytes_read = file.readStreaming(io, &.{block[block_used..]}) catch |err| switch (err) {
             error.EndOfStream => {
                 reached_end = true;
                 break;
@@ -1146,13 +1255,12 @@ pub fn scanFileLiteralOutput(
             break;
         }
         const filled = bytes_read;
-        const chunk = block[0..filled];
+        const chunk = block[block_used..][0..filled];
 
         if (!binary_detected and options.delimiter != 0 and options.binary_mode == .binary and
             std.mem.findScalar(u8, chunk, 0) != null)
         {
             binary_detected = true;
-            if (result.matched) return result;
         }
         if (binary_detected) {
             if (try binaryLiteralBlockMatches(
@@ -1890,7 +1998,7 @@ fn selectedOutputWorker(
     only_matching: bool,
     max_records_per_chunk: usize,
     result: *ParallelOutputChunk,
-) void {
+) align(hot_function_alignment) void {
     var search_position: usize = 0;
     var record_number: usize = 1;
     var numbered_through: usize = 0;
@@ -1980,7 +2088,7 @@ fn findParallelOutputMatch(
     buffer: []const u8,
     start: usize,
     parallel_matcher: ParallelOutputMatcher,
-) ?usize {
+) align(hot_function_alignment) ?usize {
     return switch (parallel_matcher) {
         .literal => |literal| find: {
             var search_position = start;
@@ -2495,7 +2603,7 @@ fn scanLiteralFast(
     path: []const u8,
     options: ScanOptions,
     writer: *std.Io.Writer,
-) !Result {
+) align(hot_function_alignment) !Result {
     var result: Result = .{};
     var search_position: usize = 0;
     var line_number: usize = 1;
@@ -3560,7 +3668,7 @@ fn emitLine(
     null_filename: bool,
     initial_tab_width: usize,
     line_buffered: bool,
-) !void {
+) align(hot_function_alignment) !void {
     return emitDecoratedLine(
         writer,
         path,
@@ -3588,7 +3696,7 @@ fn emitDecoratedLine(
     null_filename: bool,
     initial_tab_width: usize,
     line_buffered: bool,
-) !void {
+) align(hot_function_alignment) !void {
     var has_prefix = false;
     if (show_filename) {
         try writer.writeAll(path);
