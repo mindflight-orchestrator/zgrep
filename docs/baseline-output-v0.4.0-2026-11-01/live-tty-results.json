@@ -1,0 +1,78 @@
+[
+  {
+    "tool": "zgr040",
+    "flags": [],
+    "stages": [
+      {
+        "visible_before_next_input_or_eof": false,
+        "received": "",
+        "elapsed_ms": 200.197
+      },
+      {
+        "visible_before_next_input_or_eof": false,
+        "received": "",
+        "elapsed_ms": 200.286
+      }
+    ],
+    "after_eof": "needle first\nneedle second\n",
+    "exit_status": 0
+  },
+  {
+    "tool": "zgr040",
+    "flags": [
+      "--line-buffered"
+    ],
+    "stages": [
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle first\n",
+        "elapsed_ms": 1.418
+      },
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle second\n",
+        "elapsed_ms": 0.124
+      }
+    ],
+    "after_eof": "",
+    "exit_status": 0
+  },
+  {
+    "tool": "grep",
+    "flags": [],
+    "stages": [
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle first\n",
+        "elapsed_ms": 1.095
+      },
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle second\n",
+        "elapsed_ms": 0.093
+      }
+    ],
+    "after_eof": "",
+    "exit_status": 0
+  },
+  {
+    "tool": "grep",
+    "flags": [
+      "--line-buffered"
+    ],
+    "stages": [
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle first\n",
+        "elapsed_ms": 1.922
+      },
+      {
+        "visible_before_next_input_or_eof": true,
+        "received": "needle second\n",
+        "elapsed_ms": 0.121
+      }
+    ],
+    "after_eof": "",
+    "exit_status": 0
+  }
+]

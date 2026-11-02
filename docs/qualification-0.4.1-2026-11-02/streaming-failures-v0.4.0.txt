@@ -1,0 +1,128 @@
+zgr streaming failures: 127
+default [pty]
+regex [pty]
+line numbers [pty]
+only matching [pty]
+color [pty]
+after context [pty]
+before context [pty]
+partial record [pty]
+-I line buffered [pty]
+-I line buffered [pipe]
+-I terminal [pty]
+-I regex [pty]
+-I regex [pipe]
+-I context [pty]
+-I context [pipe]
+-I late NUL [pty]
+-I late NUL [pipe]
+-I late NUL count [pty]
+-I late NUL without match [pty]
+-I late NUL without match [pipe]
+late NUL later match [pty]
+late NUL later match [pipe]
+literal late NUL later match [pty]
+regex late NUL later match [pty]
+context late NUL later match [pty]
+context late NUL later match [pipe]
+terminal NUL records [pty]
+merged order, missing file
+merged order, binary file
+piped order, missing file
+default SIGPIPE
+default SIGPIPE with -I
+diagnostic survives early closure
+FIFO operand with -I
+/dev/stdin operand with -I
+closed stdout
+closed stderr keeps results
+NUL at 100 KiB [] operand
+NUL at 100 KiB [] redirected
+NUL at 100 KiB [-I] operand
+NUL at 100 KiB [-I] redirected
+NUL at 100 KiB [-n] operand
+NUL at 100 KiB [-n] redirected
+NUL at 100 KiB [-E] operand
+NUL at 100 KiB [-E] redirected
+NUL at 100 KiB [-I -E] operand
+NUL at 100 KiB [-I -E] redirected
+NUL at 100 KiB [-m3] operand
+NUL at 100 KiB [-m3] redirected
+NUL at 100 KiB [-A1] operand
+NUL at 100 KiB [-A1] redirected
+NUL at 100 KiB [-I -A1] operand
+NUL at 100 KiB [-I -A1] redirected
+NUL at 192 KiB [] operand
+NUL at 192 KiB [] redirected
+NUL at 192 KiB [-I] operand
+NUL at 192 KiB [-I] redirected
+NUL at 192 KiB [-n] operand
+NUL at 192 KiB [-n] redirected
+NUL at 192 KiB [-E] operand
+NUL at 192 KiB [-E] redirected
+NUL at 192 KiB [-I -E] operand
+NUL at 192 KiB [-I -E] redirected
+NUL at 192 KiB [-m3] operand
+NUL at 192 KiB [-m3] redirected
+NUL at 192 KiB [-A1] operand
+NUL at 192 KiB [-A1] redirected
+NUL at 192 KiB [-I -A1] operand
+NUL at 192 KiB [-I -A1] redirected
+NUL at 200 KiB [] operand
+NUL at 200 KiB [] redirected
+NUL at 200 KiB [-I] operand
+NUL at 200 KiB [-I] redirected
+NUL at 200 KiB [-n] operand
+NUL at 200 KiB [-n] redirected
+NUL at 200 KiB [-E] operand
+NUL at 200 KiB [-E] redirected
+NUL at 200 KiB [-I -E] operand
+NUL at 200 KiB [-I -E] redirected
+NUL at 200 KiB [-m3] operand
+NUL at 200 KiB [-m3] redirected
+NUL at 200 KiB [-A1] operand
+NUL at 200 KiB [-A1] redirected
+NUL at 200 KiB [-I -A1] operand
+NUL at 200 KiB [-I -A1] redirected
+NUL at 260 KiB [] operand
+NUL at 260 KiB [] redirected
+NUL at 260 KiB [-I] operand
+NUL at 260 KiB [-I] redirected
+NUL at 260 KiB [-n] operand
+NUL at 260 KiB [-n] redirected
+NUL at 260 KiB [-E] operand
+NUL at 260 KiB [-E] redirected
+NUL at 260 KiB [-I -E] operand
+NUL at 260 KiB [-I -E] redirected
+NUL at 260 KiB [-A1] operand
+NUL at 260 KiB [-A1] redirected
+NUL at 260 KiB [-I -A1] operand
+NUL at 260 KiB [-I -A1] redirected
+NUL at 300 KiB [] operand
+NUL at 300 KiB [] redirected
+NUL at 300 KiB [-I] operand
+NUL at 300 KiB [-I] redirected
+NUL at 300 KiB [-n] operand
+NUL at 300 KiB [-n] redirected
+NUL at 300 KiB [-E] operand
+NUL at 300 KiB [-E] redirected
+NUL at 300 KiB [-I -E] operand
+NUL at 300 KiB [-I -E] redirected
+NUL at 300 KiB [-A1] operand
+NUL at 300 KiB [-A1] redirected
+NUL at 300 KiB [-I -A1] operand
+NUL at 300 KiB [-I -A1] redirected
+NUL at 400 KiB [] operand
+NUL at 400 KiB [] redirected
+NUL at 400 KiB [-I] operand
+NUL at 400 KiB [-I] redirected
+NUL at 400 KiB [-n] operand
+NUL at 400 KiB [-n] redirected
+NUL at 400 KiB [-E] operand
+NUL at 400 KiB [-E] redirected
+NUL at 400 KiB [-I -E] operand
+NUL at 400 KiB [-I -E] redirected
+NUL at 400 KiB [-A1] operand
+NUL at 400 KiB [-A1] redirected
+NUL at 400 KiB [-I -A1] operand
+NUL at 400 KiB [-I -A1] redirected

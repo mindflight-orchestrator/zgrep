@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-01",
+  "source_head_at_inspection": "50f7533649211f87b573826784172e61c71a9830",
+  "source_manifest_version": "0.4.0",
+  "cpu": "Intel Core i9-13900KF, 32 logical CPUs",
+  "os": "Linux 6.8.0-147-generic x86_64 GNU/Linux",
+  "compiler_available": "Zig 0.16.0",
+  "locale": "C",
+  "cache": "warm",
+  "cpu_affinity": "unrestricted",
+  "artifacts": {
+    "installed": {
+      "path": "/home/dlamotte/.local/bin/zgr",
+      "reported_version": "0.3.0",
+      "sha256": "b72bbc31d602cc270e70ae2ea5f4326688049642c081d5642a938c6030f54dcb"
+    },
+    "existing_tree_binary": {
+      "path": "zig-out/bin/zgr",
+      "reported_version": "0.3.1",
+      "sha256": "3797160790268324f309dc73839bf7b0edc6b0917bd4f145335027b75f2d9020",
+      "matches_source_head": "unverified; not rebuilt"
+    },
+    "grep": {
+      "path": "/usr/bin/grep",
+      "reported_version": "3.11"
+    }
+  },
+  "corpus": {
+    "generator": "bench/generate.sh",
+    "lines": 1500000,
+    "bytes": 140684742
+  },
+  "exploratory_file_output": {
+    "timed_runs": 7,
+    "warmup_runs": 1,
+    "pattern": "INFO",
+    "every_line_selected": true,
+    "sink": "regular temporary file, truncated for each run",
+    "median_ms": {
+      "installed_dense": 73.59,
+      "existing_tree_dense": 73.31,
+      "grep_dense": 92.21,
+      "existing_tree_dense_with_max_count_2000000": 86.28,
+      "cat_all_bytes": 47.47,
+      "existing_tree_numbered": 92.59,
+      "existing_tree_numbered_with_max_count_2000000": 94.4
+    }
+  },
+  "exploratory_pty_output": {
+    "runs": 3,
+    "warmup": "generated corpus already cached; no separate explicit warm-up run",
+    "sink": "PTY master drained immediately in 65536-byte reads; OPOST disabled; no terminal renderer",
+    "pattern": "INFO",
+    "rows": [
+      {
+        "command": "existing_tree -F INFO",
+        "first_byte_median_ms": 10.14,
+        "total_median_ms": 246.62,
+        "output_bytes": 140684742
+      },
+      {
+        "command": "existing_tree -F -n INFO",
+        "first_byte_median_ms": 11.76,
+        "total_median_ms": 281.98,
+        "output_bytes": 151573638
+      },
+      {
+        "command": "grep -F INFO",
+        "first_byte_median_ms": 0.87,
+        "total_median_ms": 939.86,
+        "output_bytes": 140684742
+      },
+      {
+        "command": "existing_tree --line-buffered -F INFO",
+        "first_byte_median_ms": 10.23,
+        "total_median_ms": 991.57,
+        "output_bytes": 140684742
+      }
+    ]
+  },
+  "limitations": [
+    "Individual per-run timings were not retained; installed-results.json contains medians and ranges, exploratory measurements only medians.",
+    "Exploratory file and PTY scripts ran inline and were not saved. Their results are transcribed from tool output, not reconstructed raw samples.",
+    "No corpus hash was recorded and temporary corpora were removed. Generator and source HEAD identify the recipe, not an immutable corpus artifact.",
+    "No CPU-time, peak-RSS, syscall counts, or actual screen-rendering measurements were obtained.",
+    "Recursive initial comparison sorts lines and does not establish traversal order.",
+    "ASCII warm-cache workloads do not establish full GNU or Unicode compatibility."
+  ],
+  "release_comparison": {
+    "baseline_version": "0.4.0",
+    "baseline_tag": "v0.4.0",
+    "baseline_commit": "50f7533649211f87b573826784172e61c71a9830",
+    "target_version": "0.4.1",
+    "required_method": "Rebuild unchanged 0.4.0 and optimized 0.4.1 in ReleaseFast; compare freshly timed artifacts. Historical 0.3.x measurements are supplementary only."
+  }
+}

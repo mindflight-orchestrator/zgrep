@@ -1,0 +1,173 @@
+{
+  "corpus_bytes": 140684742,
+  "tree_bytes": 33554432,
+  "runs": 9,
+  "locale": "C",
+  "results": [
+    {
+      "case": "literal miss",
+      "correct": true,
+      "grep_ms": 16.277,
+      "zgr_ms": 7.083,
+      "grep_div_zgr": 2.3,
+      "grep_range_ms": [
+        12.42,
+        23.33
+      ],
+      "zgr_range_ms": [
+        5.91,
+        8.28
+      ]
+    },
+    {
+      "case": "rare literal count",
+      "correct": true,
+      "grep_ms": 47.059,
+      "zgr_ms": 7.236,
+      "grep_div_zgr": 6.5,
+      "grep_range_ms": [
+        44.37,
+        57.62
+      ],
+      "zgr_range_ms": [
+        5.66,
+        7.33
+      ]
+    },
+    {
+      "case": "dense literal count",
+      "correct": true,
+      "grep_ms": 59.627,
+      "zgr_ms": 7.787,
+      "grep_div_zgr": 7.66,
+      "grep_range_ms": [
+        54.84,
+        63.81
+      ],
+      "zgr_range_ms": [
+        6.23,
+        8.34
+      ]
+    },
+    {
+      "case": "case-insensitive count",
+      "correct": true,
+      "grep_ms": 41.529,
+      "zgr_ms": 7.811,
+      "grep_div_zgr": 5.32,
+      "grep_range_ms": [
+        37.23,
+        45.78
+      ],
+      "zgr_range_ms": [
+        6.28,
+        8.68
+      ]
+    },
+    {
+      "case": "dense ERE count",
+      "correct": true,
+      "grep_ms": 98.219,
+      "zgr_ms": 8.621,
+      "grep_div_zgr": 11.39,
+      "grep_range_ms": [
+        93.0,
+        102.52
+      ],
+      "zgr_range_ms": [
+        7.45,
+        9.12
+      ]
+    },
+    {
+      "case": "inner-literal ERE count",
+      "correct": true,
+      "grep_ms": 120.239,
+      "zgr_ms": 13.668,
+      "grep_div_zgr": 8.8,
+      "grep_range_ms": [
+        115.01,
+        123.78
+      ],
+      "zgr_range_ms": [
+        13.05,
+        14.89
+      ]
+    },
+    {
+      "case": "no-literal ERE count",
+      "correct": true,
+      "grep_ms": 120.527,
+      "zgr_ms": 19.795,
+      "grep_div_zgr": 6.09,
+      "grep_range_ms": [
+        115.37,
+        121.45
+      ],
+      "zgr_range_ms": [
+        17.61,
+        21.15
+      ]
+    },
+    {
+      "case": "sparse line output",
+      "correct": true,
+      "grep_ms": 56.311,
+      "zgr_ms": 13.366,
+      "grep_div_zgr": 4.21,
+      "grep_range_ms": [
+        52.25,
+        58.81
+      ],
+      "zgr_range_ms": [
+        12.03,
+        13.89
+      ]
+    },
+    {
+      "case": "dense line output",
+      "correct": true,
+      "grep_ms": 98.509,
+      "zgr_ms": 96.55,
+      "grep_div_zgr": 1.02,
+      "grep_range_ms": [
+        93.9,
+        115.54
+      ],
+      "zgr_range_ms": [
+        89.34,
+        109.29
+      ]
+    },
+    {
+      "case": "recursive rare count",
+      "correct": true,
+      "grep_ms": 15.011,
+      "zgr_ms": 10.911,
+      "grep_div_zgr": 1.38,
+      "grep_range_ms": [
+        11.83,
+        16.97
+      ],
+      "zgr_range_ms": [
+        6.24,
+        15.33
+      ]
+    },
+    {
+      "case": "recursive miss",
+      "correct": true,
+      "grep_ms": 21.289,
+      "zgr_ms": 19.945,
+      "grep_div_zgr": 1.07,
+      "grep_range_ms": [
+        8.42,
+        25.69
+      ],
+      "zgr_range_ms": [
+        7.51,
+        31.65
+      ]
+    }
+  ]
+}

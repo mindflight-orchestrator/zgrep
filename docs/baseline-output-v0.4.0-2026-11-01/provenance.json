@@ -1,0 +1,34 @@
+{
+  "source_commit": "50f7533649211f87b573826784172e61c71a9830",
+  "source_tag": "v0.4.0",
+  "dependency_commit": "b93f4d8d999f1f000ecc3644c844294802ba78bb",
+  "dependency_hash": "zpcre2-0.1.0-inU7b6KUBwChJsSYFblMFLP_583TLP-QpqI4KENIYXlD",
+  "compiler": "/opt/zig/zig-x86_64-linux-0.16.0/zig",
+  "optimize": "ReleaseFast",
+  "source_checkout": "/tmp/zgr-plan-review-source (git archive HEAD, no source edits)",
+  "cpu": "Intel Core i9-13900KF",
+  "locale": "C",
+  "affinity": "unrestricted",
+  "file_sink": "regular file, cached writes, no fsync",
+  "benchmark_script": "/tmp/zgr-plan-review-measure.py",
+  "live_tty_script": "/tmp/zgr-plan-review-live.py",
+  "binaries": {
+    "zgr": {
+      "path": "/tmp/zgr-plan-review-v040/bin/zgr",
+      "sha256": "706eae7cda893743dcb5e35af14e08fb6350d5918252d70938b6ac1259d02113",
+      "version": "zgr 0.4.0 (Zig 0.16)\nzgr -P uses PCRE2 10"
+    },
+    "zgrc": {
+      "path": "/tmp/zgr-plan-review-v040/bin/zgrc",
+      "sha256": "a84e1579c5a69293fc7ab3e3536289daeefad8756eb6f1a7941b0b252f9c666c",
+      "version": "zgrc 0.4.0 (Zig 0.16)\nzgrc -P uses PCRE2 10.42 2022-12-11"
+    }
+  },
+  "limits": [
+    "No complete project test-suite run during this review.",
+    "File timings include spawn/wait and cached writes; they do not measure durable disk throughput.",
+    "Per-child peak RSS includes mapped input and possibly inherited launcher high-water state; it is not heap-only memory.",
+    "PTY experiment measures availability of complete records without screen rendering.",
+    "7 timed runs per file case after correctness/warm-up; synthetic ASCII input, same host, no CPU pinning."
+  ]
+}
