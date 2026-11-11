@@ -207,9 +207,9 @@ lanes against `zgrc`, including:
   `nl_BE.utf8` locales;
 - ANSI color byte streams, FIFOs, binary/NUL handling and broken-pipe behavior.
 
-The separate [GNU grep 3.12 official-suite comparison](docs/gnu-grep-3.12-compatibility.md)
-records the results of running GNU's unchanged 128-test functional harness
-against both regex backends.
+The archived [GNU grep 3.12 official-suite comparison](docs/archive/gnu-grep-3.12-compatibility.md)
+records the August 2026 results of running GNU's unchanged 128-test functional
+harness against both regex backends.
 
 `zig build test-zpcre2` runs the zpcre2 unit tests for `zgr`.
 `zig build test-zpcre2-gnu` runs the GNU differential lanes against `zgr` and
@@ -260,14 +260,10 @@ builds with ripgrep (Rust) and GNU grep (C) are in
 [docs/benchmark-backends.md](docs/benchmark-backends.md), including samples,
 commands, versions and executable hashes.
 
-The earlier comparison is documented in
-[docs/benchmark-zgr-zgrc.md](docs/benchmark-zgr-zgrc.md). That capture times
-both binaries and lists the experimental GNU gaps that `zgr` (zpcre2) still
-misses; the generated ASCII profile itself matched GNU grep for `zgr` and
-`zgrc`. The previous v0.3 A/B remains in
-[docs/benchmark-v0.3.md](docs/benchmark-v0.3.md). A side-by-side of Cursor's
-bundled ripgrep and `zgr` is in
-[docs/cursor-grep-comparison.md](docs/cursor-grep-comparison.md).
+The [documentation index](docs/README.md) points to the current report and data.
+Older comparisons, test results and experiment scripts are grouped in
+[docs/archive/](docs/archive/README.md). Maintained test suites and benchmark
+launchers remain in `tests/` and `bench/`.
 
 ### Comparison before release
 

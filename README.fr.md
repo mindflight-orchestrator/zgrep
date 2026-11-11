@@ -228,8 +228,8 @@ principaux parcours différentiels GNU contre `zgrc`, notamment :
 - les flux d'octets de couleur ANSI, les FIFO, la gestion binaire/NUL et le
   comportement en cas de pipe cassé.
 
-La [comparaison avec la suite officielle de GNU grep 3.12](docs/gnu-grep-3.12-compatibility.fr.md)
-consigne les résultats de l'exécution du banc fonctionnel GNU inchangé de
+La [comparaison archivée avec la suite officielle de GNU grep 3.12](docs/archive/gnu-grep-3.12-compatibility.fr.md)
+consigne les résultats d'août 2026 du banc fonctionnel GNU inchangé de
 128 tests contre les deux moteurs d'expressions régulières.
 
 `zig build test-zpcre2` exécute les tests unitaires zpcre2 de `zgr`.
@@ -285,14 +285,10 @@ GNU grep (C) du 11 novembre 2026 sont dans
 [docs/benchmark-backends.fr.md](docs/benchmark-backends.fr.md), avec les
 échantillons, commandes, versions et empreintes des exécutables.
 
-La comparaison antérieure est documentée dans
-[docs/benchmark-zgr-zgrc.fr.md](docs/benchmark-zgr-zgrc.fr.md). Cette capture
-chronomètre les deux binaires et dresse les écarts GNU expérimentaux que `zgr`
-(zpcre2) rate encore ; le profil ASCII généré lui-même concordait avec GNU grep
-pour `zgr` et `zgrc`. L'A/B v0.3 précédent reste dans
-[docs/benchmark-v0.3.fr.md](docs/benchmark-v0.3.fr.md). Une comparaison du
-ripgrep fourni par Cursor et de `zgr` est dans
-[docs/cursor-grep-comparison.fr.md](docs/cursor-grep-comparison.fr.md).
+L'[index de documentation](docs/README.md) donne accès au rapport et aux données
+actuels. Les anciennes comparaisons, résultats de tests et scripts d'expérience
+sont regroupés dans [docs/archive/](docs/archive/README.md). Les suites de tests
+et les lanceurs de benchmark maintenus restent dans `tests/` et `bench/`.
 
 ### Comparaison avant publication
 
