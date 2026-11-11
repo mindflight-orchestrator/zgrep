@@ -1,0 +1,11 @@
+Build Summary: 9/9 steps succeeded
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native cached 13ms MaxRSS:40M
+|     +- translate-c cached 10ms MaxRSS:34M
++- install zgr success
+   +- compile exe zgr ReleaseFast native cached 12ms MaxRSS:36M
+bench-internal success
++- install zgrep-internal-bench success
+   +- compile lib zgrep-internal-bench ReleaseFast native cached 13ms MaxRSS:36M
+

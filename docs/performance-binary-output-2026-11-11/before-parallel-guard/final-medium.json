@@ -1,0 +1,2102 @@
+{
+  "status": "passed",
+  "runner_sha256": "0d077066dceef101a76c61218de6c11a014f9942e3260d4713f8a3a9816be730",
+  "comparator_sha256": "3c56a5a9325aaf2c4f2d8507e64ecb3bf588d3876495cc330ae12feb8e3c0bc0",
+  "source_commit": "cbed1de547ad8640d0596155efb74312c12efd79",
+  "cpu": [
+    2,
+    4,
+    6,
+    8
+  ],
+  "corpus": {
+    "path": "/tmp/zgrep-binary-output-mfbucqv8/medium.txt",
+    "sha256": "e1de72b2e0b0b043f7e24f88d02b5c9d37e8e7b57bb3d0b7d2bde5bea240025a",
+    "bytes": 18757963
+  },
+  "tools": {
+    "baseline": {
+      "path": "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+      "sha256": "7ad2197f38b6c10dc2609ca3f3e1f7b93c7de524989e50619f8d005e63480a18",
+      "version": "zgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake\n"
+    },
+    "candidate": {
+      "path": "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+      "sha256": "9a073ad6beaed98968d3a7d3b2f16f843763c4b7d3cc3c3a5b46014430fd2277",
+      "version": "zgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake\n"
+    },
+    "ripgrep": {
+      "path": "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+      "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+      "version": "ripgrep 15.2.0 (rev e89fff89ac)\n\nfeatures:+pcre2\nsimd(compile):+SSE2,-SSSE3,-AVX2\nsimd(runtime):+SSE2,+SSSE3,+AVX2\n\nPCRE2 10.45 is available (JIT is available)\n"
+    },
+    "grep": {
+      "path": "/usr/bin/grep",
+      "sha256": "20a35a4c18f2fe9e6305c1cbf866b9c0fcc3f957132ae66028c99ec353bb0a80",
+      "version": "grep (GNU grep) 3.11\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Mike Haertel and others; see\n<https://git.savannah.gnu.org/cgit/grep.git/tree/AUTHORS>.\n\ngrep -P uses PCRE2 10.42 2022-12-11\n"
+    }
+  },
+  "repeats": 15,
+  "warmups": 2,
+  "seed": 712,
+  "input_mode": "auto",
+  "locale": "C",
+  "sink": "regular file without fsync",
+  "includes_process_startup": true,
+  "checks": 612,
+  "cases": [
+    {
+      "name": "sparse numbered",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        22438,
+        "57817e1dd6bcd1e83dde664daa217140966de9b607f28fa38c588246626f8e05"
+      ],
+      "samples_ms": {
+        "baseline": [
+          2.465416,
+          2.058686,
+          2.439777,
+          2.98646,
+          3.98067,
+          2.538233,
+          2.349098,
+          2.353677,
+          2.170147,
+          1.92826,
+          2.244253,
+          2.152718,
+          1.959907,
+          2.068079,
+          2.358351
+        ],
+        "candidate": [
+          2.37628,
+          2.210186,
+          2.837192,
+          2.143206,
+          3.572896,
+          2.944339,
+          3.054903,
+          2.085369,
+          2.38678,
+          2.196194,
+          2.078008,
+          2.201548,
+          2.111789,
+          2.184026,
+          3.708749
+        ],
+        "ripgrep": [
+          2.708718,
+          2.784903,
+          3.69749,
+          4.599824,
+          2.675303,
+          3.012675,
+          2.76143,
+          2.835681,
+          2.671246,
+          2.525607,
+          2.820827,
+          2.48817,
+          2.441388,
+          2.947865,
+          3.843726
+        ],
+        "grep": [
+          8.128286,
+          8.080849,
+          7.946514,
+          12.139516,
+          9.275749,
+          13.097201,
+          10.538357,
+          10.52944,
+          8.01656,
+          7.993431,
+          6.973045,
+          7.819207,
+          7.9783,
+          7.783228,
+          7.78974
+        ]
+      },
+      "orders": [
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "grep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "grep",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "baseline",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 2.349098,
+        "candidate": 2.210186,
+        "ripgrep": 2.784903,
+        "grep": 8.01656
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.931453732853253,
+        "bootstrap95": [
+          0.8780007594957457,
+          1.080002098163241
+        ]
+      }
+    },
+    {
+      "name": "absent output",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-n",
+          "not-present-anywhere",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-n",
+          "not-present-anywhere",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "-n",
+          "not-present-anywhere",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-n",
+          "not-present-anywhere",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        1,
+        0,
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      ],
+      "samples_ms": {
+        "baseline": [
+          2.75515,
+          3.530241,
+          3.985343,
+          3.712152,
+          5.336198,
+          7.030999,
+          2.128999,
+          2.989931,
+          1.947821,
+          2.390907,
+          1.867831,
+          1.998842,
+          2.025334,
+          2.821876,
+          2.249521
+        ],
+        "candidate": [
+          2.279914,
+          2.569517,
+          3.76021,
+          2.935855,
+          6.205333,
+          5.888309,
+          4.074228,
+          2.335449,
+          2.010072,
+          1.70614,
+          2.45983,
+          2.050515,
+          2.069746,
+          2.041654,
+          2.046684
+        ],
+        "ripgrep": [
+          2.532888,
+          3.327097,
+          2.942118,
+          3.691094,
+          5.435721,
+          9.074226,
+          3.557072,
+          2.879715,
+          2.692043,
+          2.474428,
+          2.619279,
+          2.2371,
+          2.406014,
+          2.614854,
+          2.722528
+        ],
+        "grep": [
+          11.253107,
+          9.276825,
+          11.092056,
+          11.380938,
+          17.011608,
+          12.83825,
+          15.133456,
+          7.185047,
+          7.093559,
+          6.339382,
+          7.455486,
+          7.213888,
+          6.293127,
+          6.352629,
+          6.551179
+        ]
+      },
+      "orders": [
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 2.75515,
+        "candidate": 2.335449,
+        "ripgrep": 2.722528,
+        "grep": 7.455486
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 1.0991051867313177,
+        "bootstrap95": [
+          0.9690304625903947,
+          1.2802381897442419
+        ]
+      }
+    },
+    {
+      "name": "sparse plain",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        21151,
+        "b66313c911403a33527d80b3f8ae0af5cbe8f1881a69504d52690257b6063b44"
+      ],
+      "samples_ms": {
+        "baseline": [
+          1.937685,
+          3.129879,
+          2.411346,
+          2.052516,
+          2.003484,
+          2.026304,
+          1.905332,
+          2.314568,
+          2.028745,
+          2.323396,
+          2.040421,
+          1.764614,
+          2.142676,
+          2.062831,
+          2.096842
+        ],
+        "candidate": [
+          2.123636,
+          3.065585,
+          2.355816,
+          2.075027,
+          2.347876,
+          2.621225,
+          2.033424,
+          2.295342,
+          2.231301,
+          2.242274,
+          2.198918,
+          2.016444,
+          2.065503,
+          1.774952,
+          1.763674
+        ],
+        "ripgrep": [
+          2.737106,
+          3.178132,
+          3.751935,
+          2.576432,
+          2.297124,
+          2.404353,
+          2.709434,
+          2.786329,
+          2.624263,
+          2.485927,
+          2.438788,
+          2.885382,
+          2.274744,
+          2.24266,
+          2.33562
+        ],
+        "grep": [
+          6.928948,
+          9.754204,
+          9.098423,
+          9.161643,
+          7.25778,
+          7.395703,
+          7.16599,
+          7.271951,
+          7.27296,
+          7.363505,
+          7.058596,
+          5.984367,
+          6.878941,
+          6.351335,
+          7.584582
+        ]
+      },
+      "orders": [
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 2.052516,
+        "candidate": 2.198918,
+        "ripgrep": 2.576432,
+        "grep": 7.271951
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.9891514664628459,
+        "bootstrap95": [
+          0.9092206743957896,
+          1.023571450401899
+        ]
+      }
+    },
+    {
+      "name": "sparse word numbered",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-w",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-w",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "-w",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-w",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        22438,
+        "57817e1dd6bcd1e83dde664daa217140966de9b607f28fa38c588246626f8e05"
+      ],
+      "samples_ms": {
+        "baseline": [
+          2.232915,
+          2.057077,
+          2.476608,
+          2.759293,
+          2.244732,
+          2.251053,
+          2.218536,
+          1.943939,
+          2.440181,
+          2.181306,
+          2.543727,
+          2.593169,
+          2.126324,
+          2.35914,
+          1.965343
+        ],
+        "candidate": [
+          2.469309,
+          2.436565,
+          2.370282,
+          2.457012,
+          2.403364,
+          1.999673,
+          2.314289,
+          2.111208,
+          2.066203,
+          2.055367,
+          2.535172,
+          2.656395,
+          2.591728,
+          2.237534,
+          2.435176
+        ],
+        "ripgrep": [
+          2.968827,
+          2.770976,
+          2.951249,
+          2.721371,
+          2.833092,
+          2.661744,
+          2.676626,
+          2.770131,
+          2.933952,
+          2.777354,
+          2.99494,
+          3.63772,
+          3.580449,
+          2.561033,
+          2.66252
+        ],
+        "grep": [
+          8.149211,
+          7.251369,
+          8.047551,
+          8.163147,
+          7.728706,
+          6.983382,
+          8.090585,
+          7.809712,
+          7.847433,
+          7.767764,
+          8.174462,
+          11.859359,
+          10.549181,
+          10.104311,
+          7.884899
+        ]
+      },
+      "orders": [
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "candidate",
+          "grep",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "grep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "baseline",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "baseline",
+          "grep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 2.244732,
+        "candidate": 2.403364,
+        "ripgrep": 2.777354,
+        "grep": 8.047551
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.9761985698663038,
+        "bootstrap95": [
+          0.9042671451811014,
+          1.0612732421995683
+        ]
+      }
+    },
+    {
+      "name": "sparse insensitive numbered",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-i",
+          "-n",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-i",
+          "-n",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "-i",
+          "-n",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-i",
+          "-n",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        22438,
+        "57817e1dd6bcd1e83dde664daa217140966de9b607f28fa38c588246626f8e05"
+      ],
+      "samples_ms": {
+        "baseline": [
+          2.574352,
+          2.116289,
+          2.355636,
+          2.194895,
+          2.155508,
+          1.931284,
+          1.968718,
+          2.25756,
+          2.021655,
+          2.069858,
+          2.15146,
+          2.05114,
+          1.941095,
+          2.826752,
+          2.010293
+        ],
+        "candidate": [
+          3.079644,
+          2.201251,
+          2.883941,
+          2.157264,
+          2.063043,
+          2.079777,
+          2.20094,
+          2.405158,
+          2.452107,
+          2.080465,
+          2.050066,
+          2.219717,
+          2.66694,
+          4.134419,
+          2.120779
+        ],
+        "ripgrep": [
+          5.172922,
+          3.445083,
+          3.33249,
+          3.397752,
+          3.276186,
+          3.21876,
+          3.362125,
+          3.774671,
+          3.693163,
+          4.380722,
+          3.238935,
+          3.483501,
+          3.511129,
+          6.735938,
+          3.304237
+        ],
+        "grep": [
+          10.657452,
+          10.68324,
+          10.839537,
+          6.786148,
+          7.90869,
+          8.028354,
+          8.114715,
+          7.611028,
+          9.180023,
+          8.024183,
+          7.907476,
+          8.303368,
+          8.401416,
+          11.112786,
+          10.832664
+        ]
+      },
+      "orders": [
+        [
+          "candidate",
+          "grep",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 2.116289,
+        "candidate": 2.201251,
+        "ripgrep": 3.445083,
+        "grep": 8.303368
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.9286014798701976,
+        "bootstrap95": [
+          0.8244562737270438,
+          0.9949016205511749
+        ]
+      }
+    },
+    {
+      "name": "dense numbered",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        20046858,
+        "cf6759618306a8c43993ed4fe75b280e329e97d8a171fcd75ca74e92963e0837"
+      ],
+      "samples_ms": {
+        "baseline": [
+          14.452117,
+          23.054058,
+          11.897134,
+          28.847113,
+          27.947634,
+          25.584691,
+          26.545896,
+          15.745927,
+          24.873719,
+          12.910036,
+          11.687366,
+          17.74568,
+          12.327695,
+          12.357963,
+          11.372146
+        ],
+        "candidate": [
+          15.678354,
+          12.586851,
+          12.947197,
+          26.414974,
+          14.993419,
+          14.329898,
+          14.147318,
+          12.093087,
+          14.532094,
+          18.522401,
+          25.4146,
+          13.690434,
+          12.382313,
+          12.445322,
+          12.693622
+        ],
+        "ripgrep": [
+          35.86052,
+          42.58346,
+          43.994256,
+          37.625352,
+          34.534177,
+          35.94208,
+          36.462158,
+          47.704655,
+          39.065322,
+          35.317915,
+          37.218098,
+          35.069976,
+          34.010851,
+          36.90863,
+          36.282963
+        ],
+        "grep": [
+          30.050778,
+          18.860952,
+          27.830564,
+          21.421884,
+          32.165527,
+          30.370855,
+          25.348272,
+          30.407806,
+          22.203389,
+          29.701967,
+          23.815872,
+          18.849744,
+          19.191945,
+          19.30098,
+          19.408669
+        ]
+      },
+      "orders": [
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "grep",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "ripgrep",
+          "grep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 15.745927,
+        "candidate": 14.147318,
+        "ripgrep": 36.462158,
+        "grep": 23.815872
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 1.0920742530354184,
+        "bootstrap95": [
+          0.918896499373571,
+          1.7116403871320953
+        ]
+      }
+    },
+    {
+      "name": "dense plain",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        18757963,
+        "e1de72b2e0b0b043f7e24f88d02b5c9d37e8e7b57bb3d0b7d2bde5bea240025a"
+      ],
+      "samples_ms": {
+        "baseline": [
+          10.108402,
+          9.091947,
+          9.460238,
+          9.468309,
+          8.923946,
+          9.361341,
+          8.943983,
+          8.903221,
+          9.93403,
+          9.829519,
+          9.514049,
+          9.215524,
+          8.731089,
+          9.914706,
+          17.052955
+        ],
+        "candidate": [
+          9.956019,
+          9.562774,
+          10.548549,
+          9.408851,
+          9.542156,
+          9.673239,
+          9.106035,
+          11.574863,
+          10.766558,
+          9.542819,
+          9.492681,
+          9.183675,
+          8.753011,
+          14.523915,
+          13.877988
+        ],
+        "ripgrep": [
+          18.45475,
+          19.462462,
+          19.310035,
+          18.466133,
+          20.908205,
+          18.858872,
+          18.336898,
+          18.526275,
+          18.479937,
+          18.972401,
+          18.194852,
+          18.733223,
+          18.595266,
+          18.877276,
+          35.362335
+        ],
+        "grep": [
+          11.904825,
+          13.844088,
+          13.167829,
+          13.1422,
+          12.930701,
+          13.568405,
+          13.060609,
+          12.512831,
+          12.293898,
+          13.022403,
+          13.895191,
+          12.426872,
+          12.760902,
+          12.989284,
+          20.451208
+        ]
+      },
+      "orders": [
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "grep",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "candidate",
+          "grep",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "candidate",
+          "grep",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "candidate",
+          "grep",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 9.460238,
+        "candidate": 9.562774,
+        "ripgrep": 18.733223,
+        "grep": 13.022403
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.9822038900575277,
+        "bootstrap95": [
+          0.9226746375211093,
+          1.0063193688581102
+        ]
+      }
+    },
+    {
+      "name": "inverted rare",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-v",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-v",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "--include-zero",
+          "-F",
+          "-v",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-v",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        0,
+        7,
+        "cfa4ec021465f474d2eb2a9792e825957c57e52f4d12264124dd6186db5aa960"
+      ],
+      "samples_ms": {
+        "baseline": [
+          1.646139,
+          1.564693,
+          1.897734,
+          1.627331,
+          1.450469,
+          1.423279,
+          1.372879,
+          1.430777,
+          1.516826,
+          1.385134,
+          1.648131,
+          1.765922,
+          1.600841,
+          1.920796,
+          1.39964
+        ],
+        "candidate": [
+          1.713011,
+          2.302464,
+          1.657431,
+          1.766219,
+          1.70218,
+          1.508611,
+          1.550145,
+          1.457084,
+          1.34742,
+          1.457795,
+          1.628729,
+          2.611188,
+          1.759987,
+          2.132567,
+          1.698823
+        ],
+        "ripgrep": [
+          4.511825,
+          6.837887,
+          4.998979,
+          4.428179,
+          4.419385,
+          4.238422,
+          4.28751,
+          4.708808,
+          4.374364,
+          4.179827,
+          5.403843,
+          9.552628,
+          6.238069,
+          5.389542,
+          4.209435
+        ],
+        "grep": [
+          8.495013,
+          7.658057,
+          10.111544,
+          8.124952,
+          6.779067,
+          7.963556,
+          7.921857,
+          7.621215,
+          7.650748,
+          7.721072,
+          7.980475,
+          11.502945,
+          10.748075,
+          12.640826,
+          9.040264
+        ]
+      },
+      "orders": [
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "grep",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "candidate",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "grep",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "baseline",
+          "ripgrep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 1.564693,
+        "candidate": 1.698823,
+        "ripgrep": 4.511825,
+        "grep": 7.980475
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 0.9213642249347335,
+        "bootstrap95": [
+          0.8521243346767087,
+          0.9819454472082597
+        ]
+      }
+    },
+    {
+      "name": "inverted dense",
+      "commands": {
+        "baseline": [
+          "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+          "-F",
+          "-v",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "candidate": [
+          "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+          "-F",
+          "-v",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "--include-zero",
+          "-F",
+          "-v",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-F",
+          "-v",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-binary-output-mfbucqv8/medium.txt"
+        ]
+      },
+      "expected": [
+        1,
+        2,
+        "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      ],
+      "samples_ms": {
+        "baseline": [
+          2.355018,
+          1.91857,
+          2.011382,
+          3.068403,
+          1.858227,
+          2.936333,
+          2.091376,
+          2.99199,
+          1.751451,
+          1.732827,
+          1.652513,
+          1.60931,
+          1.820916,
+          1.692762,
+          1.626877
+        ],
+        "candidate": [
+          2.086767,
+          1.570218,
+          1.96512,
+          2.218133,
+          2.850601,
+          1.916754,
+          2.233107,
+          1.60074,
+          1.560799,
+          1.884449,
+          1.597423,
+          1.575336,
+          1.592851,
+          1.619136,
+          1.593872
+        ],
+        "ripgrep": [
+          4.891074,
+          5.721155,
+          5.443896,
+          7.487656,
+          7.326731,
+          7.760332,
+          5.387876,
+          6.01738,
+          6.744166,
+          5.625634,
+          4.614614,
+          4.764005,
+          5.152197,
+          4.660628,
+          4.486807
+        ],
+        "grep": [
+          7.317718,
+          7.112106,
+          6.20419,
+          6.468298,
+          7.298475,
+          6.666841,
+          6.567893,
+          8.232085,
+          6.707841,
+          4.913712,
+          6.17465,
+          6.022078,
+          6.806994,
+          7.529356,
+          4.76629
+        ]
+      },
+      "orders": [
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "grep",
+          "baseline",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "baseline",
+          "grep"
+        ],
+        [
+          "baseline",
+          "ripgrep",
+          "candidate",
+          "grep"
+        ],
+        [
+          "candidate",
+          "ripgrep",
+          "grep",
+          "baseline"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "grep",
+          "candidate"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "grep",
+          "baseline",
+          "ripgrep",
+          "candidate"
+        ],
+        [
+          "ripgrep",
+          "baseline",
+          "candidate",
+          "grep"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "candidate",
+          "ripgrep",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "grep",
+          "candidate",
+          "ripgrep"
+        ]
+      ],
+      "median_ms": {
+        "baseline": 1.858227,
+        "candidate": 1.619136,
+        "ripgrep": 5.443896,
+        "grep": 6.666841
+      },
+      "baseline_over_candidate": {
+        "median_paired_ratio": 1.0454724000948656,
+        "bootstrap95": [
+          1.0207074344740354,
+          1.2218494502037298
+        ]
+      }
+    }
+  ]
+}

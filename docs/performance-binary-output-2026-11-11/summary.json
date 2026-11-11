@@ -1,0 +1,1304 @@
+{
+  "final-auto": {
+    "literal miss": {
+      "median_ms": {
+        "baseline": 9.435231,
+        "candidate": 9.504493,
+        "ripgrep": 9.794303,
+        "grep": 22.685927
+      },
+      "paired": {
+        "median_paired_ratio": 0.99239594471911,
+        "bootstrap95": [
+          0.9625978235091311,
+          1.0121208879390289
+        ]
+      },
+      "time_reduction_percent_paired": -0.7662319985640709
+    },
+    "rare literal": {
+      "median_ms": {
+        "baseline": 9.698667,
+        "candidate": 9.7091,
+        "ripgrep": 9.90619,
+        "grep": 30.96521
+      },
+      "paired": {
+        "median_paired_ratio": 0.9957294197897381,
+        "bootstrap95": [
+          0.9851308570657497,
+          1.0112030096439526
+        ]
+      },
+      "time_reduction_percent_paired": -0.4288896285864263
+    },
+    "case insensitive": {
+      "median_ms": {
+        "baseline": 9.379266,
+        "candidate": 9.607215,
+        "ripgrep": 12.813467,
+        "grep": 29.862539
+      },
+      "paired": {
+        "median_paired_ratio": 1.0036189476753852,
+        "bootstrap95": [
+          0.9873632900934943,
+          1.0159401323128003
+        ]
+      },
+      "time_reduction_percent_paired": 0.3605898118770545
+    },
+    "word literal": {
+      "median_ms": {
+        "baseline": 9.639136,
+        "candidate": 9.623619,
+        "ripgrep": 10.019057,
+        "grep": 30.794794
+      },
+      "paired": {
+        "median_paired_ratio": 0.9997352957619421,
+        "bootstrap95": [
+          0.9720455641213611,
+          1.0076470229047334
+        ]
+      },
+      "time_reduction_percent_paired": -0.026477432494376174
+    },
+    "dense literal": {
+      "median_ms": {
+        "baseline": 12.941654,
+        "candidate": 12.868067,
+        "ripgrep": 27.695456,
+        "grep": 27.11196
+      },
+      "paired": {
+        "median_paired_ratio": 1.004056177936574,
+        "bootstrap95": [
+          0.9934363867345262,
+          1.0167023152950854
+        ]
+      },
+      "time_reduction_percent_paired": 0.40397918221167783
+    },
+    "dense regex": {
+      "median_ms": {
+        "baseline": 18.553999,
+        "candidate": 17.820923,
+        "ripgrep": 39.184023,
+        "grep": 62.611863
+      },
+      "paired": {
+        "median_paired_ratio": 1.0102427975004302,
+        "bootstrap95": [
+          0.9944332587104725,
+          1.0533304256055307
+        ]
+      },
+      "time_reduction_percent_paired": 1.0138946326341824
+    },
+    "regex suffix": {
+      "median_ms": {
+        "baseline": 9.872761,
+        "candidate": 9.836439,
+        "ripgrep": 10.047895,
+        "grep": 38.316024
+      },
+      "paired": {
+        "median_paired_ratio": 1.0128106870515448,
+        "bootstrap95": [
+          0.9718700445877063,
+          1.0305058304920822
+        ]
+      },
+      "time_reduction_percent_paired": 1.2648649165461268
+    },
+    "alternation": {
+      "median_ms": {
+        "baseline": 23.494651,
+        "candidate": 23.613915,
+        "ripgrep": 24.624238,
+        "grep": 90.485497
+      },
+      "paired": {
+        "median_paired_ratio": 0.998114032904887,
+        "bootstrap95": [
+          0.9530424698621212,
+          1.00838648903607
+        ]
+      },
+      "time_reduction_percent_paired": -0.18895306878154994
+    },
+    "regex no literal": {
+      "median_ms": {
+        "baseline": 25.203817,
+        "candidate": 23.989215,
+        "ripgrep": 43.879676,
+        "grep": 36.073533
+      },
+      "paired": {
+        "median_paired_ratio": 1.0049114904822456,
+        "bootstrap95": [
+          0.9812017191892273,
+          1.0222507259962454
+        ]
+      },
+      "time_reduction_percent_paired": 0.4887485643027767
+    },
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 13.765556,
+        "candidate": 11.552024,
+        "ripgrep": 11.364697,
+        "grep": 34.75574
+      },
+      "paired": {
+        "median_paired_ratio": 1.1910182078602018,
+        "bootstrap95": [
+          1.1723886896050892,
+          1.2117400041976503
+        ]
+      },
+      "time_reduction_percent_paired": 16.0382273419134
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 12.43208,
+        "candidate": 9.258619,
+        "ripgrep": 9.723206,
+        "grep": 25.562339
+      },
+      "paired": {
+        "median_paired_ratio": 1.3721144719235705,
+        "bootstrap95": [
+          1.3023256291586518,
+          1.4328250619039953
+        ]
+      },
+      "time_reduction_percent_paired": 27.119783337165913
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 12.923143,
+        "candidate": 10.438213,
+        "ripgrep": 9.725985,
+        "grep": 30.342774
+      },
+      "paired": {
+        "median_paired_ratio": 1.2541102158940327,
+        "bootstrap95": [
+          1.2109784876028749,
+          1.267011075219016
+        ]
+      },
+      "time_reduction_percent_paired": 20.262191685671116
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 13.649401,
+        "candidate": 11.217982,
+        "ripgrep": 11.124705,
+        "grep": 34.331318
+      },
+      "paired": {
+        "median_paired_ratio": 1.2296492900108416,
+        "bootstrap95": [
+          1.2109041401793006,
+          1.2464580888786148
+        ]
+      },
+      "time_reduction_percent_paired": 18.675999073590877
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 14.198277,
+        "candidate": 11.78392,
+        "ripgrep": 14.462904,
+        "grep": 35.081265
+      },
+      "paired": {
+        "median_paired_ratio": 1.226853461297732,
+        "bootstrap95": [
+          1.1519608803765617,
+          1.3011877804950547
+        ]
+      },
+      "time_reduction_percent_paired": 18.490672965765008
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 57.144248,
+        "candidate": 57.498911,
+        "ripgrep": 168.592669,
+        "grep": 98.257844
+      },
+      "paired": {
+        "median_paired_ratio": 0.9967543143772276,
+        "bootstrap95": [
+          0.9824202664182946,
+          1.0043664194153323
+        ]
+      },
+      "time_reduction_percent_paired": -0.32562544008654104
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 44.13797,
+        "candidate": 44.016459,
+        "ripgrep": 88.898015,
+        "grep": 57.976906
+      },
+      "paired": {
+        "median_paired_ratio": 1.0062433268437694,
+        "bootstrap95": [
+          0.9961955149618179,
+          1.016858876004366
+        ]
+      },
+      "time_reduction_percent_paired": 0.6204589563194918
+    },
+    "regex output": {
+      "median_ms": {
+        "baseline": 22.278629,
+        "candidate": 22.514679,
+        "ripgrep": 52.694955,
+        "grep": 85.961446
+      },
+      "paired": {
+        "median_paired_ratio": 0.9897312822479045,
+        "bootstrap95": [
+          0.9858683166350266,
+          1.0005885387316589
+        ]
+      },
+      "time_reduction_percent_paired": -1.0375258351714267
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 10.294794,
+        "candidate": 10.280703,
+        "ripgrep": 19.766376,
+        "grep": 33.785919
+      },
+      "paired": {
+        "median_paired_ratio": 1.0074032090996148,
+        "bootstrap95": [
+          0.9975731330084402,
+          1.0191113250023418
+        ]
+      },
+      "time_reduction_percent_paired": 0.7348804364273875
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 11.521343,
+        "candidate": 11.452079,
+        "ripgrep": 19.599711,
+        "grep": 25.409992
+      },
+      "paired": {
+        "median_paired_ratio": 1.005648331353312,
+        "bootstrap95": [
+          1.001312964737196,
+          1.0118624063186
+        ]
+      },
+      "time_reduction_percent_paired": 0.5616606896479359
+    }
+  },
+  "final-utf8": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 13.509369,
+        "candidate": 11.017626,
+        "ripgrep": 10.834516,
+        "grep": 34.073824
+      },
+      "paired": {
+        "median_paired_ratio": 1.2227269896216753,
+        "bootstrap95": [
+          1.214269630833782,
+          1.2301365435135383
+        ]
+      },
+      "time_reduction_percent_paired": 18.215594446851078
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 12.120498,
+        "candidate": 8.636804,
+        "ripgrep": 9.42988,
+        "grep": 25.205766
+      },
+      "paired": {
+        "median_paired_ratio": 1.3978183783971165,
+        "bootstrap95": [
+          1.3794783652423128,
+          1.410564226660463
+        ]
+      },
+      "time_reduction_percent_paired": 28.45994762590661
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 13.41674,
+        "candidate": 10.548526,
+        "ripgrep": 10.072246,
+        "grep": 32.353525
+      },
+      "paired": {
+        "median_paired_ratio": 1.2690764587208379,
+        "bootstrap95": [
+          1.255227050315308,
+          1.2807748684508147
+        ]
+      },
+      "time_reduction_percent_paired": 21.20254117644359
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 18.417696,
+        "candidate": 18.421581,
+        "ripgrep": 12.083629,
+        "grep": 37.982299
+      },
+      "paired": {
+        "median_paired_ratio": 0.9957606477944444,
+        "bootstrap95": [
+          0.9787115195763965,
+          1.0242035720017748
+        ]
+      },
+      "time_reduction_percent_paired": -0.42574008271420993
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 18.98348,
+        "candidate": 18.895308,
+        "ripgrep": 15.372912,
+        "grep": 36.80787
+      },
+      "paired": {
+        "median_paired_ratio": 0.9987751468268109,
+        "bootstrap95": [
+          0.9833604944528479,
+          1.037581882739257
+        ]
+      },
+      "time_reduction_percent_paired": -0.12263552783431386
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 70.252207,
+        "candidate": 66.603458,
+        "ripgrep": 168.621699,
+        "grep": 100.333226
+      },
+      "paired": {
+        "median_paired_ratio": 1.0559410363562112,
+        "bootstrap95": [
+          1.0456185675270708,
+          1.0617424685558199
+        ]
+      },
+      "time_reduction_percent_paired": 5.297742433540575
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 58.400117,
+        "candidate": 55.010914,
+        "ripgrep": 88.022168,
+        "grep": 66.924149
+      },
+      "paired": {
+        "median_paired_ratio": 1.0640488991155967,
+        "bootstrap95": [
+          1.0555368013320297,
+          1.0698278302046917
+        ]
+      },
+      "time_reduction_percent_paired": 6.019356739040105
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 10.354591,
+        "candidate": 10.349592,
+        "ripgrep": 19.953391,
+        "grep": 34.677186
+      },
+      "paired": {
+        "median_paired_ratio": 1.0122424073521652,
+        "bootstrap95": [
+          0.9956561572668758,
+          1.0227792855807476
+        ]
+      },
+      "time_reduction_percent_paired": 1.2094343472715208
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 12.899273,
+        "candidate": 12.774403,
+        "ripgrep": 20.763987,
+        "grep": 26.96327
+      },
+      "paired": {
+        "median_paired_ratio": 1.0097750164919645,
+        "bootstrap95": [
+          1.002491946247755,
+          1.0558562809891487
+        ]
+      },
+      "time_reduction_percent_paired": 0.9680390515031445
+    }
+  },
+  "final-text": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 10.749949,
+        "candidate": 10.599886,
+        "ripgrep": 11.526046,
+        "grep": 34.419036
+      },
+      "paired": {
+        "median_paired_ratio": 1.0135026535039546,
+        "bootstrap95": [
+          1.0005416924115877,
+          1.0263603739040075
+        ]
+      },
+      "time_reduction_percent_paired": 1.332276088007489
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 9.427,
+        "candidate": 9.463255,
+        "ripgrep": 9.90509,
+        "grep": 26.664225
+      },
+      "paired": {
+        "median_paired_ratio": 1.0006902891620342,
+        "bootstrap95": [
+          0.9569876956847224,
+          1.0249468074145733
+        ]
+      },
+      "time_reduction_percent_paired": 0.06898129916022011
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 9.754573,
+        "candidate": 9.88325,
+        "ripgrep": 10.036863,
+        "grep": 30.784909
+      },
+      "paired": {
+        "median_paired_ratio": 0.9843617496585331,
+        "bootstrap95": [
+          0.953496043489201,
+          1.0222351114368695
+        ]
+      },
+      "time_reduction_percent_paired": -1.588669038277013
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 10.604359,
+        "candidate": 10.700226,
+        "ripgrep": 12.194277,
+        "grep": 35.487394
+      },
+      "paired": {
+        "median_paired_ratio": 0.9808380805142008,
+        "bootstrap95": [
+          0.9497709377117625,
+          1.0050564352566012
+        ]
+      },
+      "time_reduction_percent_paired": -1.9536271956074103
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 10.937535,
+        "candidate": 11.149338,
+        "ripgrep": 15.30551,
+        "grep": 34.780512
+      },
+      "paired": {
+        "median_paired_ratio": 0.9874343406533067,
+        "bootstrap95": [
+          0.9745762197307501,
+          1.0314116267079851
+        ]
+      },
+      "time_reduction_percent_paired": -1.2725564454624472
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 53.830079,
+        "candidate": 53.998473,
+        "ripgrep": 166.905172,
+        "grep": 89.600963
+      },
+      "paired": {
+        "median_paired_ratio": 1.0013311976594101,
+        "bootstrap95": [
+          0.9949490056504728,
+          1.004856488110961
+        ]
+      },
+      "time_reduction_percent_paired": 0.13294279280638976
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 40.442311,
+        "candidate": 40.624253,
+        "ripgrep": 84.155536,
+        "grep": 57.325849
+      },
+      "paired": {
+        "median_paired_ratio": 1.0036839060227234,
+        "bootstrap95": [
+          1.0004971376565712,
+          1.0092685757980997
+        ]
+      },
+      "time_reduction_percent_paired": 0.3670384670529936
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 11.285845,
+        "candidate": 11.285419,
+        "ripgrep": 17.283792,
+        "grep": 35.69534
+      },
+      "paired": {
+        "median_paired_ratio": 1.006856369267282,
+        "bootstrap95": [
+          0.9893335264650854,
+          1.0291666681393423
+        ]
+      },
+      "time_reduction_percent_paired": 0.6809679589425133
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 12.863521,
+        "candidate": 12.861353,
+        "ripgrep": 20.598082,
+        "grep": 26.191857
+      },
+      "paired": {
+        "median_paired_ratio": 0.9994341186343304,
+        "bootstrap95": [
+          0.9626474239495645,
+          1.0440931822090587
+        ]
+      },
+      "time_reduction_percent_paired": -0.05662017686998144
+    }
+  },
+  "final-four-core": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 6.93926,
+        "candidate": 6.945992,
+        "ripgrep": 10.651027,
+        "grep": 35.436003
+      },
+      "paired": {
+        "median_paired_ratio": 0.990006859828139,
+        "bootstrap95": [
+          0.9577606267364505,
+          1.0377606746614487
+        ]
+      },
+      "time_reduction_percent_paired": -1.0094011039070816
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 6.736589,
+        "candidate": 6.500463,
+        "ripgrep": 8.872126,
+        "grep": 27.035708
+      },
+      "paired": {
+        "median_paired_ratio": 1.0155982638745495,
+        "bootstrap95": [
+          0.9694465552993908,
+          1.0514323342425909
+        ]
+      },
+      "time_reduction_percent_paired": 1.5358694898750191
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 5.26727,
+        "candidate": 5.319154,
+        "ripgrep": 8.948033,
+        "grep": 31.188725
+      },
+      "paired": {
+        "median_paired_ratio": 0.9737680193001209,
+        "bootstrap95": [
+          0.9584085581325262,
+          1.0146370647017458
+        ]
+      },
+      "time_reduction_percent_paired": -2.6938634438552267
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 7.004785,
+        "candidate": 7.104953,
+        "ripgrep": 10.980323,
+        "grep": 35.572576
+      },
+      "paired": {
+        "median_paired_ratio": 0.98019231858978,
+        "bootstrap95": [
+          0.965845922922716,
+          0.9948405783849671
+        ]
+      },
+      "time_reduction_percent_paired": -2.0207954127530403
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 7.333199,
+        "candidate": 7.256519,
+        "ripgrep": 14.504462,
+        "grep": 35.786996
+      },
+      "paired": {
+        "median_paired_ratio": 1.017747229345474,
+        "bootstrap95": [
+          0.9689689736430055,
+          1.0388956467970387
+        ]
+      },
+      "time_reduction_percent_paired": 1.7437757464481063
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 59.512349,
+        "candidate": 60.317835,
+        "ripgrep": 169.57526,
+        "grep": 96.832943
+      },
+      "paired": {
+        "median_paired_ratio": 0.996887654070927,
+        "bootstrap95": [
+          0.9517775724311731,
+          1.0414534473190018
+        ]
+      },
+      "time_reduction_percent_paired": -0.31220628687327334
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 43.02371,
+        "candidate": 42.89108,
+        "ripgrep": 86.20739,
+        "grep": 57.386704
+      },
+      "paired": {
+        "median_paired_ratio": 0.9974680652552004,
+        "bootstrap95": [
+          0.9864786923464605,
+          1.039245541850299
+        ]
+      },
+      "time_reduction_percent_paired": -0.2538361711010628
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 4.191547,
+        "candidate": 4.298666,
+        "ripgrep": 19.021307,
+        "grep": 34.77686
+      },
+      "paired": {
+        "median_paired_ratio": 0.9750808739269345,
+        "bootstrap95": [
+          0.9139736425897705,
+          1.063083797130987
+        ]
+      },
+      "time_reduction_percent_paired": -2.555595821781309
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 4.760239,
+        "candidate": 4.624476,
+        "ripgrep": 20.298857,
+        "grep": 26.384057
+      },
+      "paired": {
+        "median_paired_ratio": 1.013707439995661,
+        "bootstrap95": [
+          0.9945654568598331,
+          1.0639399186995313
+        ]
+      },
+      "time_reduction_percent_paired": 1.352208680220357
+    }
+  },
+  "final-medium": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 2.499154,
+        "candidate": 2.754362,
+        "ripgrep": 2.974951,
+        "grep": 9.546219
+      },
+      "paired": {
+        "median_paired_ratio": 0.9467923523717329,
+        "bootstrap95": [
+          0.8394157785045887,
+          0.9800764791564859
+        ]
+      },
+      "time_reduction_percent_paired": -5.619780038884015
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 2.242332,
+        "candidate": 1.973806,
+        "ripgrep": 2.372309,
+        "grep": 6.418478
+      },
+      "paired": {
+        "median_paired_ratio": 1.0272981896583984,
+        "bootstrap95": [
+          0.9158351488853671,
+          1.1220208991051364
+        ]
+      },
+      "time_reduction_percent_paired": 2.6572800315627587
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 2.038594,
+        "candidate": 1.880308,
+        "ripgrep": 2.463649,
+        "grep": 7.186703
+      },
+      "paired": {
+        "median_paired_ratio": 1.0225044731155832,
+        "bootstrap95": [
+          0.9729789683413096,
+          1.134203366939203
+        ]
+      },
+      "time_reduction_percent_paired": 2.200916837753464
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 2.11053,
+        "candidate": 2.078479,
+        "ripgrep": 2.730101,
+        "grep": 8.382855
+      },
+      "paired": {
+        "median_paired_ratio": 0.9974651042066743,
+        "bootstrap95": [
+          0.9357014793465658,
+          1.0722710021408566
+        ]
+      },
+      "time_reduction_percent_paired": -0.2541337819874645
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 2.153001,
+        "candidate": 2.393822,
+        "ripgrep": 3.568356,
+        "grep": 9.052456
+      },
+      "paired": {
+        "median_paired_ratio": 0.9747726841434652,
+        "bootstrap95": [
+          0.8505034251978858,
+          1.0866090726067652
+        ]
+      },
+      "time_reduction_percent_paired": -2.5880203935650936
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 14.712741,
+        "candidate": 14.191534,
+        "ripgrep": 35.632161,
+        "grep": 20.380131
+      },
+      "paired": {
+        "median_paired_ratio": 1.019408245025906,
+        "bootstrap95": [
+          0.9483075711652796,
+          1.2734932043753213
+        ]
+      },
+      "time_reduction_percent_paired": 1.9038736561732272
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 9.983269,
+        "candidate": 10.014695,
+        "ripgrep": 21.568709,
+        "grep": 13.521102
+      },
+      "paired": {
+        "median_paired_ratio": 0.9792026163557219,
+        "bootstrap95": [
+          0.9044025210836057,
+          1.0280743567005834
+        ]
+      },
+      "time_reduction_percent_paired": -2.1239101384021186
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 1.909427,
+        "candidate": 2.001345,
+        "ripgrep": 5.441137,
+        "grep": 10.408665
+      },
+      "paired": {
+        "median_paired_ratio": 0.9540718866562236,
+        "bootstrap95": [
+          0.924866765440835,
+          1.008005935484995
+        ]
+      },
+      "time_reduction_percent_paired": -4.813904904455635
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 1.994497,
+        "candidate": 1.914737,
+        "ripgrep": 6.06131,
+        "grep": 7.866186
+      },
+      "paired": {
+        "median_paired_ratio": 1.0968378828490395,
+        "bootstrap95": [
+          0.8585321049675584,
+          1.3199613401901562
+        ]
+      },
+      "time_reduction_percent_paired": 8.828823690653609
+    }
+  },
+  "final-small": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 1.278559,
+        "candidate": 1.214402,
+        "ripgrep": 1.829869,
+        "grep": 4.973613
+      },
+      "paired": {
+        "median_paired_ratio": 1.0178002948521476,
+        "bootstrap95": [
+          0.9600186500838509,
+          1.1044873331967076
+        ]
+      },
+      "time_reduction_percent_paired": 1.7488985749147812
+    },
+    "absent output": {
+      "median_ms": {
+        "baseline": 1.555712,
+        "candidate": 1.243065,
+        "ripgrep": 2.015557,
+        "grep": 4.431373
+      },
+      "paired": {
+        "median_paired_ratio": 1.1482786809206693,
+        "bootstrap95": [
+          1.0959018412098642,
+          1.2513629991172959
+        ]
+      },
+      "time_reduction_percent_paired": 12.91312669863226
+    },
+    "sparse plain": {
+      "median_ms": {
+        "baseline": 1.394205,
+        "candidate": 1.367615,
+        "ripgrep": 1.878279,
+        "grep": 4.247074
+      },
+      "paired": {
+        "median_paired_ratio": 1.0424025144773097,
+        "bootstrap95": [
+          0.9709477401304795,
+          1.098729922303878
+        ]
+      },
+      "time_reduction_percent_paired": 4.067767862069238
+    },
+    "sparse word numbered": {
+      "median_ms": {
+        "baseline": 1.611766,
+        "candidate": 1.270911,
+        "ripgrep": 2.081777,
+        "grep": 5.231051
+      },
+      "paired": {
+        "median_paired_ratio": 1.0667737884435244,
+        "bootstrap95": [
+          1.0395475708815958,
+          1.1435951231098092
+        ]
+      },
+      "time_reduction_percent_paired": 6.259414054497037
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 1.540152,
+        "candidate": 1.56728,
+        "ripgrep": 2.792881,
+        "grep": 5.251003
+      },
+      "paired": {
+        "median_paired_ratio": 1.000835343163094,
+        "bootstrap95": [
+          0.9163564883642167,
+          1.0866872425148462
+        ]
+      },
+      "time_reduction_percent_paired": 0.08346459473084211
+    },
+    "dense numbered": {
+      "median_ms": {
+        "baseline": 8.076511,
+        "candidate": 10.451403,
+        "ripgrep": 21.124176,
+        "grep": 11.296559
+      },
+      "paired": {
+        "median_paired_ratio": 0.9471846165859117,
+        "bootstrap95": [
+          0.793030170889401,
+          1.169348010492283
+        ]
+      },
+      "time_reduction_percent_paired": -5.576038977961795
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 3.965319,
+        "candidate": 3.956367,
+        "ripgrep": 8.018455,
+        "grep": 5.954233
+      },
+      "paired": {
+        "median_paired_ratio": 1.0222682473689437,
+        "bootstrap95": [
+          0.9784828216371393,
+          1.0410980294838719
+        ]
+      },
+      "time_reduction_percent_paired": 2.1783174256127524
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 1.340586,
+        "candidate": 1.312381,
+        "ripgrep": 2.931801,
+        "grep": 4.543843
+      },
+      "paired": {
+        "median_paired_ratio": 0.9796850131806644,
+        "bootstrap95": [
+          0.9372619917013171,
+          1.0528636510629124
+        ]
+      },
+      "time_reduction_percent_paired": -2.0736243329251947
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 2.213133,
+        "candidate": 2.084475,
+        "ripgrep": 4.643112,
+        "grep": 4.842331
+      },
+      "paired": {
+        "median_paired_ratio": 0.9812372913090557,
+        "bootstrap95": [
+          0.9312694590167176,
+          1.0911631760220315
+        ]
+      },
+      "time_reduction_percent_paired": -1.9121479439405675
+    }
+  },
+  "medium-confirmation": {
+    "sparse numbered": {
+      "median_ms": {
+        "baseline": 2.258709,
+        "candidate": 2.23177,
+        "ripgrep": 2.738065,
+        "grep": 8.330598
+      },
+      "paired": {
+        "median_paired_ratio": 0.9979650442550962,
+        "bootstrap95": [
+          0.9804687409087248,
+          1.0337883720134096
+        ]
+      },
+      "time_reduction_percent_paired": -0.20391052338137872
+    },
+    "sparse insensitive numbered": {
+      "median_ms": {
+        "baseline": 2.269279,
+        "candidate": 2.27203,
+        "ripgrep": 3.573469,
+        "grep": 9.276658
+      },
+      "paired": {
+        "median_paired_ratio": 1.0144937767538125,
+        "bootstrap95": [
+          0.9739429358522206,
+          1.0367022394400942
+        ]
+      },
+      "time_reduction_percent_paired": 1.4286708391834435
+    },
+    "dense plain": {
+      "median_ms": {
+        "baseline": 11.021383,
+        "candidate": 11.042957,
+        "ripgrep": 20.428342,
+        "grep": 14.53051
+      },
+      "paired": {
+        "median_paired_ratio": 0.99663727006256,
+        "bootstrap95": [
+          0.9496574919077564,
+          1.0306984243290445
+        ]
+      },
+      "time_reduction_percent_paired": -0.3374076043964225
+    },
+    "inverted rare": {
+      "median_ms": {
+        "baseline": 1.599097,
+        "candidate": 1.636435,
+        "ripgrep": 4.672722,
+        "grep": 8.181082
+      },
+      "paired": {
+        "median_paired_ratio": 0.9788435670537122,
+        "bootstrap95": [
+          0.9447019440782015,
+          1.0115135515601092
+        ]
+      },
+      "time_reduction_percent_paired": -2.161370177868971
+    },
+    "inverted dense": {
+      "median_ms": {
+        "baseline": 1.695197,
+        "candidate": 1.680289,
+        "ripgrep": 4.738597,
+        "grep": 6.331671
+      },
+      "paired": {
+        "median_paired_ratio": 1.0057261064202112,
+        "bootstrap95": [
+          0.986741100317323,
+          1.0317206584679763
+        ]
+      },
+      "time_reduction_percent_paired": 0.5693504805789229
+    }
+  },
+  "final-micro": {
+    "nul prescan": {
+      "median_ms": {
+        "candidate": 3.690068,
+        "baseline": 3.70449
+      },
+      "paired": {
+        "median_paired_ratio": 1.0013913884942305,
+        "bootstrap95": [
+          0.992061629484456,
+          1.004716791451522
+        ]
+      },
+      "time_reduction_percent_paired": 0.13894552222210033
+    },
+    "ascii prescan": {
+      "median_ms": {
+        "candidate": 3.789352,
+        "baseline": 3.760273
+      },
+      "paired": {
+        "median_paired_ratio": 0.9966473768749688,
+        "bootstrap95": [
+          0.9923261285834624,
+          1.000900534637797
+        ]
+      },
+      "time_reduction_percent_paired": -0.3363901017372273
+    },
+    "newline count": {
+      "median_ms": {
+        "candidate": 3.23923,
+        "baseline": 3.232112
+      },
+      "paired": {
+        "median_paired_ratio": 0.999811781449119,
+        "bootstrap95": [
+          0.9972237982612292,
+          1.0045286316614503
+        ]
+      },
+      "time_reduction_percent_paired": -0.01882539837729791
+    },
+    "literal occurrences": {
+      "median_ms": {
+        "candidate": 4.743158,
+        "baseline": 4.67697
+      },
+      "paired": {
+        "median_paired_ratio": 0.9813443471733567,
+        "bootstrap95": [
+          0.9765795382561283,
+          0.9877846209969601
+        ]
+      },
+      "time_reduction_percent_paired": -1.9010302428886128
+    },
+    "literal line count": {
+      "median_ms": {
+        "candidate": 4.692116,
+        "baseline": 4.712547
+      },
+      "paired": {
+        "median_paired_ratio": 1.0043335666424928,
+        "bootstrap95": [
+          0.9990649656241695,
+          1.0111880387516163
+        ]
+      },
+      "time_reduction_percent_paired": 0.43148678750030145
+    },
+    "literal scan count": {
+      "median_ms": {
+        "candidate": 4.709856,
+        "baseline": 4.736518
+      },
+      "paired": {
+        "median_paired_ratio": 1.006305464886842,
+        "bootstrap95": [
+          1.002410516709812,
+          1.0077798247699434
+        ]
+      },
+      "time_reduction_percent_paired": 0.6265955126807277
+    },
+    "sparse plain formatting": {
+      "median_ms": {
+        "candidate": 4.692697,
+        "baseline": 4.742974
+      },
+      "paired": {
+        "median_paired_ratio": 1.008724092849274,
+        "bootstrap95": [
+          1.0033985522077,
+          1.0117869468808716
+        ]
+      },
+      "time_reduction_percent_paired": 0.8648641299556559
+    },
+    "sparse numbered formatting": {
+      "median_ms": {
+        "candidate": 5.700641,
+        "baseline": 5.718563
+      },
+      "paired": {
+        "median_paired_ratio": 1.0041399231988186,
+        "bootstrap95": [
+          1.000329686190489,
+          1.006854509923407
+        ]
+      },
+      "time_reduction_percent_paired": 0.4122854896188577
+    },
+    "absent line count": {
+      "median_ms": {
+        "candidate": 4.776134,
+        "baseline": 4.853822
+      },
+      "paired": {
+        "median_paired_ratio": 1.0197755371817308,
+        "bootstrap95": [
+          1.0182868113965713,
+          1.0208776229500913
+        ]
+      },
+      "time_reduction_percent_paired": 1.9392048995784616
+    },
+    "word line count": {
+      "median_ms": {
+        "candidate": 4.695022,
+        "baseline": 4.721153
+      },
+      "paired": {
+        "median_paired_ratio": 1.0069009613779523,
+        "bootstrap95": [
+          1.0038175594018757,
+          1.0099955212285414
+        ]
+      },
+      "time_reduction_percent_paired": 0.6853664503913337
+    },
+    "case-insensitive line count": {
+      "median_ms": {
+        "candidate": 4.921021,
+        "baseline": 4.922264
+      },
+      "paired": {
+        "median_paired_ratio": 1.0003595528199973,
+        "bootstrap95": [
+          0.9985691993592386,
+          1.0009042180152465
+        ]
+      },
+      "time_reduction_percent_paired": 0.03594235882325991
+    },
+    "dense line count": {
+      "median_ms": {
+        "candidate": 7.352354,
+        "baseline": 8.096395
+      },
+      "paired": {
+        "median_paired_ratio": 1.0991841663203832,
+        "bootstrap95": [
+          1.096527693013722,
+          1.1035013144483095
+        ]
+      },
+      "time_reduction_percent_paired": 9.023434776395211
+    },
+    "sparse numbered with binary detection": {
+      "median_ms": {
+        "candidate": 6.801453,
+        "baseline": 9.435944
+      },
+      "paired": {
+        "median_paired_ratio": 1.3879508094707516,
+        "bootstrap95": [
+          1.3820874604308462,
+          1.390317770144233
+        ]
+      },
+      "time_reduction_percent_paired": 27.95133709520178
+    }
+  }
+}

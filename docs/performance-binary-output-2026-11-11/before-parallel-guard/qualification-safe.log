@@ -1,0 +1,11 @@
+Build Summary: 9/9 steps succeeded; 43/43 tests passed
+test-zpcre2 success
++- run test 43 pass (43 total) 106ms MaxRSS:7M
+   +- compile test ReleaseSafe native success 10s MaxRSS:571M
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseSafe native success 4s MaxRSS:281M
+|     +- translate-c success 59ms MaxRSS:39M
++- install zgr success
+   +- compile exe zgr ReleaseSafe native success 6s MaxRSS:337M
+

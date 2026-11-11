@@ -285,8 +285,9 @@ GNU grep (C) du 11 novembre 2026 sont dans
 [docs/benchmark-backends.fr.md](docs/benchmark-backends.fr.md), avec les
 échantillons, commandes, versions et empreintes des exécutables. L'[audit des
 chemins plus lents que ripgrep](docs/performance-audit.fr.md) complète cette
-recherche avec les temps totaux comparés, des mesures internes et une
-optimisation du comptage adaptatif retenue localement, avec ses gains et limites.
+recherche avec les temps totaux comparés, des mesures internes, le comptage
+adaptatif et la détection binaire progressive avant la sortie des lignes,
+avec leurs gains et limites.
 
 L'[index de documentation](docs/README.md) donne accès au rapport et aux données
 actuels. Les anciennes comparaisons, résultats de tests et scripts d'expérience
@@ -329,8 +330,10 @@ python3 bench/internal.py --library zig-out/lib/libzgrep-internal-bench.so \
 ```
 
 Ces mesures excluent le lancement des processus et les E/S fichier. Elles
-isolent la détection NUL/ASCII, la recherche, le comptage et le formatage ; elles
-complètent la comparaison des exécutables. `--baseline-library` permet une
+isolent la détection NUL/ASCII, la recherche, le comptage et le formatage. Un
+treizième cas mesure ensemble la sortie rare numérotée et la détection binaire
+sur un cœur ; ces mesures complètent la comparaison des exécutables.
+`--baseline-library` permet une
 comparaison appariée avec une bibliothèque de référence préservée.
 
 ### Corpus généré

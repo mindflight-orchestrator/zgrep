@@ -1,0 +1,86 @@
+{
+  "status": "retained locally; not committed or pushed",
+  "created_utc": "2026-11-11T19:08:17.010999+00:00",
+  "baseline_commit": "cbed1de547ad8640d0596155efb74312c12efd79",
+  "compiler": "Zig 0.16.0; ReleaseFast; LLVM; native raptorlake",
+  "corpora": {
+    "main": {
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt",
+      "bytes": 93789827,
+      "sha256": "da9fd9c2df9698ffcbeac1693c0fdf72b9357ff50fc0234c4e1d1f3f13797a3b"
+    },
+    "medium": {
+      "path": "/tmp/zgrep-binary-output-mfbucqv8/medium.txt",
+      "bytes": 18757963,
+      "sha256": "e1de72b2e0b0b043f7e24f88d02b5c9d37e8e7b57bb3d0b7d2bde5bea240025a"
+    },
+    "small": {
+      "path": "/tmp/zgrep-binary-output-mfbucqv8/small.txt",
+      "bytes": 7500962,
+      "sha256": "0c2f0d6bc7b8d83de0b328732273579d686cef093c433e25f7328e7c3774e5e4"
+    }
+  },
+  "artifacts": {
+    "baseline": {
+      "bin/zgr": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgr",
+        "sha256": "7ad2197f38b6c10dc2609ca3f3e1f7b93c7de524989e50619f8d005e63480a18"
+      },
+      "bin/zgrc": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/baseline/bin/zgrc",
+        "sha256": "2e14aec60bfa028ae8d3fdf380e1423344cda868126499303015daa23fac6c97"
+      },
+      "lib/libzgrep-internal-bench.so": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/baseline/lib/libzgrep-internal-bench.so",
+        "sha256": "7f5c8a0a4859cb3764967d28a4e888784b81d1871d19ed690f6f5ca9746f7358"
+      }
+    },
+    "qualified": {
+      "bin/zgr": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr",
+        "sha256": "e86ea0baeec97a27cf6aaeb16e64cef4326055174c0d3df8e2cbf21b4ad22168"
+      },
+      "bin/zgrc": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgrc",
+        "sha256": "e7566391f31415189ce1d94eae0b0c5c2108e4b294cf6a7b7b38aa1e21e45cb7"
+      },
+      "lib/libzgrep-internal-bench.so": {
+        "path": "/tmp/zgrep-binary-output-mfbucqv8/qualified/lib/libzgrep-internal-bench.so",
+        "sha256": "1ededf6cce177f3d88114da4b6ec5afa74b557f543aa44212f78bdf49d3b77aa"
+      }
+    }
+  },
+  "baseline_micro_harness_sha256": "1a5aecc430c3334be257a619438246476e7bc9555cf7f8b3fb617c53b2cd3d32",
+  "runners_sha256": {
+    "tests/binary-output.py": "b46d38d230d2dd6566390ec0f487c34f80b3a56f429cc7b35a485db06a479cd7",
+    "bench/compare.py": "3c56a5a9325aaf2c4f2d8507e64ecb3bf588d3876495cc330ae12feb8e3c0bc0",
+    "bench/internal.py": "b79542c1dbd2c353553c2f62a1aaf9cf0143e4ed0e8a553241b367e08d523b32",
+    "bench/internal.zig": "1a5aecc430c3334be257a619438246476e7bc9555cf7f8b3fb617c53b2cd3d32"
+  },
+  "validation": {
+    "release_fast_unit_tests": 86,
+    "release_safe_unit_tests": 43,
+    "GNU_binary_checks_per_run": 1320,
+    "GNU_binary_qualified_runs": 3,
+    "GNU_binary_checks_total": 3960,
+    "fuzz_checks": 3072,
+    "benchmark_checks": 8154,
+    "core_test_and_fuzz": "passed",
+    "extended_zpcre2_regex_locale": "two failures reproduced on unchanged baseline and final candidate",
+    "preexisting_binary_context_gap": "baseline and final candidate omit the same -C1 record",
+    "remote_CI": "not run"
+  },
+  "limits": [
+    "one host; warm synthetic ASCII corpora; CPU frequency not locked",
+    "new path excludes context, colors, -o, -m, -v, count, quiet, -I and -z",
+    "whole-line, empty and delimiter-containing patterns retain the original path",
+    "files below 96 KiB retain the original path",
+    "files above 16 MiB with multiple CPUs retain parallel binary detection",
+    "streaming and terminal latency are not optimized or timed by this change",
+    "only direct literal matchers use the new path; locale regex adapters retain their existing path"
+  ],
+  "local_build": {
+    "prefix": "/home/dlamotte/Documents/mindflight/zgrep/zig-out",
+    "artifacts_identical_to_qualified": true
+  }
+}

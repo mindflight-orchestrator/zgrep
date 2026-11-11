@@ -1829,6 +1829,11 @@ fn scanRegularBuffer(
                 writer,
             );
     } else if (options.binary_mode == .binary and shouldSummarizeBinary(options)) {
+        if (try zgrep.scanner.scanLiteralBinaryOutput(buffer, matchers, path, options, writer)) |result| {
+            if (result.binary_match)
+                try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+            return result;
+        }
         if (try zgrep.scanner.findNulParallel(buffer)) |nul_position| {
             return scanBinaryBuffer(
                 buffer,
@@ -2102,7 +2107,8 @@ fn scanBinaryBuffer(
         quiet_options,
         writer,
     );
-    if (result.matched) try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
+    if (result.matched and !aggregate.binary_match)
+        try printDiagnostic(diagnostic_writer, "{s}: {s}: binary file matches\n", .{ diagnostic_name, path });
     aggregate.matched = aggregate.matched or result.matched;
     aggregate.selected_lines += result.selected_lines;
     return aggregate;

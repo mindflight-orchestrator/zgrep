@@ -1,0 +1,22 @@
+
+regex semantic failure: BRE grouping and alternation
+status: GNU=0 zgrep=0
+--- /tmp/zgrep-regex-semantics.AbkWu2/gnu.out	2026-11-11 19:48:39.603838735 +0100
++++ /tmp/zgrep-regex-semantics.AbkWu2/zgrep.out	2026-11-11 19:48:39.604838731 +0100
+@@ -4,10 +4,10 @@
+ 4:6:a
+ 4:7:a
+ 4:8:a
+-5:10:ab
+-6:13:ab
+-7:17:abc
+-8:21:ab
++5:10:a
++6:13:a
++7:17:a
++8:21:a
+ 9:26:ac
+ 10:30:a
+ 12:40:a
+GNU stderr: 
+zgrep stderr: 

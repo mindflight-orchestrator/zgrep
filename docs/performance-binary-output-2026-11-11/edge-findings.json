@@ -1,0 +1,56 @@
+[
+  {
+    "fixture": "end-98303-nul-98304",
+    "flags": [
+      "-F",
+      "-n",
+      "-C1"
+    ],
+    "locale": "C",
+    "corpus_sha256": "fe61af13a9e463a18e88aa1579d3542cb2ac46a2b1a663793a5da284cd2d2bdd",
+    "runs": {
+      "baseline": {
+        "status": 0,
+        "stdout": "1:needle\n2-\n--\n49147-\n49148:needle\n",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      },
+      "candidate": {
+        "status": 0,
+        "stdout": "1:needle\n2-\n--\n49147-\n49148:needle\n",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      },
+      "GNU": {
+        "status": 0,
+        "stdout": "1:needle\n2-\n--\n49147-\n49148:needle\n49149-\n",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      }
+    }
+  },
+  {
+    "fixture": "invalid-selected-6e6565646c65000a",
+    "flags": [
+      "-F",
+      "-w",
+      "-n"
+    ],
+    "locale": "C.UTF-8",
+    "corpus_sha256": "abd15f3be2a2837203c9eddc782f9f0889a96ef53204ea7feac1b6583b455744",
+    "runs": {
+      "baseline": {
+        "status": 0,
+        "stdout": "",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\nPROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      },
+      "candidate": {
+        "status": 0,
+        "stdout": "",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      },
+      "GNU": {
+        "status": 0,
+        "stdout": "",
+        "stderr": "PROG: /tmp/zgrep-binary-output-mfbucqv8/edge-fixture.txt: binary file matches\n"
+      }
+    }
+  }
+]

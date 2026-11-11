@@ -67,6 +67,10 @@ pub fn build(b: *std.Build) void {
     streaming_tests.addArtifactArg(zgrc);
     test_step.dependOn(&streaming_tests.step);
 
+    const binary_output_tests = b.addSystemCommand(&.{ "python3", "-I", "tests/binary-output.py" });
+    binary_output_tests.addArtifactArg(zgrc);
+    test_step.dependOn(&binary_output_tests.step);
+
     const regex_tests = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
     regex_tests.addArtifactArg(zgrc);
     test_step.dependOn(&regex_tests.step);
@@ -101,6 +105,10 @@ pub fn build(b: *std.Build) void {
     const zpcre2_streaming = b.addSystemCommand(&.{ "python3", "-I", "tests/streaming.py" });
     zpcre2_streaming.addArtifactArg(zgr);
     test_zpcre2_gnu.dependOn(&zpcre2_streaming.step);
+
+    const zpcre2_binary_output = b.addSystemCommand(&.{ "python3", "-I", "tests/binary-output.py" });
+    zpcre2_binary_output.addArtifactArg(zgr);
+    test_zpcre2_gnu.dependOn(&zpcre2_binary_output.step);
 
     const zpcre2_regex = b.addSystemCommand(&.{ "bash", "tests/regex-semantics.sh" });
     zpcre2_regex.addArtifactArg(zgr);

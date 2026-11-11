@@ -2641,7 +2641,46 @@ fn countAlternationLinesFallback(
     return .{ .matching = matching, .total = total };
 }
 
+/// Check binary blocks just before emitting a selected record, while the
+/// search still has the surrounding bytes in cache. Keep parallel binary
+/// detection and options requiring other output semantics on the old path.
+pub fn scanLiteralBinaryOutput(
+    buffer: []const u8,
+    matchers: []const matcher_mod.Matcher,
+    path: []const u8,
+    options: ScanOptions,
+    writer: *std.Io.Writer,
+) !?Result {
+    if (buffer.len < binary_detection_block_bytes or matchers.len != 1 or
+        options.binary_mode != .binary or options.delimiter != '\n' or
+        options.invert or options.count or options.quiet or options.list_files != null or
+        options.max_count != null or options.only_matching or contextOutputEnabled(options) or
+        options.colors != null or options.line_buffered) return null;
+    const literal = switch (matchers[0]) {
+        .literal => |*value| value,
+        else => return null,
+    };
+    if (literal.whole_line or literal.pattern.len == 0 or
+        std.mem.findScalar(u8, literal.pattern, options.delimiter) != null) return null;
+    // findNulParallel starts using multiple workers above 16 MiB. Preserve
+    // that path even when the file is too small for parallel line output.
+    if (buffer.len > 16 * 1024 * 1024 and (std.Thread.getCpuCount() catch 1) > 1) return null;
+    return try scanLiteralFastImpl(true, buffer, matchers, literal, path, options, writer);
+}
+
 fn scanLiteralFast(
+    buffer: []const u8,
+    matchers: []const matcher_mod.Matcher,
+    literal: *const matcher_mod.Literal,
+    path: []const u8,
+    options: ScanOptions,
+    writer: *std.Io.Writer,
+) align(hot_function_alignment) !Result {
+    return scanLiteralFastImpl(false, buffer, matchers, literal, path, options, writer);
+}
+
+fn scanLiteralFastImpl(
+    comptime detect_binary: bool,
     buffer: []const u8,
     matchers: []const matcher_mod.Matcher,
     literal: *const matcher_mod.Literal,
@@ -2653,6 +2692,7 @@ fn scanLiteralFast(
     var search_position: usize = 0;
     var line_number: usize = 1;
     var numbered_through: usize = 0;
+    var binary_checked_through: usize = 0;
     while (search_position < buffer.len) {
         const match_position = literal.find(buffer, search_position) orelse break;
         if (!literal.acceptsMatchAt(buffer, match_position)) {
@@ -2667,6 +2707,22 @@ fn scanLiteralFast(
             record_end
         else
             buffer.len;
+
+        if (detect_binary and line_end >= binary_checked_through) {
+            // Include the entire read block containing the record terminator:
+            // a NUL after the match in that block suppresses the record too.
+            const check_end = line_end + @min(
+                buffer.len - line_end,
+                binary_detection_block_bytes - line_end % binary_detection_block_bytes,
+            );
+            if (std.mem.findScalar(u8, buffer[binary_checked_through..check_end], 0) != null) {
+                result.matched = true;
+                result.selected_lines += 1;
+                result.binary_match = true;
+                return result;
+            }
+            binary_checked_through = check_end;
+        }
 
         if (options.line_number) {
             line_number += std.mem.countScalar(u8, buffer[numbered_through..line_start], options.delimiter);

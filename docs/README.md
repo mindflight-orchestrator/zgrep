@@ -3,12 +3,13 @@
 Le point de départ actuel est **[l'audit des chemins plus lents que
 ripgrep](performance-audit.fr.md)**. Il complète la [recherche sur les backends
 Zig et la comparaison LLVM / Rust / C](benchmark-backends.fr.md) du 11 novembre
-2026 avec des microbenchmarks et une optimisation du comptage adaptatif retenue
-localement. Le premier prototype écarté reste documenté dans l'historique.
+2026 avec des microbenchmarks, le comptage adaptatif et la détection binaire
+progressive avant la sortie des lignes. Les essais écartés restent documentés.
 
 | À lire | Contenu |
 |---|---|
-| [Audit de performance](performance-audit.fr.md) | Temps totaux Zig/Rust/C, comptage adaptatif, gains et compromis |
+| [Audit de performance](performance-audit.fr.md) | Derniers temps totaux Zig/Rust/C, sortie avec détection binaire, comptage, gains et limites |
+| [Preuves de la détection binaire progressive](performance-binary-output-2026-11-11/README.md) | Mesures avant/après, UTF-8, frontières des blocs, validations et écarts préexistants |
 | [Preuves du comptage adaptatif](performance-counting-2026-11-11/README.md) | Mesures finales sur un/quatre CPU, distributions, empreintes et validation |
 | [Synthèse en français](benchmark-backends.fr.md) | Zig 0.16/0.17, LLVM et backend natif, comparaison avec ripgrep et GNU grep |
 | [English report](benchmark-backends.md) | English version of the current research and comparison |

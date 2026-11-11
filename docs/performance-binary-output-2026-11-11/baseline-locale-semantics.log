@@ -1,0 +1,6 @@
+locale differential failure: C.utf8 / fixed accented case folding
+status: GNU=0 zgrep=0
+GNU stdout:
+ 63 61 66 c3 a9 0a 43 41 46 c3 89 0a
+zgrep stdout:
+ 63 61 66 c3 a9 0a

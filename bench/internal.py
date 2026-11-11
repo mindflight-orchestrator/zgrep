@@ -17,6 +17,7 @@ CASES = [
     "literal line count", "literal scan count", "sparse plain formatting",
     "sparse numbered formatting", "absent line count", "word line count",
     "case-insensitive line count", "dense line count",
+    "sparse numbered with binary detection",
 ]
 
 
@@ -55,6 +56,7 @@ def main():
         int(grep("-F", "-w", "-c", "rare-needle")),
         int(grep("-F", "-i", "-c", "RARE-NEEDLE")),
         int(grep("-F", "-c", "INFO")),
+        len(grep("-F", "-n", "rare-needle")),
     ]
     paths = {"candidate": args.library}
     if args.baseline_library:

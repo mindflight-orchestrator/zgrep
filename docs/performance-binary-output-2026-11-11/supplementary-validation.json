@@ -1,0 +1,42 @@
+[
+  {
+    "name": "qualification-zgr-binary",
+    "command": [
+      "python3",
+      "tests/binary-output.py",
+      "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr"
+    ],
+    "status": 0,
+    "expected_status": 0
+  },
+  {
+    "name": "qualification-safe-binary",
+    "command": [
+      "python3",
+      "tests/binary-output.py",
+      "/tmp/zgrep-binary-output-mfbucqv8/safe/bin/zgr"
+    ],
+    "status": 0,
+    "expected_status": 0
+  },
+  {
+    "name": "candidate-regex-semantics",
+    "command": [
+      "bash",
+      "tests/regex-semantics.sh",
+      "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr"
+    ],
+    "status": 1,
+    "expected_status": 1
+  },
+  {
+    "name": "candidate-locale-semantics",
+    "command": [
+      "bash",
+      "tests/locale-semantics.sh",
+      "/tmp/zgrep-binary-output-mfbucqv8/qualified/bin/zgr"
+    ],
+    "status": 1,
+    "expected_status": 1
+  }
+]

@@ -126,8 +126,9 @@ La section [Temps total et comparaison](performance-audit.fr.md#temps-total-et-c
 met côte à côte `zgr`, ripgrep et GNU grep, puis explique précisément les
 6,3 ms de comptage, 3,6 ms de détection binaire et 1 ms de numérotation mesurés
 en interne : ces chiffres ne sont pas les parts d'un même temps total.
-Le même rapport présente en tête la nouvelle optimisation du comptage
-adaptatif, ses résultats face à Rust/C et ses régressions secondaires mesurées.
+Le même rapport présente en tête la détection binaire progressive pour les
+sorties littérales, puis le comptage adaptatif, avec leurs résultats face à
+Rust/C et leurs limites mesurées.
 
 Cette deuxième mesure utilise les sources du dépôt avec les adaptations du
 benchmark et les métadonnées de compilation. Elle repose sur le même commit

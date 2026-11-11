@@ -1,6 +1,138 @@
 # Audit des chemins plus lents que ripgrep — 11 novembre 2026
 
-[Index](README.md) · [Données et scripts](performance-audit-2026-11-11/README.md)
+[Index](README.md) · [Dernières données et scripts](performance-binary-output-2026-11-11/README.md)
+
+## Optimisation retenue : détection binaire progressive
+
+**Le nouveau correctif réduit le temps total de la sortie rare numérotée
+(`-F -n`) d'environ 16 % sur un cœur.** La sortie rare simple gagne environ
+20 %, et la recherche sans résultat 27 %. Ces gains sont calculés sur les
+tours appariés. La référence est **`cbed1de`**, qui contient déjà l'optimisation
+du comptage décrite plus bas ; le nouveau lot ne modifie pas le comptage.
+Les captures décrivent l'état mesuré avant commit ; leurs empreintes
+identifient les sources et les binaires qualifiés.
+
+### Temps total après détection progressive, face à Rust et C
+
+Corpus ASCII de **93,8 Mo, un million de lignes**, chaud, locale C, un CPU
+logique. Compilation **Zig 0.16.0, ReleaseFast, LLVM, CPU natif raptorlake**.
+25 tours après deux échauffements, ordre aléatoire ; tous les outils utilisent
+la détection binaire normale, sans `-a`. Les médianes en **millisecondes**
+incluent le lancement du processus et la sortie vers un fichier ordinaire.
+
+| Opération complète | zgr avant | zgr optimisé | ripgrep — Rust | GNU grep — C |
+|---|---:|---:|---:|---:|
+| Sortie rare numérotée (`-F -n`) | 13,77 | **11,55** | 11,36 | 34,76 |
+| Mot absent, sortie numérotée (`-F -n`) | 12,43 | **9,26** | 9,72 | 25,56 |
+| Sortie rare simple (`-F`) | 12,92 | **10,44** | 9,73 | 30,34 |
+| Mot entier rare numéroté (`-F -w -n`) | 13,65 | **11,22** | 11,12 | 34,33 |
+| Sortie rare sans distinction de casse (`-F -i -n`) | 14,20 | **11,78** | 14,46 | 35,08 |
+| Sortie dense numérotée (`-F -n INFO`) | 57,14 | 57,50 | 168,59 | 98,26 |
+| Sortie dense simple (`-F INFO`) | 44,14 | 44,02 | 88,90 | 57,98 |
+
+Sur `-F -n` rare, le ratio apparié avant/après est **1,191**, intervalle à
+95 % **[1,172 ; 1,212]**, soit environ 16 % de temps économisé. Le candidat
+reste environ **1,6 % derrière ripgrep** dans les médianes de cette série ;
+l'écart s'est fortement réduit. La sortie simple reste environ 7 % derrière
+ripgrep. Les comptages denses et les sorties denses ne sont pas la cible de
+ce changement ; les sorties denses ci-dessus n'ont pas de variation établie.
+
+En **C.UTF-8**, le même `-F -n` rare passe de **13,51 à 11,02 ms**,
+contre **10,83 ms** pour ripgrep : gain apparié de **18 %**. Cela concerne
+toujours ce corpus ASCII ; les adaptateurs de locale utilisés par certains
+motifs avec `-i` ou `-w` gardent leur chemin existant.
+Avec **`-a` pour tous**, la sortie rare numérotée donne **10,75 → 10,60 ms** :
+le nouveau chemin n'intervient pas, et cette petite variation ne mesure pas
+un gain de détection binaire.
+
+[Série normale](performance-binary-output-2026-11-11/final-auto.json) ·
+[Locale UTF-8](performance-binary-output-2026-11-11/final-utf8.json) ·
+[Texte imposé](performance-binary-output-2026-11-11/final-text.json).
+
+### Ce qui change, et pourquoi le gain est limité à certains chemins
+
+Avant, `scanRegularBuffer` cherchait les octets NUL dans **tout le fichier**,
+puis lançait la recherche et l'affichage. Désormais, pour les sorties littérales
+admissibles, `scanLiteralBinaryOutput` recherche une correspondance, détermine
+sa ligne, puis vérifie les octets encore non contrôlés **jusqu'à la fin du bloc
+de 96 Kio contenant la fin de cette ligne**, avant de l'émettre.
+
+Cette borne conserve la règle binaire de GNU : un NUL situé après le motif
+dans le même bloc peut empêcher l'affichage de sa ligne. Toutes les portions
+nécessaires sont vérifiées une seule fois. Les recherches et vérifications
+travaillent sur des régions proches, encore en cache, au lieu de deux parcours
+complets éloignés. Après la dernière correspondance, une fin de fichier sans
+résultat supplémentaire n'a plus besoin d'être inspectée pour les NUL.
+
+Le coût de la vérification reste **O(N)** au pire, avec **O(1)** de mémoire
+supplémentaire ; le gain vient surtout de la localité mémoire et du travail
+évité. La numérotation elle-même n'est pas réécrite. La détection NUL isolée
+reste autour de **3,7 ms**. Le treizième microbenchmark mesure désormais
+**détection binaire + recherche + formatage numéroté ensemble** sur le tampon
+résident : **9,44 → 6,80 ms**, soit environ **28 %** de temps interne en moins.
+Il exclut le lancement et les E/S ; il ne faut pas l'ajouter aux autres noyaux.
+[Mesures internes](performance-binary-output-2026-11-11/final-micro.json).
+
+Le chemin s'applique aux littéraux directs non vides, sans `-x` ni séparateur
+de ligne dans le motif. Les couleurs, le contexte, `-o`, `-m`, `-v`, `-I`, `-z`,
+le comptage et les sorties spéciales gardent leurs chemins existants. Les
+fichiers de moins de 96 Kio restent également inchangés. Au-dessus de **16 Mio
+avec plusieurs CPU disponibles**, la détection parallèle existante est conservée.
+Le flux stdin et la latence du terminal ne sont pas optimisés par ce lot.
+
+### Contrôles parallèles, variations et essai écarté
+
+Le premier essai remplaçait encore la détection NUL parallèle entre 16 et
+64 Mio. Sur 18,8 Mo et quatre CPU, 61 tours ont confirmé environ **5 % de temps
+supplémentaire** sur la sortie rare numérotée. Cet essai a été écarté et la
+condition d'admissibilité a été resserrée à 16 Mio.
+
+Dans la version retenue :
+
+- **93,8 Mo, quatre CPU, `-F -n` rare : 6,94 → 6,95 ms**, contre 10,65 ms
+  pour ripgrep. Aucun changement établi sur ce cas parallèle.
+- **18,8 Mo, quatre CPU :** la première série à 15 tours restait défavorable
+  (2,50 → 2,75 ms ; perte appariée de 5,6 %). Le contrôle prolongé à **61 tours**
+  donne **2,26 → 2,23 ms**, ratio apparié 0,998 **[0,980 ; 1,034]**, sans gain
+  ni régression établis. Les deux captures sont conservées ; la fréquence CPU
+  n'est pas verrouillée et les petites durées sont sensibles aux variations.
+- **7,5 Mo, quatre CPU disponibles : 1,28 → 1,21 ms** sur la même sortie,
+  mais l'intervalle apparié contient 1 : aucun gain établi sur cette taille.
+- Une variation défavorable de **2,0 %** apparaît sur `-F -w -n` rare avec
+  quatre CPU dans la série de 15 tours, alors que ce chemin reste inchangé.
+  Le microbenchmark de recherche littérale seule recule également d'environ
+  **1,9 %**. Ces variations sont exposées ; leur cause exacte n'a pas été
+  déterminée par un profil matériel. Le lot ne prouve pas zéro régression.
+
+[Contrôle intermédiaire prolongé](performance-binary-output-2026-11-11/medium-confirmation.json) ·
+[Quatre CPU](performance-binary-output-2026-11-11/final-four-core.json) ·
+[Essai écarté](performance-binary-output-2026-11-11/before-parallel-guard/medium-confirmation.json).
+
+### Validation et écarts de comportement connus
+
+La version retenue passe **86 tests unitaires ReleaseFast**, **43 ReleaseSafe**,
+les suites principales CLI/streaming de `zgrc`, 59 cas regex, 141 cas de locales
+et **3 072 contrôles de fuzzing**. Les nouveaux contrôles binaires passent
+**1 320 comparaisons GNU par exécution**, sur `zgr` et `zgrc` en ReleaseFast
+ainsi que sur `zgr` en ReleaseSafe, soit **3 960 contrôles ciblés**.
+Ils comparent la sortie, le diagnostic et le code de retour. Les benchmarks
+ajoutent **8 154 contrôles**. Les empreintes relient les sources qualifiées
+aux binaires mesurés.
+
+Le doublon de diagnostic binaire après une ligne sélectionnée contenant de
+l'UTF-8 invalide, suivie plus loin d'un NUL, est corrigé face à GNU grep.
+Les vérifications étendues ont aussi confirmé **trois écarts préexistants** :
+l'alternance BRE avec `-o` et le pliage de casse accentuée dans `zpcre2`, ainsi
+qu'une ligne de contexte manquante avec `-C1` lorsqu'un NUL tombe exactement
+à 96 Kio. Ils sont reproduits sur la référence et restent hors de ce correctif.
+Il ne s'agit donc pas d'une qualification GNU complète de `zpcre2`.
+La CI distante n'a pas été exécutée.
+
+[Preuves, commandes et limites](performance-binary-output-2026-11-11/README.md).
+Les mesures suivantes concernent le lot précédent de comptage ; leurs temps
+ne servent pas à calculer le nouveau gain de sortie.
+
+---
 
 ## Optimisation retenue : comptage adaptatif
 

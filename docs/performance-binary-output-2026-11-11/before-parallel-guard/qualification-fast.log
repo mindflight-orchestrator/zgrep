@@ -1,0 +1,91 @@
+binary output: 1320 GNU comparisons passed
+zgr differential tests passed
+
+regex semantic failure: BRE grouping and alternation
+status: GNU=0 zgrep=0
+--- /tmp/zgrep-regex-semantics.jiult6/gnu.out	2026-11-11 19:47:19.308140391 +0100
++++ /tmp/zgrep-regex-semantics.jiult6/zgrep.out	2026-11-11 19:47:19.309140387 +0100
+@@ -4,10 +4,10 @@
+ 4:6:a
+ 4:7:a
+ 4:8:a
+-5:10:ab
+-6:13:ab
+-7:17:abc
+-8:21:ab
++5:10:a
++6:13:a
++7:17:a
++8:21:a
+ 9:26:ac
+ 10:30:a
+ 12:40:a
+GNU stderr: 
+zgrep stderr: 
+locale differential failure: C.utf8 / fixed accented case folding
+status: GNU=0 zgrep=0
+GNU stdout:
+ 63 61 66 c3 a9 0a 43 41 46 c3 89 0a
+zgrep stdout:
+ 63 61 66 c3 a9 0a
+zgr streaming differentials passed
+zgrc regex semantics differentials passed (59 cases)
+zgrc streaming differentials passed
+zgrc UTF-8 locale differentials passed (141 cases across 3 locales)
+zgrc differential tests passed
+binary output: 1320 GNU comparisons passed
+zgrc seeded regex differentials passed (3072 checks, seed 1592594996)
+test-zpcre2-gnu
++- run bash failure
+error: process exited with error code 1
+failed command: bash tests/regex-semantics.sh /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/75820c210e5e1b35cacd625760e3dbe9/zgr
+
+test-zpcre2-gnu
++- run bash failure
+error: process exited with error code 1
+failed command: bash tests/locale-semantics.sh /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/75820c210e5e1b35cacd625760e3dbe9/zgr
+
+Build Summary: 24/27 steps succeeded (2 failed); 86/86 tests passed
+test success
++- run test 43 pass (43 total) 97ms MaxRSS:9M
+|  +- compile test ReleaseFast native success 10s MaxRSS:522M
+|     +- translate-c cached 19ms MaxRSS:37M
++- run test 43 pass (43 total) 93ms MaxRSS:10M
+|  +- compile test ReleaseFast native success 11s MaxRSS:589M
++- run bash success 1s
+|  +- compile exe zgrc ReleaseFast native cached 13ms MaxRSS:41M
+|     +- translate-c (reused)
++- run python3 success 50s
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run python3 success 8s
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 302ms
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 1s
+   +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
+test-zpcre2-gnu transitive failure
++- run test (+1 more reused dependencies)
++- run bash success 778ms
+|  +- compile exe zgr ReleaseFast native cached 22ms MaxRSS:39M
++- run python3 success 50s
+|  +- compile exe zgr ReleaseFast native (reused)
++- run python3 success 4s
+|  +- compile exe zgr ReleaseFast native (reused)
++- run bash failure
+|  +- compile exe zgr ReleaseFast native (reused)
++- run bash failure
+   +- compile exe zgr ReleaseFast native (reused)
+test-fuzz success
++- run bash success 6s
+   +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- install zgr success
+   +- compile exe zgr ReleaseFast native (reused)
+bench-internal success
++- install zgrep-internal-bench success
+   +- compile lib zgrep-internal-bench ReleaseFast native cached 28ms MaxRSS:40M
+
+error: the following build command failed with exit code 1:
+/tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/5d530f8e05281d3e83f5d745add0cc0d/build /opt/zig/zig-x86_64-linux-0.16.0/zig /opt/zig/zig-x86_64-linux-0.16.0/lib /home/dlamotte/Documents/mindflight/zgrep /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/global-cache --seed 0xf685a5ba -Z3d3938699ccce19d test test-zpcre2-gnu test-fuzz install bench-internal -Doptimize=ReleaseFast -Dllvm=true --prefix /tmp/zgrep-binary-output-mfbucqv8/qualified --summary all

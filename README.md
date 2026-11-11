@@ -260,8 +260,8 @@ builds with ripgrep (Rust) and GNU grep (C) are in
 [docs/benchmark-backends.md](docs/benchmark-backends.md), including samples,
 commands, versions and executable hashes. The [focused performance audit
 (French)](docs/performance-audit.fr.md) adds total-time comparisons, internal
-timings and adaptive literal counting retained locally, with measured gains
-and documented tradeoffs.
+timings, adaptive literal counting and progressive binary detection before
+line output, with measured gains and documented tradeoffs.
 
 The [documentation index](docs/README.md) points to the current report and data.
 Older comparisons, test results and experiment scripts are grouped in
@@ -302,9 +302,10 @@ python3 bench/internal.py --library zig-out/lib/libzgrep-internal-bench.so \
 ```
 
 These measurements exclude process startup and file I/O, isolating NUL/ASCII
-prescans, searching, counting and formatting. They complement executable
-comparisons. `--baseline-library` adds a paired comparison with a preserved
-baseline library.
+prescans, searching, counting and formatting. A thirteenth case measures
+sparse numbered output together with binary detection on one CPU. They
+complement executable comparisons. `--baseline-library` adds a paired
+comparison with a preserved baseline library.
 
 ### Generated corpus
 

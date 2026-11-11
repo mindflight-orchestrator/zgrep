@@ -105,8 +105,9 @@ Binary detection therefore added work to `zgr` for line-output cases; its `-c`
 path already skips that prescan. Raw evidence is unchanged. The [focused audit
 (French)](performance-audit.fr.md) records new measurements with equivalent
 options (`auto` or `-a` for every tool).
-Its opening section now records the retained adaptive-counting optimization,
-including comparisons with Rust/C and measured secondary regressions.
+Its opening section now records progressive binary detection for literal
+output, followed by adaptive counting, with Rust/C comparisons and measured
+limitations.
 
 The candidate uses the baseline commit plus the local benchmark/build-metadata
 changes. Compilation-input hashes are recorded in the JSON. It is not a new

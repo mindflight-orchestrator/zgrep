@@ -1,0 +1,5 @@
+Build Summary: 3/3 steps succeeded
+bench-internal success
++- install zgrep-internal-bench success
+   +- compile lib zgrep-internal-bench ReleaseFast native success 1s MaxRSS:174M
+
