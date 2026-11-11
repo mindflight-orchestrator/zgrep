@@ -1,0 +1,32 @@
+{
+  "sparse-then-dense": {
+    "bytes": 33554432,
+    "lines": 262144,
+    "sha256": "ca9d0c2bce4cdb422aeec5f154c5eece19af4a7163de3ca2be1df082030cf874"
+  },
+  "dense-then-sparse": {
+    "bytes": 33554432,
+    "lines": 262144,
+    "sha256": "18a504c25e5aa35f222756139203cd084d2bf54d8f566c8e8fbe8026bc8118a1"
+  },
+  "one-in-eight": {
+    "bytes": 33554432,
+    "lines": 262144,
+    "sha256": "1d28aade5633c8be1250797fda52d0ff99ff1f8c526713fd98c846f35ec7cada"
+  },
+  "rejected-words": {
+    "bytes": 33554432,
+    "lines": 262144,
+    "sha256": "172b635c9f17b08992e447072580fe4e8f5896f7b32ee57570459f6baa3f3dbb"
+  },
+  "long-lines": {
+    "bytes": 33554464,
+    "lines": 32,
+    "sha256": "1d090cac6914950458b40c3a5fe2950b80b633a507c040f6d571046c0c78017a"
+  },
+  "empty-then-rejected": {
+    "bytes": 33554432,
+    "lines": 262144,
+    "sha256": "e9b1e7bfdce5c12f9681e02ec1a42ae7f4140af45630a10d2d1a8af0523f83ac"
+  }
+}

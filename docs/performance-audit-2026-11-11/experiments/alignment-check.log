@@ -1,0 +1,4 @@
+[2] auto literal miss {'baseline': 11.440347, 'candidate': 10.500484, 'ripgrep': 9.951942, 'grep': 23.64993} {'median_paired_ratio': 1.0875836140170574, 'bootstrap_95_percent': [1.0504278691254585, 1.128403778741496]}
+[2] auto rare literal {'baseline': 11.532996, 'candidate': 10.568061, 'ripgrep': 9.925046, 'grep': 30.57012} {'median_paired_ratio': 1.0777878370328977, 'bootstrap_95_percent': [1.0625084395873527, 1.108303476071692]}
+[2] auto word literal {'baseline': 11.486658, 'candidate': 10.642476, 'ripgrep': 10.167778, 'grep': 31.178428} {'median_paired_ratio': 1.078175958941485, 'bootstrap_95_percent': [1.0550874142315556, 1.0853492352595744]}
+[2] auto dense literal {'baseline': 13.092926, 'candidate': 13.684707, 'ripgrep': 28.053048, 'grep': 26.317187} {'median_paired_ratio': 0.9714390038242776, 'bootstrap_95_percent': [0.9448725471347541, 1.0091699227934328]}

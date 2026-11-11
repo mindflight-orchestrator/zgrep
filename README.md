@@ -258,7 +258,10 @@ with GNU grep before it is timed. The scripts always time both `zgr` and
 The Zig backend investigation and the November 11, 2026 comparison of LLVM
 builds with ripgrep (Rust) and GNU grep (C) are in
 [docs/benchmark-backends.md](docs/benchmark-backends.md), including samples,
-commands, versions and executable hashes.
+commands, versions and executable hashes. The [focused performance audit
+(French)](docs/performance-audit.fr.md) adds total-time comparisons, internal
+timings and adaptive literal counting retained locally, with measured gains
+and documented tradeoffs.
 
 The [documentation index](docs/README.md) points to the current report and data.
 Older comparisons, test results and experiment scripts are grouped in
@@ -284,6 +287,24 @@ individual measurements as JSON. Add `--cpu 2` to pin an available CPU, or
 `--zgr`, `--zgrc`, `--rg` and `--grep` to select executables. The JSON output
 must be a new file. Use the newline corpus from `bench/generate.sh`; the scripts
 below retain the other benchmark profiles.
+
+The default retains binary detection for all tools. `--input-mode text` adds
+`-a` to every tool to isolate searching known text. The older protocol passed
+`-a` only to ripgrep, so output timings included different binary-detection work.
+
+To measure real internal functions on an already resident corpus:
+
+```sh
+zig build bench-internal -Doptimize=ReleaseFast -Dllvm=true
+python3 bench/internal.py --library zig-out/lib/libzgrep-internal-bench.so \
+  --corpus /tmp/zgrep-comparison.txt --cpu 2 --repeats 25 \
+  --output /tmp/zgrep-internal.json
+```
+
+These measurements exclude process startup and file I/O, isolating NUL/ASCII
+prescans, searching, counting and formatting. They complement executable
+comparisons. `--baseline-library` adds a paired comparison with a preserved
+baseline library.
 
 ### Generated corpus
 

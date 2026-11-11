@@ -100,6 +100,14 @@ to these two kernels; that would require full profiling.
 
 ## Experiment 2: LLVM candidate versus Rust and C tools
 
+**Follow-up audit clarification:** this capture passed `-a` only to ripgrep.
+Binary detection therefore added work to `zgr` for line-output cases; its `-c`
+path already skips that prescan. Raw evidence is unchanged. The [focused audit
+(French)](performance-audit.fr.md) records new measurements with equivalent
+options (`auto` or `-a` for every tool).
+Its opening section now records the retained adaptive-counting optimization,
+including comparisons with Rust/C and measured secondary regressions.
+
 The candidate uses the baseline commit plus the local benchmark/build-metadata
 changes. Compilation-input hashes are recorded in the JSON. It is not a new
 published tag.

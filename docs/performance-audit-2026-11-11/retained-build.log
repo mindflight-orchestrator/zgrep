@@ -1,0 +1,11 @@
+Build Summary: 9/9 steps succeeded
+bench-internal success
++- install zgrep-internal-bench success
+   +- compile lib zgrep-internal-bench ReleaseFast native success 1s MaxRSS:178M
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native success 4s MaxRSS:276M
+|     +- translate-c cached 10ms MaxRSS:36M
++- install zgr success
+   +- compile exe zgr ReleaseFast native success 5s MaxRSS:296M
+

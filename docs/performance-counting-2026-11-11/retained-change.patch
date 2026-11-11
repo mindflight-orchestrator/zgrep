@@ -1,0 +1,126 @@
+diff --git a/src/scanner.zig b/src/scanner.zig
+index eaccf6d..bf4c5b5 100644
+--- a/src/scanner.zig
++++ b/src/scanner.zig
+@@ -2163,10 +2163,55 @@ fn countLiteralSelected(
+     invert: bool,
+     delimiter: u8,
+ ) usize {
++    if (!invert and !literal.whole_line and buffer.len >= 4096 and
++        literal.pattern.len != 0 and literal.pattern.len <= 32 and
++        std.mem.findScalar(u8, literal.pattern, delimiter) == null)
++        return countLiteralSparse(buffer, literal, delimiter);
+     const counts = countLiteralLines(buffer, literal, delimiter);
+     return if (invert) counts.total - counts.matching else counts.matching;
+ }
+ 
++fn countLiteralSparse(buffer: []const u8, literal: *const matcher_mod.Literal, delimiter: u8) usize {
++    var matching: usize = 0;
++    var position: usize = 0;
++    var counted_through: usize = 0;
++    var window_start: usize = 0;
++    var candidates: usize = 0;
++    while (position < buffer.len) {
++        const found = literal.find(buffer, position) orelse break;
++        if (literal.acceptsMatchAt(buffer, found)) {
++            matching += 1;
++            const line_end = std.mem.findScalarPos(u8, buffer, found + literal.pattern.len, delimiter) orelse
++                return matching;
++            position = line_end + 1;
++            counted_through = position;
++        } else {
++            position = found + 1;
++        }
++
++        // Reconsider after each small batch, including rejected word matches.
++        // A later dense region must not inherit a decision made at file start.
++        candidates += 1;
++        if (candidates == 32) {
++            if (position - window_start < 32 * 256) {
++                // Resume at a record boundary: a rejected match can leave
++                // position inside a record, where word boundaries would differ.
++                // Earlier unselected records have already been searched.
++                const restart = if (position == counted_through)
++                    position
++                else if (std.mem.findScalarLast(u8, buffer[counted_through..found], delimiter)) |last|
++                    counted_through + last + 1
++                else
++                    counted_through;
++                return matching + countLiteralLines(buffer[restart..], literal, delimiter).matching;
++            }
++            candidates = 0;
++            window_start = position;
++        }
++    }
++    return matching;
++}
++
+ fn countAlternationSelected(
+     buffer: []const u8,
+     alternation: *const matcher_mod.LiteralAlternation,
+@@ -4185,6 +4230,65 @@ test "parallel literal count supports NUL records" {
+     try std.testing.expectEqual(1, try parallelLiteralCount(data, &literal, true, 0));
+ }
+ 
++test "adaptive literal count agrees with per-record matching" {
++    var prng = std.Random.DefaultPrng.init(712);
++    const random = prng.random();
++    const alphabet = "aAbB_x\n\x00";
++    const patterns = [_][]const u8{ "", "a", "Ab", "x_a", "absent", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
++    var storage: [8193]u8 = undefined;
++    for (0..20) |sample| {
++        for (&storage) |*byte| byte.* = alphabet[random.uintLessThan(usize, alphabet.len)];
++        const start = 4096 + sample % 32;
++        @memcpy(storage[start..][0..3], "x_a");
++        for ([_]usize{ 0, 1, 31, 32, 33, 4095, 4096, 4097, 8193 }) |len| {
++            for ([_]u8{ '\n', 0 }) |delimiter| {
++                for (patterns) |pattern| {
++                    for ([_]bool{ false, true }) |ignore_case| {
++                        for ([_]bool{ false, true }) |word| {
++                            const literal = matcher_mod.Literal.init(pattern, ignore_case, false, word);
++                            const expected = countLiteralLinesFallback(storage[0..len], &literal, delimiter);
++                            try std.testing.expectEqual(expected.matching, countLiteralSelected(storage[0..len], &literal, false, delimiter));
++                            try std.testing.expectEqual(expected.total - expected.matching, countLiteralSelected(storage[0..len], &literal, true, delimiter));
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
++test "adaptive literal count switches after sparse prefixes and rejected word matches" {
++    for ([_]u8{ '\n', 0 }) |delimiter| {
++        var data: std.ArrayList(u8) = .empty;
++        defer data.deinit(std.testing.allocator);
++        for (0..96) |_| {
++            try data.appendSlice(std.testing.allocator, "a long unselected record without the target word and with some padding");
++            try data.append(std.testing.allocator, delimiter);
++        }
++        const sparse_end = data.items.len;
++        try data.appendSlice(std.testing.allocator, "needle needle");
++        try data.append(std.testing.allocator, delimiter);
++        const prefix_end = data.items.len;
++        for ([_]bool{ false, true }) |reject_words| {
++            data.shrinkRetainingCapacity(if (reject_words) sparse_end else prefix_end);
++            for (0..96) |_| {
++                try data.appendSlice(std.testing.allocator, if (reject_words) "needlex " else "needle needle");
++                if (!reject_words) try data.append(std.testing.allocator, delimiter);
++            }
++            try data.append(std.testing.allocator, delimiter);
++            try data.appendSlice(std.testing.allocator, "NEEDLE needle");
++            for ([_]bool{ false, true }) |ignore_case| {
++                for ([_]bool{ false, true }) |word| {
++                    const literal = matcher_mod.Literal.init("needle", ignore_case, false, word);
++                    const expected = countLiteralLinesFallback(data.items, &literal, delimiter);
++                    try std.testing.expectEqual(expected.matching, countLiteralSelected(data.items, &literal, false, delimiter));
++                    try std.testing.expectEqual(expected.total - expected.matching, countLiteralSelected(data.items, &literal, true, delimiter));
++                }
++            }
++        }
++    }
++}
++
+ test "parallel selected output preserves order, record numbers and byte offsets" {
+     const matcher = matcher_mod.Matcher{ .literal = .init("needle", false, false, false) };
+     const data = "first\nneedle two\nthird\nneedle four\nlast";

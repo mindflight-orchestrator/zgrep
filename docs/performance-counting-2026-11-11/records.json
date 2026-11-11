@@ -1,0 +1,590 @@
+{
+  "status": "passed",
+  "cpu": [
+    2,
+    4,
+    6,
+    8
+  ],
+  "cases": [
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-i",
+        "-c",
+        "RARE-NEEDLE",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-i",
+        "-c",
+        "RARE-NEEDLE",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-w",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-w",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-v",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "999000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-v",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "999000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-v",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-v",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-c",
+        "",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-c",
+        "",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-w",
+        "-c",
+        "",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-w",
+        "-c",
+        "",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-F",
+        "-x",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-F",
+        "-x",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-i",
+        "-c",
+        "RARE-NEEDLE",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-i",
+        "-c",
+        "RARE-NEEDLE",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-w",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-w",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-v",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "999000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-v",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "999000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-v",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-v",
+        "-c",
+        "INFO",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-c",
+        "",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-c",
+        "",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-w",
+        "-c",
+        "",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-w",
+        "-c",
+        "",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 0,
+      "stdout": "1000000\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-c",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgr",
+        "-z",
+        "-F",
+        "-x",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/tmp/zgrep-sparse-count-qkyu5od1/qualified/bin/zgrc",
+        "-z",
+        "-F",
+        "-x",
+        "-c",
+        "rare-needle",
+        "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat"
+      ],
+      "status": 1,
+      "stdout": "0\n",
+      "stderr": ""
+    }
+  ],
+  "checks": 44,
+  "corpora": {
+    "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt": "da9fd9c2df9698ffcbeac1693c0fdf72b9357ff50fc0234c4e1d1f3f13797a3b",
+    "/tmp/zgrep-sparse-count-qkyu5od1/corpora/records-nul.dat": "d31404059b18c84692efdd37beea6e7861c0262d65be7205416ae1b7ccf86866"
+  }
+}

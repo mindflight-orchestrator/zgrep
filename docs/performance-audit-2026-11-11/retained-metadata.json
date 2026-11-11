@@ -1,0 +1,28 @@
+{
+  "status": "active engine unchanged; benchmark tooling rebuilt and smoke-tested separately",
+  "source_commit": "0201712675658054ff7cf3a18bec61331bb43a5e",
+  "source_inputs_sha256": {
+    "build.zig": "95ffb3d96012ccbaad1a2a5ab54932c7a28694d7ae5b09ac610ba842d7603d4d",
+    "bench/internal.py": "8ce5bc41f5bf482fe79cd3d3fd4cb54500324fcd2461efb7cbf77f935d65f172",
+    "bench/internal.zig": "18d5ec358b02d62bcd6617e1c71f141bcb7c092342057f2871a3c78ca4e03999",
+    "bench/compare.py": "3726c4f4a5515913bf2ae9bb9444efc3855205d87891b03fe9ff257f14442379",
+    "src/scanner.zig": "e9e2d9fde506807f5414a0fdda4fd5cfc52aca062f738dfabb6b3164ddbffc57"
+  },
+  "build_command": "zig-0.16 build bench-internal install -Doptimize=ReleaseFast -Dllvm=true --prefix /tmp/zgrep-literal-audit-y9mpgnj5/retained --summary all",
+  "cache": "ZIG_GLOBAL_CACHE_DIR=/tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/global-cache; ZIG_LOCAL_CACHE_DIR=/tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache",
+  "artifacts": {
+    "bin/zgr": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+      "sha256": "eb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c"
+    },
+    "bin/zgrc": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+      "sha256": "657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd"
+    },
+    "lib/libzgrep-internal-bench.so": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/lib/libzgrep-internal-bench.so",
+      "sha256": "910cb493c9fd6107eb67f4dbd858698707b039726947e2609103c30a9f7e5c12"
+    }
+  },
+  "prototype_patch_replay_sha256": "f233fc70e34eb32a3348279daa705c90a33c9be25dca98a29d55cb51f5eabb09"
+}

@@ -1,0 +1,190 @@
+{
+  "status": "passed",
+  "libraries": {
+    "candidate": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/lib/libzgrep-internal-bench.so",
+      "sha256": "910cb493c9fd6107eb67f4dbd858698707b039726947e2609103c30a9f7e5c12"
+    }
+  },
+  "runner_sha256": "8ce5bc41f5bf482fe79cd3d3fd4cb54500324fcd2461efb7cbf77f935d65f172",
+  "corpus_sha256": "1dcecb7edb774134592782760c18b6d8f09fc91b2cc9f6463bfd85cc77b75c45",
+  "bytes": 9378980,
+  "affinity": [
+    2
+  ],
+  "repeats": 3,
+  "warmups": 2,
+  "seed": 711,
+  "checks": 60,
+  "method": "resident buffer, real Zig functions, FFI overhead included; no startup or disk I/O; formatting sink discards bytes; kernel results checked against Python counts or GNU grep",
+  "cases": [
+    {
+      "name": "nul prescan",
+      "expected": 9378980,
+      "samples_ms": {
+        "candidate": [
+          0.167042,
+          0.157573,
+          0.15996
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.15996
+      }
+    },
+    {
+      "name": "ascii prescan",
+      "expected": 1,
+      "samples_ms": {
+        "candidate": [
+          0.156448,
+          0.152705,
+          0.156022
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.156022
+      }
+    },
+    {
+      "name": "newline count",
+      "expected": 100000,
+      "samples_ms": {
+        "candidate": [
+          0.167334,
+          0.16499,
+          0.165019
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.165019
+      }
+    },
+    {
+      "name": "literal occurrences",
+      "expected": 100,
+      "samples_ms": {
+        "candidate": [
+          0.310954,
+          0.308091,
+          0.306581
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.308091
+      }
+    },
+    {
+      "name": "literal line count",
+      "expected": 100,
+      "samples_ms": {
+        "candidate": [
+          0.55225,
+          0.539147,
+          0.53657
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.539147
+      }
+    },
+    {
+      "name": "literal scan count",
+      "expected": 100,
+      "samples_ms": {
+        "candidate": [
+          0.307279,
+          0.311224,
+          0.309291
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.309291
+      }
+    },
+    {
+      "name": "sparse plain formatting",
+      "expected": 10574,
+      "samples_ms": {
+        "candidate": [
+          0.325414,
+          0.306877,
+          0.308485
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.308485
+      }
+    },
+    {
+      "name": "sparse numbered formatting",
+      "expected": 11161,
+      "samples_ms": {
+        "candidate": [
+          0.415415,
+          0.40451,
+          0.407281
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.407281
+      }
+    },
+    {
+      "name": "absent line count",
+      "expected": 0,
+      "samples_ms": {
+        "candidate": [
+          0.565982,
+          0.555111,
+          0.555133
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.555133
+      }
+    },
+    {
+      "name": "word line count",
+      "expected": 100,
+      "samples_ms": {
+        "candidate": [
+          0.542342,
+          0.537263,
+          0.542979
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.542342
+      }
+    },
+    {
+      "name": "case-insensitive line count",
+      "expected": 100,
+      "samples_ms": {
+        "candidate": [
+          0.610151,
+          0.600555,
+          0.616347
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.610151
+      }
+    },
+    {
+      "name": "dense line count",
+      "expected": 100000,
+      "samples_ms": {
+        "candidate": [
+          0.755226,
+          0.747978,
+          0.773602
+        ]
+      },
+      "median_ms": {
+        "candidate": 0.755226
+      }
+    }
+  ]
+}

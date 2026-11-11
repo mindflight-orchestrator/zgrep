@@ -1,0 +1,2 @@
+dense literal {'baseline': 13.125498, 'candidate': 13.125744, 'ripgrep': 28.252352, 'grep': 27.37106} {'median_paired_ratio': 0.9990389809115939, 'bootstrap95': [0.9898786349858554, 1.0033998801608028]}
+checks 212

@@ -1,0 +1,15 @@
+{
+  "build.zig": "95ffb3d96012ccbaad1a2a5ab54932c7a28694d7ae5b09ac610ba842d7603d4d",
+  "build.zig.zon": "18f27dd869251a28b2093db68bd50bb96cbc1a20d3e97415aef50e170f13cc70",
+  "src/engine_zpcre2.zig": "29ea32dfa14b9f57c58621915bf030a815db1c46c1401032a615be7a9f5baea1",
+  "src/filter.zig": "1039d10d72f743b6ee665b25a34785f57ccdcafed3ce7c1ad7a69185b172a48e",
+  "src/gnu_regex.c": "32ba9931ca2b79fddb4b58ab0309ad4164017198399383c6171a6c1096b0058e",
+  "src/locale.zig": "752576c0c23cf76a2ad1124ee377106ea3739f6bd94db50cd6fcb9731ae6d556",
+  "src/main.zig": "d8d929df8d5c05a3d9a90d8861869b1f33d7f4e28be075262bb5cb5d73f9ba54",
+  "src/matcher.zig": "062ac9736005c6068e00ab24913a80e121e03a146bb45ca27d62d827281f8d2a",
+  "src/options.zig": "eb5efae165e46563eba9acb15943dc17dd83a230c7f4f1598aae3a849c85552c",
+  "src/pcre2_shim.c": "67fac9b2d30196d51b4c972ef7ca02d56ee05c959971d9db3c1c00171e1c9380",
+  "src/root.zig": "f6cfdc420b997bbdcce1889965533b1516d497db4b952f403ada25053bc5809d",
+  "src/scanner.zig": "3576f4432fa5c1411d3065fe796576b26ec2d7fc46affb0cebf77a8eab6c9188",
+  "bench/internal.zig": "18d5ec358b02d62bcd6617e1c71f141bcb7c092342057f2871a3c78ca4e03999"
+}

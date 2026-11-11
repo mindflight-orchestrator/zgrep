@@ -65,3 +65,6 @@ jobs:
             bench/run.sh /tmp/zgrep-ci-bench.txt 1
           python3 bench/compare.py --corpus /tmp/zgrep-ci-bench.txt \
             --locale C.utf8 --repeats 3 --output /tmp/zgrep-ci-comparison.json
+          zig build bench-internal -Doptimize=ReleaseFast -Dllvm=true
+          python3 bench/internal.py --library zig-out/lib/libzgrep-internal-bench.so \
+            --corpus /tmp/zgrep-ci-bench.txt --repeats 3 --output /tmp/zgrep-ci-internal.json

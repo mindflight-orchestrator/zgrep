@@ -30,6 +30,21 @@ pub fn build(b: *std.Build) void {
     zgr.use_llvm = use_llvm;
     b.installArtifact(zgr);
 
+    const internal_bench = b.addLibrary(.{
+        .name = "zgrep-internal-bench",
+        .linkage = .dynamic,
+        .use_llvm = true,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("bench/internal.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{.{ .name = "zgrep", .module = core_zpcre2 }},
+            .link_libc = true,
+        }),
+    });
+    const internal_step = b.step("bench-internal", "Build LLVM kernels for bench/internal.py");
+    internal_step.dependOn(&b.addInstallArtifact(internal_bench, .{}).step);
+
     const run_step = b.step("run", "Run zgr");
     const run_cmd = b.addRunArtifact(zgr);
     if (b.args) |args| run_cmd.addArgs(args);

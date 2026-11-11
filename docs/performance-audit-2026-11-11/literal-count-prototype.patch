@@ -1,0 +1,131 @@
+diff --git a/src/scanner.zig b/src/scanner.zig
+index eaccf6d..5175c32 100644
+--- a/src/scanner.zig
++++ b/src/scanner.zig
+@@ -2163,7 +2163,12 @@ fn countLiteralSelected(
+     invert: bool,
+     delimiter: u8,
+ ) usize {
+-    const counts = countLiteralLines(buffer, literal, delimiter);
++    // Reuse the bounded density probe: skipping unmatched delimiters benefits
++    // sparse counts, while dense input keeps the regular event loop.
++    if (!invert and literal.pattern.len != 0 and literal.pattern.len <= 32 and
++        shouldUseRegexPrefilter(buffer, literal))
++        return countLiteralLines(buffer, literal, delimiter, false).matching;
++    const counts = countLiteralLines(buffer, literal, delimiter, true);
+     return if (invert) counts.total - counts.matching else counts.matching;
+ }
+ 
+@@ -2302,7 +2307,12 @@ const LineCounts = struct {
+     total: usize,
+ };
+ 
+-fn countLiteralLines(buffer: []const u8, literal: *const matcher_mod.Literal, delimiter: u8) LineCounts {
++fn countLiteralLines(
++    buffer: []const u8,
++    literal: *const matcher_mod.Literal,
++    delimiter: u8,
++    comptime count_total: bool,
++) LineCounts {
+     if (buffer.len == 0) return .{ .matching = 0, .total = 0 };
+     if (literal.pattern.len == 0) {
+         if (literal.word) return countLiteralLinesFallback(buffer, literal, delimiter);
+@@ -2329,7 +2339,6 @@ fn countLiteralLines(buffer: []const u8, literal: *const matcher_mod.Literal, de
+     while (index + width + last_index <= buffer.len) : (index += width) {
+         const heads: *align(1) const Bytes = @ptrCast(buffer[index..].ptr);
+         const head_bytes = heads.*;
+-        const delimiter_mask: u32 = @bitCast(head_bytes == delimiters_vector);
+         const first_exact_mask: u32 = @bitCast(head_bytes == first_exact_vector);
+         const first_lower_mask: u32 = @bitCast(head_bytes == first_lower_vector);
+         const first_upper_mask: u32 = @bitCast(head_bytes == first_upper_vector);
+@@ -2348,12 +2357,27 @@ fn countLiteralLines(buffer: []const u8, literal: *const matcher_mod.Literal, de
+                 last_exact_mask;
+         }
+ 
++        // Non-inverted counts need no work for unmatched records. Keep a
++        // pending match until its delimiter, including across vector blocks.
++        if (!count_total and candidate_mask == 0 and !line_matched) continue;
++        const delimiter_mask: u32 = @bitCast(head_bytes == delimiters_vector);
++        // With no candidate in this block, only a pending match from the
++        // previous block can finish. Count all other delimiters in one step.
++        if (candidate_mask == 0) {
++            if (count_total) total += @popCount(delimiter_mask);
++            if (delimiter_mask != 0) {
++                matching += @intFromBool(line_matched);
++                line_matched = false;
++            }
++            continue;
++        }
++
+         var events = delimiter_mask | candidate_mask;
+         while (events != 0) {
+             const offset: u5 = @intCast(@ctz(events));
+             const bit = @as(u32, 1) << offset;
+             if (delimiter_mask & bit != 0) {
+-                total += 1;
++                if (count_total) total += 1;
+                 matching += @intFromBool(line_matched);
+                 line_matched = false;
+             } else if (!line_matched) {
+@@ -2367,7 +2391,7 @@ fn countLiteralLines(buffer: []const u8, literal: *const matcher_mod.Literal, de
+ 
+     while (index < buffer.len) : (index += 1) {
+         if (buffer[index] == delimiter) {
+-            total += 1;
++            if (count_total) total += 1;
+             matching += @intFromBool(line_matched);
+             line_matched = false;
+         } else if (!line_matched and index + literal.pattern.len <= buffer.len and
+@@ -2378,7 +2402,7 @@ fn countLiteralLines(buffer: []const u8, literal: *const matcher_mod.Literal, de
+         }
+     }
+     if (buffer[buffer.len - 1] != delimiter) {
+-        total += 1;
++        if (count_total) total += 1;
+         matching += @intFromBool(line_matched);
+     }
+     return .{ .matching = matching, .total = total };
+@@ -4546,6 +4570,43 @@ test "parallel NUL detection returns the first byte" {
+     try std.testing.expectEqual(null, try findNulParallel("text only"));
+ }
+ 
++test "literal vector count agrees with per-record matching across block boundaries" {
++    var prng = std.Random.DefaultPrng.init(711);
++    const random = prng.random();
++    const alphabet = "aAbB_x\n\x00";
++    const patterns = [_][]const u8{ "", "a", "Ab", "x_a", "absent", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" };
++    var storage: [289]u8 = undefined;
++    for (0..48) |sample| {
++        for (&storage) |*byte| byte.* = alphabet[random.uintLessThan(usize, alphabet.len)];
++        // Include a match at every alignment, followed by a delimiter in a
++        // later vector block, then consecutive empty records.
++        const start = sample % 32;
++        @memcpy(storage[start..][0..3], "x_a");
++        @memset(storage[start + 3 .. 96], 'b');
++        storage[96] = '\n';
++        storage[97] = '\n';
++        for ([_]usize{ 0, 1, 31, 32, 33, 63, 64, 95, 96, 97, 98, 128, 289 }) |len| {
++            for ([_]u8{ '\n', 0 }) |delimiter| {
++                for (patterns) |pattern| {
++                    for ([_]bool{ false, true }) |ignore_case| {
++                        for ([_]bool{ false, true }) |word| {
++                            const literal = matcher_mod.Literal.init(pattern, ignore_case, false, word);
++                            const expected = countLiteralLinesFallback(storage[0..len], &literal, delimiter);
++                            const actual = countLiteralLines(storage[0..len], &literal, delimiter, true);
++                            const matching_only = countLiteralLines(storage[0..len], &literal, delimiter, false);
++                            try std.testing.expectEqual(expected.total, actual.total);
++                            try std.testing.expectEqual(expected.matching, actual.matching);
++                            try std.testing.expectEqual(expected.matching, matching_only.matching);
++                            try std.testing.expectEqual(expected.matching, countLiteralSelected(storage[0..len], &literal, false, delimiter));
++                            try std.testing.expectEqual(expected.total - expected.matching, countLiteralSelected(storage[0..len], &literal, true, delimiter));
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
+ test "parallel ASCII detection rejects high bytes" {
+     try std.testing.expect(try isAsciiParallel("plain ASCII"));
+     try std.testing.expect(!(try isAsciiParallel("café")));

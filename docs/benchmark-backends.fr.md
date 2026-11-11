@@ -117,6 +117,18 @@ un profilage complet. [Sources, assembleur et mesures](benchmark-backends-2026-1
 
 ## Expérience 2 : candidat LLVM face à ripgrep et GNU grep
 
+**Précision de l'audit suivant :** cette capture passait `-a` à ripgrep seul.
+La détection binaire ajoutait donc du travail à `zgr` pour les sorties de
+lignes ; le chemin `-c` de `zgr` évite déjà cette préanalyse. Les données brutes
+restent inchangées. L'[audit des chemins lents](performance-audit.fr.md) présente
+les nouvelles mesures avec options équivalentes (`auto` ou `-a` pour tous).
+La section [Temps total et comparaison](performance-audit.fr.md#temps-total-et-comparaison)
+met côte à côte `zgr`, ripgrep et GNU grep, puis explique précisément les
+6,3 ms de comptage, 3,6 ms de détection binaire et 1 ms de numérotation mesurés
+en interne : ces chiffres ne sont pas les parts d'un même temps total.
+Le même rapport présente en tête la nouvelle optimisation du comptage
+adaptatif, ses résultats face à Rust/C et ses régressions secondaires mesurées.
+
 Cette deuxième mesure utilise les sources du dépôt avec les adaptations du
 benchmark et les métadonnées de compilation. Elle repose sur le même commit
 de base, avec des changements locaux ; les empreintes des entrées de compilation

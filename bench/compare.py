@@ -17,12 +17,13 @@ import time
 
 
 # Same search semantics on the generated ASCII corpus. rg needs --include-zero
-# to print the zero count for the miss, and -a to avoid binary heuristics.
+# to print the zero count for the miss. Binary handling must match for all tools.
 CASES = [
     ("literal miss", ["-F", "-c", "not-present-anywhere"], ["--include-zero"]),
     ("rare literal", ["-F", "-c", "rare-needle"], []),
     ("case insensitive", ["-F", "-i", "-c", "RARE-NEEDLE"], []),
     ("word literal", ["-F", "-w", "-c", "rare-needle"], []),
+    ("dense literal", ["-F", "-c", "INFO"], []),
     ("dense regex", ["-E", "-c", "status=(200|500)"], []),
     ("regex suffix", ["-E", "-c", "[a-z]+-needle"], []),
     ("alternation", ["-E", "-c", "rare-needle|status=500|route=/api/item/42|latency_us=999"], []),
@@ -103,6 +104,7 @@ def compare(args):
         "corpus": {"path": str(corpus), "bytes": corpus.stat().st_size, "sha256": sha256(corpus)},
         "tools": metadata, "locale": args.locale, "repeats": args.repeats, "warmups": 2,
         "seed": args.seed, "clock": "perf_counter_ns", "cache": "warm",
+        "input_mode": args.input_mode,
         "sink": "regular temporary file, no fsync", "includes_process_startup": True,
         "exploratory_override": os.environ.get("BENCH_ALLOW_UNOPTIMIZED") == "1",
         "checks": 0, "cases": [],
@@ -116,8 +118,9 @@ def compare(args):
         with tempfile.TemporaryDirectory(prefix="zgrep-compare-") as temporary:
             sink = Path(temporary) / "output"
             for name, flags, rg_extra in CASES:
-                commands = {tool: [binary, *flags, str(corpus)] for tool, binary in tools.items()}
-                commands["ripgrep"] = [tools["ripgrep"], "--no-config", "--color=never", "-a",
+                input_flags = ["-a"] if args.input_mode == "text" else []
+                commands = {tool: [binary, *input_flags, *flags, str(corpus)] for tool, binary in tools.items()}
+                commands["ripgrep"] = [tools["ripgrep"], "--no-config", "--color=never", *input_flags,
                                        *rg_extra, *(flag for flag in flags if flag != "-E"), str(corpus)]
                 _, expected = measure(commands["grep"], sink, env)
                 samples = {tool: [] for tool in tools}
@@ -184,4 +187,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=711)
     parser.add_argument("--cpu", type=int, help="pin all processes to one logical CPU")
     parser.add_argument("--locale", default="C")
+    parser.add_argument("--input-mode", choices=("auto", "text"), default="auto",
+                        help="binary detection for all tools (auto), or -a for all tools (text)")
     compare(parser.parse_args())

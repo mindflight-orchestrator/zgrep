@@ -1,0 +1,31 @@
+{
+  "commit": "0201712675658054ff7cf3a18bec61331bb43a5e",
+  "reference": "docs/benchmark-backends-2026-11-11/comparison-llvm-rust-c.json",
+  "binaries": {
+    "zgr": {
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr",
+      "sha256": "eb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c",
+      "version": "zgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake"
+    },
+    "zgrc": {
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc",
+      "sha256": "657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd",
+      "version": "zgrc 0.4.1 (Zig 0.16.0)\nzgrc -P uses PCRE2 10.42 2022-12-11\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake"
+    },
+    "ripgrep": {
+      "path": "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+      "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+      "version": "ripgrep 15.2.0 (rev e89fff89ac)\n\nfeatures:+pcre2\nsimd(compile):+SSE2,-SSSE3,-AVX2\nsimd(runtime):+SSE2,+SSSE3,+AVX2\n\nPCRE2 10.45 is available (JIT is available)"
+    },
+    "grep": {
+      "path": "/usr/bin/grep",
+      "sha256": "20a35a4c18f2fe9e6305c1cbf866b9c0fcc3f957132ae66028c99ec353bb0a80",
+      "version": "grep (GNU grep) 3.11\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Mike Haertel and others; see\n<https://git.savannah.gnu.org/cgit/grep.git/tree/AUTHORS>.\n\ngrep -P uses PCRE2 10.42 2022-12-11"
+    }
+  },
+  "corpus": {
+    "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/corpus.txt",
+    "bytes": 93789827,
+    "sha256": "da9fd9c2df9698ffcbeac1693c0fdf72b9357ff50fc0234c4e1d1f3f13797a3b"
+  }
+}

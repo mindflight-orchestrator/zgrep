@@ -1,0 +1,1685 @@
+{
+  "status": "passed",
+  "created_utc": "2026-11-11T17:18:07.874641+00:00",
+  "source_commit": "0201712675658054ff7cf3a18bec61331bb43a5e",
+  "source_changes": "M .github/workflows/ci.yml\n M README.fr.md\n M README.md\n M bench/compare.py\n M build.zig\n M docs/README.md\n M docs/benchmark-backends.fr.md\n M docs/benchmark-backends.md",
+  "source_inputs_sha256": {
+    "build.zig": "95ffb3d96012ccbaad1a2a5ab54932c7a28694d7ae5b09ac610ba842d7603d4d",
+    "build.zig.zon": "18f27dd869251a28b2093db68bd50bb96cbc1a20d3e97415aef50e170f13cc70",
+    "include/zgrep_gnu.h": "13ec75ab00f63e14c79b030f8e9f6a68886293dc2ce59281c4f409e69a940dc2",
+    "include/zgrep_pcre2.h": "42ebe5e459dab1b0bb308be481bae0180b80bba0f3746a839bf1f0d11cb7080e",
+    "src/engine_zpcre2.zig": "29ea32dfa14b9f57c58621915bf030a815db1c46c1401032a615be7a9f5baea1",
+    "src/filter.zig": "1039d10d72f743b6ee665b25a34785f57ccdcafed3ce7c1ad7a69185b172a48e",
+    "src/gnu_regex.c": "32ba9931ca2b79fddb4b58ab0309ad4164017198399383c6171a6c1096b0058e",
+    "src/locale.zig": "752576c0c23cf76a2ad1124ee377106ea3739f6bd94db50cd6fcb9731ae6d556",
+    "src/main.zig": "d8d929df8d5c05a3d9a90d8861869b1f33d7f4e28be075262bb5cb5d73f9ba54",
+    "src/matcher.zig": "062ac9736005c6068e00ab24913a80e121e03a146bb45ca27d62d827281f8d2a",
+    "src/options.zig": "eb5efae165e46563eba9acb15943dc17dd83a230c7f4f1598aae3a849c85552c",
+    "src/pcre2_shim.c": "67fac9b2d30196d51b4c972ef7ca02d56ee05c959971d9db3c1c00171e1c9380",
+    "src/root.zig": "f6cfdc420b997bbdcce1889965533b1516d497db4b952f403ada25053bc5809d",
+    "src/scanner.zig": "e9e2d9fde506807f5414a0fdda4fd5cfc52aca062f738dfabb6b3164ddbffc57"
+  },
+  "runner_sha256": "3726c4f4a5515913bf2ae9bb9444efc3855205d87891b03fe9ff257f14442379",
+  "platform": "Linux-6.8.0-149-generic-x86_64-with-glibc2.39",
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "cpu_model": "13th Gen Intel(R) Core(TM) i9-13900KF",
+  "corpus": {
+    "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt",
+    "bytes": 9378980,
+    "sha256": "1dcecb7edb774134592782760c18b6d8f09fc91b2cc9f6463bfd85cc77b75c45"
+  },
+  "tools": {
+    "zgr": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+      "sha256": "eb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c",
+      "version": "zgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake"
+    },
+    "zgrc": {
+      "path": "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+      "sha256": "657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd",
+      "version": "zgrc 0.4.1 (Zig 0.16.0)\nzgrc -P uses PCRE2 10.42 2022-12-11\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake"
+    },
+    "ripgrep": {
+      "path": "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+      "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+      "version": "ripgrep 15.2.0 (rev e89fff89ac)\n\nfeatures:+pcre2\nsimd(compile):+SSE2,-SSSE3,-AVX2\nsimd(runtime):+SSE2,+SSSE3,+AVX2\n\nPCRE2 10.45 is available (JIT is available)"
+    },
+    "grep": {
+      "path": "/usr/bin/grep",
+      "sha256": "20a35a4c18f2fe9e6305c1cbf866b9c0fcc3f957132ae66028c99ec353bb0a80",
+      "version": "grep (GNU grep) 3.11\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Mike Haertel and others; see\n<https://git.savannah.gnu.org/cgit/grep.git/tree/AUTHORS>.\n\ngrep -P uses PCRE2 10.42 2022-12-11"
+    }
+  },
+  "locale": "C",
+  "repeats": 3,
+  "warmups": 2,
+  "seed": 711,
+  "clock": "perf_counter_ns",
+  "cache": "warm",
+  "input_mode": "text",
+  "sink": "regular temporary file, no fsync",
+  "includes_process_startup": true,
+  "exploratory_override": false,
+  "checks": 260,
+  "cases": [
+    {
+      "name": "literal miss",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-c",
+          "not-present-anywhere",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-c",
+          "not-present-anywhere",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "--include-zero",
+          "-F",
+          "-c",
+          "not-present-anywhere",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-c",
+          "not-present-anywhere",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 1,
+        "bytes": 2,
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "orders": [
+        [
+          "zgr",
+          "ripgrep",
+          "zgrc",
+          "grep"
+        ],
+        [
+          "grep",
+          "zgrc",
+          "zgr",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "zgr",
+          "zgrc"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          2.0924,
+          1.932908,
+          1.819192
+        ],
+        "zgrc": [
+          2.024974,
+          2.076742,
+          1.959116
+        ],
+        "ripgrep": [
+          2.539998,
+          2.198942,
+          2.161103
+        ],
+        "grep": [
+          3.912518,
+          3.744332,
+          3.931081
+        ]
+      },
+      "median_ms": {
+        "zgr": 1.932908,
+        "zgrc": 2.024974,
+        "ripgrep": 2.198942,
+        "grep": 3.912518
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.1879466268541201,
+          "bootstrap_95_percent": [
+            1.1376340725994203,
+            1.2139160772318869
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 1.9371496211925243,
+          "bootstrap_95_percent": [
+            1.8698709615752245,
+            2.1608939573173145
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.1031010925335714,
+          "bootstrap_95_percent": [
+            1.0588421672022814,
+            1.2543361050561639
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 1.9321324619476596,
+          "bootstrap_95_percent": [
+            1.8029837119873342,
+            2.0065585702939486
+          ]
+        }
+      }
+    },
+    {
+      "name": "rare literal",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 4,
+        "sha256": "eea8254c7500ba3de996aa8ad6af399183f04e17d4a8102fde539dbc93a90012"
+      },
+      "orders": [
+        [
+          "zgr",
+          "zgrc",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "ripgrep",
+          "zgr",
+          "zgrc"
+        ],
+        [
+          "ripgrep",
+          "zgrc",
+          "zgr",
+          "grep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          2.195064,
+          2.065107,
+          1.460138
+        ],
+        "zgrc": [
+          2.168453,
+          2.14124,
+          1.937897
+        ],
+        "ripgrep": [
+          2.841989,
+          2.448284,
+          2.183831
+        ],
+        "grep": [
+          5.651456,
+          4.562777,
+          5.192106
+        ]
+      },
+      "median_ms": {
+        "zgr": 2.065107,
+        "zgrc": 2.14124,
+        "ripgrep": 2.448284,
+        "grep": 5.192106
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.294718058334518,
+          "bootstrap_95_percent": [
+            1.185548254884614,
+            1.495633289456202
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.574620147749678,
+          "bootstrap_95_percent": [
+            2.2094627542301684,
+            3.5559008806016967
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.1433954157404123,
+          "bootstrap_95_percent": [
+            1.126907673627649,
+            1.3106066859646024
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.606215583183034,
+          "bootstrap_95_percent": [
+            2.130904055593955,
+            2.679247658673294
+          ]
+        }
+      }
+    },
+    {
+      "name": "case insensitive",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-i",
+          "-c",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-i",
+          "-c",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-i",
+          "-c",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-i",
+          "-c",
+          "RARE-NEEDLE",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 4,
+        "sha256": "eea8254c7500ba3de996aa8ad6af399183f04e17d4a8102fde539dbc93a90012"
+      },
+      "orders": [
+        [
+          "zgrc",
+          "zgr",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "grep",
+          "zgr",
+          "ripgrep",
+          "zgrc"
+        ],
+        [
+          "ripgrep",
+          "zgr",
+          "grep",
+          "zgrc"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          1.999057,
+          2.101616,
+          2.103422
+        ],
+        "zgrc": [
+          1.774979,
+          2.170277,
+          2.350935
+        ],
+        "ripgrep": [
+          3.811496,
+          2.293792,
+          3.882892
+        ],
+        "grep": [
+          5.069236,
+          5.147004,
+          4.659321
+        ]
+      },
+      "median_ms": {
+        "zgr": 2.101616,
+        "zgrc": 2.170277,
+        "ripgrep": 3.811496,
+        "grep": 5.069236
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.845988108900639,
+          "bootstrap_95_percent": [
+            1.0914420141453052,
+            1.906646984052981
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.4490696682933515,
+          "bootstrap_95_percent": [
+            2.215114703564002,
+            2.535813636129435
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.6516373272761686,
+          "bootstrap_95_percent": [
+            1.0569120900235314,
+            2.147347095374086
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.3715885115125857,
+          "bootstrap_95_percent": [
+            1.9819012435477799,
+            2.8559413942362135
+          ]
+        }
+      }
+    },
+    {
+      "name": "word literal",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-w",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-w",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-w",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-w",
+          "-c",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 4,
+        "sha256": "eea8254c7500ba3de996aa8ad6af399183f04e17d4a8102fde539dbc93a90012"
+      },
+      "orders": [
+        [
+          "grep",
+          "zgrc",
+          "zgr",
+          "ripgrep"
+        ],
+        [
+          "zgr",
+          "ripgrep",
+          "zgrc",
+          "grep"
+        ],
+        [
+          "zgr",
+          "ripgrep",
+          "grep",
+          "zgrc"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          1.941294,
+          1.739865,
+          1.837493
+        ],
+        "zgrc": [
+          2.47485,
+          2.046451,
+          1.652105
+        ],
+        "ripgrep": [
+          2.331977,
+          2.072315,
+          2.320821
+        ],
+        "grep": [
+          5.460163,
+          5.118437,
+          5.247748
+        ]
+      },
+      "median_ms": {
+        "zgr": 1.837493,
+        "zgrc": 2.046451,
+        "ripgrep": 2.320821,
+        "grep": 5.247748
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.2012487546966095,
+          "bootstrap_95_percent": [
+            1.191078043411414,
+            1.2630366483028779
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.855928158637883,
+          "bootstrap_95_percent": [
+            2.8126409497994636,
+            2.94185870742845
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.0126384653236262,
+          "bootstrap_95_percent": [
+            0.9422700365678729,
+            1.4047660408993377
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.5011285391147897,
+          "bootstrap_95_percent": [
+            2.206260177384488,
+            3.1764010156739433
+          ]
+        }
+      }
+    },
+    {
+      "name": "dense literal",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-c",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 7,
+        "sha256": "b80500a01f984c764f1a3b486622d0ef7cc5b13fa9bd57ec9015113eaf875597"
+      },
+      "orders": [
+        [
+          "zgr",
+          "ripgrep",
+          "grep",
+          "zgrc"
+        ],
+        [
+          "zgrc",
+          "ripgrep",
+          "zgr",
+          "grep"
+        ],
+        [
+          "grep",
+          "zgr",
+          "ripgrep",
+          "zgrc"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          2.578061,
+          2.42273,
+          2.405966
+        ],
+        "zgrc": [
+          2.60622,
+          2.183896,
+          2.469121
+        ],
+        "ripgrep": [
+          3.551082,
+          3.859048,
+          3.711022
+        ],
+        "grep": [
+          5.207516,
+          3.398229,
+          5.171134
+        ]
+      },
+      "median_ms": {
+        "zgr": 2.42273,
+        "zgrc": 2.469121,
+        "ripgrep": 3.711022,
+        "grep": 5.171134
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.5424249552986202,
+          "bootstrap_95_percent": [
+            1.3774235753149364,
+            1.5928510399425442
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.0199351372989236,
+          "bootstrap_95_percent": [
+            1.402644537360746,
+            2.149296374096725
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.5029729203226574,
+          "bootstrap_95_percent": [
+            1.3625411515528236,
+            1.767047515083136
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 1.9981106736960041,
+          "bootstrap_95_percent": [
+            1.5560397564719202,
+            2.094321825459344
+          ]
+        }
+      }
+    },
+    {
+      "name": "dense regex",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-E",
+          "-c",
+          "status=(200|500)",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-E",
+          "-c",
+          "status=(200|500)",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-c",
+          "status=(200|500)",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-E",
+          "-c",
+          "status=(200|500)",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 7,
+        "sha256": "b80500a01f984c764f1a3b486622d0ef7cc5b13fa9bd57ec9015113eaf875597"
+      },
+      "orders": [
+        [
+          "zgr",
+          "zgrc",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "zgrc",
+          "zgr",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "zgrc",
+          "zgr",
+          "ripgrep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          3.675919,
+          3.544007,
+          3.236039
+        ],
+        "zgrc": [
+          3.010154,
+          3.070131,
+          3.574964
+        ],
+        "ripgrep": [
+          5.570954,
+          5.498556,
+          6.569475
+        ],
+        "grep": [
+          8.050351,
+          9.74075,
+          9.36968
+        ]
+      },
+      "median_ms": {
+        "zgr": 3.544007,
+        "zgrc": 3.070131,
+        "ripgrep": 5.570954,
+        "grep": 9.36968
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.551508222190306,
+          "bootstrap_95_percent": [
+            1.515526865526689,
+            2.030097597711276
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.748513194245948,
+          "bootstrap_95_percent": [
+            2.1900240456876223,
+            2.8954162789756244
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.8376338894601456,
+          "bootstrap_95_percent": [
+            1.790984163216488,
+            1.8507205943616176
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.674398386261965,
+          "bootstrap_95_percent": [
+            2.6209159029293723,
+            3.1727473518230984
+          ]
+        }
+      }
+    },
+    {
+      "name": "regex suffix",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-E",
+          "-c",
+          "[a-z]+-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-E",
+          "-c",
+          "[a-z]+-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-c",
+          "[a-z]+-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-E",
+          "-c",
+          "[a-z]+-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 4,
+        "sha256": "eea8254c7500ba3de996aa8ad6af399183f04e17d4a8102fde539dbc93a90012"
+      },
+      "orders": [
+        [
+          "ripgrep",
+          "grep",
+          "zgrc",
+          "zgr"
+        ],
+        [
+          "ripgrep",
+          "zgrc",
+          "grep",
+          "zgr"
+        ],
+        [
+          "zgr",
+          "grep",
+          "zgrc",
+          "ripgrep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          1.677271,
+          1.878003,
+          1.969571
+        ],
+        "zgrc": [
+          1.739375,
+          1.675317,
+          1.808515
+        ],
+        "ripgrep": [
+          2.521826,
+          2.611952,
+          1.961667
+        ],
+        "grep": [
+          5.596117,
+          5.604674,
+          4.174474
+        ]
+      },
+      "median_ms": {
+        "zgr": 1.878003,
+        "zgrc": 1.739375,
+        "ripgrep": 2.521826,
+        "grep": 5.596117
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.3908135397014807,
+          "bootstrap_95_percent": [
+            0.9959869433495924,
+            1.5035292448268647
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.9843796841645087,
+          "bootstrap_95_percent": [
+            2.119483887608012,
+            3.336441755685277
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.4498460653970535,
+          "bootstrap_95_percent": [
+            1.0846838428213201,
+            1.5590792667895093
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 3.217314840100611,
+          "bootstrap_95_percent": [
+            2.308232997791005,
+            3.3454408926788184
+          ]
+        }
+      }
+    },
+    {
+      "name": "alternation",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-E",
+          "-c",
+          "rare-needle|status=500|route=/api/item/42|latency_us=999",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-E",
+          "-c",
+          "rare-needle|status=500|route=/api/item/42|latency_us=999",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-c",
+          "rare-needle|status=500|route=/api/item/42|latency_us=999",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-E",
+          "-c",
+          "rare-needle|status=500|route=/api/item/42|latency_us=999",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 5,
+        "sha256": "24a049c4e5c9cff1764c312b2e0fa59a02af235b37809180b3f2c7b2ec3dbdfd"
+      },
+      "orders": [
+        [
+          "zgr",
+          "grep",
+          "zgrc",
+          "ripgrep"
+        ],
+        [
+          "grep",
+          "zgr",
+          "ripgrep",
+          "zgrc"
+        ],
+        [
+          "zgr",
+          "ripgrep",
+          "zgrc",
+          "grep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          4.547964,
+          3.77058,
+          3.367103
+        ],
+        "zgrc": [
+          4.096298,
+          4.368753,
+          2.675835
+        ],
+        "ripgrep": [
+          5.518408,
+          5.218587,
+          5.223258
+        ],
+        "grep": [
+          12.543125,
+          12.067384,
+          11.625697
+        ]
+      },
+      "median_ms": {
+        "zgr": 3.77058,
+        "zgrc": 4.096298,
+        "ripgrep": 5.223258,
+        "grep": 12.067384
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.3840276562226503,
+          "bootstrap_95_percent": [
+            1.2133798772373747,
+            1.5512617226143661
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 3.200405242694758,
+          "bootstrap_95_percent": [
+            2.7579648827475327,
+            3.452729839271326
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.3471695662766723,
+          "bootstrap_95_percent": [
+            1.1945255316562873,
+            1.9520104939205893
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 3.062063599865049,
+          "bootstrap_95_percent": [
+            2.762203310647226,
+            4.344698757584081
+          ]
+        }
+      }
+    },
+    {
+      "name": "regex no literal",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-E",
+          "-c",
+          "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-E",
+          "-c",
+          "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-c",
+          "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-E",
+          "-c",
+          "[[:alnum:]_]{4}[[:space:]]+[[:alnum:]_]{7}",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 7,
+        "sha256": "b80500a01f984c764f1a3b486622d0ef7cc5b13fa9bd57ec9015113eaf875597"
+      },
+      "orders": [
+        [
+          "ripgrep",
+          "zgr",
+          "zgrc",
+          "grep"
+        ],
+        [
+          "grep",
+          "zgrc",
+          "zgr",
+          "ripgrep"
+        ],
+        [
+          "ripgrep",
+          "zgr",
+          "grep",
+          "zgrc"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          3.371001,
+          3.019242,
+          3.420667
+        ],
+        "zgrc": [
+          2.851508,
+          3.09677,
+          3.000182
+        ],
+        "ripgrep": [
+          7.851068,
+          7.721675,
+          7.824798
+        ],
+        "grep": [
+          7.682801,
+          7.948261,
+          7.77451
+        ]
+      },
+      "median_ms": {
+        "zgr": 3.371001,
+        "zgrc": 3.000182,
+        "ripgrep": 7.824798,
+        "grep": 7.77451
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 2.3290019789374132,
+          "bootstrap_95_percent": [
+            2.287506500925112,
+            2.5574879390257554
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.279085945094647,
+          "bootstrap_95_percent": [
+            2.2728052745268688,
+            2.632535252225558
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 2.6081077747949957,
+          "bootstrap_95_percent": [
+            2.493460928645008,
+            2.753303865884297
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.59134612500175,
+          "bootstrap_95_percent": [
+            2.566629423560678,
+            2.6942940366991786
+          ]
+        }
+      }
+    },
+    {
+      "name": "sparse numbered",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-n",
+          "rare-needle",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 11161,
+        "sha256": "17e7117b6c4f2af565f347e6aa899a78ba751b2b635869348fd44693efdadffa"
+      },
+      "orders": [
+        [
+          "zgrc",
+          "grep",
+          "ripgrep",
+          "zgr"
+        ],
+        [
+          "zgr",
+          "zgrc",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "zgr",
+          "grep",
+          "zgrc",
+          "ripgrep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          2.142362,
+          1.931524,
+          2.213874
+        ],
+        "zgrc": [
+          2.504397,
+          2.299729,
+          2.529501
+        ],
+        "ripgrep": [
+          2.477469,
+          3.320933,
+          2.955064
+        ],
+        "grep": [
+          6.203938,
+          5.099083,
+          6.241116
+        ]
+      },
+      "median_ms": {
+        "zgr": 2.142362,
+        "zgrc": 2.504397,
+        "ripgrep": 2.955064,
+        "grep": 6.203938
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.3347932176808617,
+          "bootstrap_95_percent": [
+            1.1564194099783325,
+            1.7193330240783962
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 2.819092685491586,
+          "bootstrap_95_percent": [
+            2.6399273319927685,
+            2.895840198808605
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.1682399018620668,
+          "bootstrap_95_percent": [
+            0.9892477111256722,
+            1.444054060282755
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 2.467330908349117,
+          "bootstrap_95_percent": [
+            2.2172538590416524,
+            2.4772182685093456
+          ]
+        }
+      }
+    },
+    {
+      "name": "dense numbered",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "-n",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 9967875,
+        "sha256": "4e870a7685712b726f78a55891ea5c3469abefe50aee0c1db3bc309ad7919189"
+      },
+      "orders": [
+        [
+          "ripgrep",
+          "zgr",
+          "grep",
+          "zgrc"
+        ],
+        [
+          "zgr",
+          "zgrc",
+          "grep",
+          "ripgrep"
+        ],
+        [
+          "zgr",
+          "ripgrep",
+          "zgrc",
+          "grep"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          9.457818,
+          6.274337,
+          7.560594
+        ],
+        "zgrc": [
+          7.755887,
+          7.301259,
+          9.797846
+        ],
+        "ripgrep": [
+          21.867136,
+          19.551775,
+          18.930524
+        ],
+        "grep": [
+          10.900123,
+          16.466348,
+          10.940241
+        ]
+      },
+      "median_ms": {
+        "zgr": 7.560594,
+        "zgrc": 7.755887,
+        "ripgrep": 19.551775,
+        "grep": 10.940241
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 2.5038408357861828,
+          "bootstrap_95_percent": [
+            2.312069866432194,
+            3.1161499613425288
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 1.4470081319007475,
+          "bootstrap_95_percent": [
+            1.1524987053039084,
+            2.624396490019583
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 2.6778635027191884,
+          "bootstrap_95_percent": [
+            1.9321107925150078,
+            2.8194242644329393
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 1.4053999239545394,
+          "bootstrap_95_percent": [
+            1.1165965458122122,
+            2.2552751518607956
+          ]
+        }
+      }
+    },
+    {
+      "name": "dense plain",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-F",
+          "INFO",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 9378980,
+        "sha256": "1dcecb7edb774134592782760c18b6d8f09fc91b2cc9f6463bfd85cc77b75c45"
+      },
+      "orders": [
+        [
+          "zgrc",
+          "ripgrep",
+          "zgr",
+          "grep"
+        ],
+        [
+          "zgrc",
+          "ripgrep",
+          "zgr",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "grep",
+          "zgrc",
+          "zgr"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          8.497386,
+          6.454268,
+          7.127559
+        ],
+        "zgrc": [
+          7.392228,
+          6.798603,
+          6.879205
+        ],
+        "ripgrep": [
+          14.952382,
+          11.106817,
+          11.759574
+        ],
+        "grep": [
+          12.146806,
+          8.646026,
+          8.435288
+        ]
+      },
+      "median_ms": {
+        "zgr": 7.127559,
+        "zgrc": 6.879205,
+        "ripgrep": 11.759574,
+        "grep": 8.646026
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.720848437034223,
+          "bootstrap_95_percent": [
+            1.6498739610573552,
+            1.7596449072691296
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 1.3395827381199543,
+          "bootstrap_95_percent": [
+            1.1834750157802973,
+            1.4294756057921811
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.7094379365057446,
+          "bootstrap_95_percent": [
+            1.6336910685915915,
+            2.022716561231607
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 1.271735678638685,
+          "bootstrap_95_percent": [
+            1.2262009927019184,
+            1.643186059737335
+          ]
+        }
+      }
+    },
+    {
+      "name": "regex output",
+      "commands": {
+        "zgr": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgr",
+          "-a",
+          "-E",
+          "-n",
+          "route=/api/item/[[:digit:]]+[[:space:]]+status=500",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "zgrc": [
+          "/tmp/zgrep-literal-audit-y9mpgnj5/retained/bin/zgrc",
+          "-a",
+          "-E",
+          "-n",
+          "route=/api/item/[[:digit:]]+[[:space:]]+status=500",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "ripgrep": [
+          "/home/dlamotte/.codex/packages/app-server-daemon/releases/local-512b5fdab72ca74e83d48898db5bcfd3d1d3fa1e6a511548ced919f911a66d27-x86_64-unknown-linux-musl/codex-path/rg",
+          "--no-config",
+          "--color=never",
+          "-a",
+          "-n",
+          "route=/api/item/[[:digit:]]+[[:space:]]+status=500",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ],
+        "grep": [
+          "/usr/bin/grep",
+          "-a",
+          "-E",
+          "-n",
+          "route=/api/item/[[:digit:]]+[[:space:]]+status=500",
+          "/tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt"
+        ]
+      },
+      "expected": {
+        "status": 0,
+        "bytes": 586404,
+        "sha256": "75dbddfbec1fd72bd2e5b7f9efc465177da26801a91493c14b947bdbde75ffb9"
+      },
+      "orders": [
+        [
+          "zgrc",
+          "zgr",
+          "ripgrep",
+          "grep"
+        ],
+        [
+          "zgr",
+          "ripgrep",
+          "zgrc",
+          "grep"
+        ],
+        [
+          "ripgrep",
+          "zgrc",
+          "grep",
+          "zgr"
+        ]
+      ],
+      "samples_ms": {
+        "zgr": [
+          4.202444,
+          4.075443,
+          4.11084
+        ],
+        "zgrc": [
+          4.742211,
+          5.469389,
+          3.724314
+        ],
+        "ripgrep": [
+          7.917685,
+          7.291183,
+          7.056514
+        ],
+        "grep": [
+          14.479279,
+          14.246052,
+          13.574442
+        ]
+      },
+      "median_ms": {
+        "zgr": 4.11084,
+        "zgrc": 4.742211,
+        "ripgrep": 7.291183,
+        "grep": 14.246052
+      },
+      "speedup": {
+        "zgr_vs_ripgrep": {
+          "median_paired_ratio": 1.7890528710621152,
+          "bootstrap_95_percent": [
+            1.7165625516925982,
+            1.8840667478257889
+          ]
+        },
+        "zgr_vs_grep": {
+          "median_paired_ratio": 3.4454424615771204,
+          "bootstrap_95_percent": [
+            3.302109058002744,
+            3.4955836702905674
+          ]
+        },
+        "zgrc_vs_ripgrep": {
+          "median_paired_ratio": 1.669618876089655,
+          "bootstrap_95_percent": [
+            1.3330891256774753,
+            1.8947151072653916
+          ]
+        },
+        "zgrc_vs_grep": {
+          "median_paired_ratio": 3.0532759929914546,
+          "bootstrap_95_percent": [
+            2.604688019082205,
+            3.644816736719836
+          ]
+        }
+      }
+    }
+  ]
+}

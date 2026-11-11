@@ -1,0 +1,12 @@
+nul prescan {'candidate': 6.693705, 'baseline': 6.695945}
+ascii prescan {'candidate': 6.76003, 'baseline': 6.765102}
+newline count {'candidate': 6.314272, 'baseline': 6.282015}
+literal occurrences {'candidate': 7.774247, 'baseline': 7.734315}
+literal line count {'candidate': 9.804355, 'baseline': 12.278974}
+literal scan count {'candidate': 5.715945, 'baseline': 5.736027}
+sparse plain formatting {'candidate': 8.097726, 'baseline': 7.74399}
+sparse numbered formatting {'candidate': 9.828992, 'baseline': 11.729195}
+absent line count {'candidate': 7.85719, 'baseline': 12.34322}
+word line count {'candidate': 10.70397, 'baseline': 12.319274}
+case-insensitive line count {'candidate': 9.733409, 'baseline': 12.629357}
+dense line count {'candidate': 14.223676, 'baseline': 14.147566}

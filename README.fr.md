@@ -283,7 +283,10 @@ chronomètrent toujours `zgr` et `zgrc` ; les deux binaires sont requis.
 La recherche sur les backends Zig et la comparaison LLVM / ripgrep (Rust) /
 GNU grep (C) du 11 novembre 2026 sont dans
 [docs/benchmark-backends.fr.md](docs/benchmark-backends.fr.md), avec les
-échantillons, commandes, versions et empreintes des exécutables.
+échantillons, commandes, versions et empreintes des exécutables. L'[audit des
+chemins plus lents que ripgrep](docs/performance-audit.fr.md) complète cette
+recherche avec les temps totaux comparés, des mesures internes et une
+optimisation du comptage adaptatif retenue localement, avec ses gains et limites.
 
 L'[index de documentation](docs/README.md) donne accès au rapport et aux données
 actuels. Les anciennes comparaisons, résultats de tests et scripts d'expérience
@@ -310,6 +313,25 @@ pour fixer un cœur disponible, et `--zgr`, `--zgrc`, `--rg` ou `--grep` pour
 choisir les exécutables. Le fichier JSON doit être nouveau. Le corpus doit être
 celui de `bench/generate.sh` en mode newline ; les autres profils restent dans
 les scripts ci-dessous.
+
+Le mode par défaut conserve la détection binaire pour tous les outils.
+`--input-mode text` ajoute `-a` à tous les outils pour isoler la recherche sur
+du texte connu. Le protocole ancien ajoutait `-a` à ripgrep seulement ; ses
+mesures de sortie incluaient donc un travail différent de détection binaire.
+
+Pour mesurer les fonctions internes sur le corpus déjà en mémoire :
+
+```sh
+zig build bench-internal -Doptimize=ReleaseFast -Dllvm=true
+python3 bench/internal.py --library zig-out/lib/libzgrep-internal-bench.so \
+  --corpus /tmp/zgrep-comparison.txt --cpu 2 --repeats 25 \
+  --output /tmp/zgrep-internal.json
+```
+
+Ces mesures excluent le lancement des processus et les E/S fichier. Elles
+isolent la détection NUL/ASCII, la recherche, le comptage et le formatage ; elles
+complètent la comparaison des exécutables. `--baseline-library` permet une
+comparaison appariée avec une bibliothèque de référence préservée.
 
 ### Corpus généré
 

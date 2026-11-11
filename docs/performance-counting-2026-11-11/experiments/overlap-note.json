@@ -1,0 +1,8 @@
+{
+  "files": [
+    "candidate1-full.json",
+    "candidate1-micro.json"
+  ],
+  "qualification": "do not use as final performance evidence",
+  "reason": "micro benchmark started while full benchmark was still running; late full rows and micro samples may overlap. Repeat sequentially."
+}

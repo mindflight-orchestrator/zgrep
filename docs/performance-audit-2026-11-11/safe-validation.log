@@ -1,0 +1,5 @@
+Build Summary: 3/3 steps succeeded; 42/42 tests passed
+test-zpcre2 success
++- run test 42 pass (42 total) 37ms MaxRSS:7M
+   +- compile test ReleaseSafe native success 11s MaxRSS:601M
+

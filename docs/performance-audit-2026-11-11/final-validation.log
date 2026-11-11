@@ -1,0 +1,33 @@
+zgrc differential tests passed
+zgrc UTF-8 locale differentials passed (141 cases across 3 locales)
+zgrc streaming differentials passed
+zgrc regex semantics differentials passed (59 cases)
+zgrc seeded regex differentials passed (3072 checks, seed 1592594996)
+Build Summary: 20/20 steps succeeded; 84/84 tests passed
+test success
++- run test 42 pass (42 total) 18ms MaxRSS:7M
+|  +- compile test ReleaseFast native success 10s MaxRSS:519M
+|     +- translate-c cached 17ms MaxRSS:36M
++- run test 42 pass (42 total) 21ms MaxRSS:7M
+|  +- compile test ReleaseFast native success 11s MaxRSS:567M
++- run bash success 811ms
+|  +- compile exe zgrc ReleaseFast native success 4s MaxRSS:277M
+|     +- translate-c (reused)
++- run python3 success 48s
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 421ms
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 614ms
+   +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
+test-fuzz success
++- run bash success 16s
+   +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
+bench-internal success
++- install zgrep-internal-bench success
+   +- compile lib zgrep-internal-bench ReleaseFast native success 1s MaxRSS:178M
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- install zgr success
+   +- compile exe zgr ReleaseFast native success 5s MaxRSS:304M
+

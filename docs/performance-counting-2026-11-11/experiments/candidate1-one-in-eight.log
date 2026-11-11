@@ -1,0 +1,8 @@
+literal miss {'baseline': 5.037941, 'candidate': 3.456614, 'ripgrep': 4.964031, 'grep': 8.394157} {'median_paired_ratio': 1.4613341264023116, 'bootstrap95': [1.1745808690712516, 1.493092218936472]}
+rare literal {'baseline': 5.204618, 'candidate': 5.192177, 'ripgrep': 5.649925, 'grep': 5.378576} {'median_paired_ratio': 0.9992593745005556, 'bootstrap95': [0.9833366522987583, 1.0237158453893418]}
+case insensitive {'baseline': 5.831216, 'candidate': 5.510695, 'ripgrep': 8.084374, 'grep': 7.124111} {'median_paired_ratio': 1.0433906906447918, 'bootstrap95': [1.0198375903128507, 1.0929191924635493]}
+word literal {'baseline': 5.641662, 'candidate': 5.406379, 'ripgrep': 6.848735, 'grep': 6.229826} {'median_paired_ratio': 1.013873686058203, 'bootstrap95': [0.924410183899626, 1.095895981866825]}
+dense literal {'baseline': 5.736778, 'candidate': 5.768225, 'ripgrep': 10.484779, 'grep': 7.708477} {'median_paired_ratio': 1.0036957867031673, 'bootstrap95': [0.9532907161343415, 1.0602314043638505]}
+inverted rare {'baseline': 5.155734, 'candidate': 5.111787, 'ripgrep': 7.89851, 'grep': 5.815689} {'median_paired_ratio': 0.986987562600552, 'bootstrap95': [0.9687542728887941, 1.0121547123221304]}
+inverted dense {'baseline': 5.48874, 'candidate': 5.526127, 'ripgrep': 7.777735, 'grep': 7.365404} {'median_paired_ratio': 0.9930144413566843, 'bootstrap95': [0.9872008934914901, 1.031762875516723]}
+checks 364

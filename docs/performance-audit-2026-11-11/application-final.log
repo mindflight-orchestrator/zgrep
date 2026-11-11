@@ -1,0 +1,20 @@
+auto literal miss {'baseline': 15.793195, 'candidate': 15.122085, 'zgrc': 15.27349, 'ripgrep': 13.626706, 'grep': 25.558326}
+auto rare literal {'baseline': 15.636175, 'candidate': 15.372263, 'zgrc': 15.415286, 'ripgrep': 13.736617, 'grep': 36.021006}
+auto case insensitive {'baseline': 15.971668, 'candidate': 15.617022, 'zgrc': 15.688781, 'ripgrep': 17.241778, 'grep': 36.539135}
+auto word literal {'baseline': 15.813085, 'candidate': 15.356237, 'zgrc': 15.363116, 'ripgrep': 13.97066, 'grep': 35.857518}
+auto dense literal {'baseline': 19.537527, 'candidate': 20.22807, 'zgrc': 19.946991, 'ripgrep': 49.538671, 'grep': 35.883563}
+auto dense regex {'baseline': 29.412792, 'candidate': 29.234308, 'zgrc': 29.831122, 'ripgrep': 71.129032, 'grep': 90.269876}
+auto regex suffix {'baseline': 14.015655, 'candidate': 14.03894, 'zgrc': 14.069768, 'ripgrep': 13.57616, 'grep': 43.231275}
+auto alternation {'baseline': 34.067613, 'candidate': 33.851229, 'zgrc': 34.111106, 'ripgrep': 33.746934, 'grep': 119.127165}
+auto regex no literal {'baseline': 28.265288, 'candidate': 28.003648, 'zgrc': 28.214102, 'ripgrep': 46.187764, 'grep': 38.181633}
+auto sparse numbered {'baseline': 15.622058, 'candidate': 15.662789, 'zgrc': 15.66787, 'ripgrep': 12.504321, 'grep': 38.724472}
+auto dense numbered {'baseline': 58.136339, 'candidate': 58.61706, 'zgrc': 58.55594, 'ripgrep': 168.931613, 'grep': 90.240003}
+auto dense plain {'baseline': 45.31428, 'candidate': 44.464585, 'zgrc': 44.976412, 'ripgrep': 87.483161, 'grep': 57.708736}
+auto regex output {'baseline': 23.823511, 'candidate': 23.226548, 'zgrc': 31.553357, 'ripgrep': 53.343955, 'grep': 86.390418}
+text literal miss {'baseline': 11.884933, 'candidate': 10.99674, 'zgrc': 10.582082, 'ripgrep': 10.087842, 'grep': 22.750976}
+text rare literal {'baseline': 11.623259, 'candidate': 10.90846, 'zgrc': 10.759284, 'ripgrep': 10.296126, 'grep': 30.425879}
+text case insensitive {'baseline': 12.4101, 'candidate': 11.856476, 'zgrc': 11.806851, 'ripgrep': 13.833022, 'grep': 30.857307}
+text word literal {'baseline': 11.570994, 'candidate': 10.908399, 'zgrc': 10.72147, 'ripgrep': 10.221974, 'grep': 31.225721}
+text dense literal {'baseline': 12.637968, 'candidate': 12.808261, 'zgrc': 12.790164, 'ripgrep': 24.708898, 'grep': 26.605714}
+text sparse numbered {'baseline': 11.09151, 'candidate': 11.010387, 'zgrc': 11.13149, 'ripgrep': 12.110807, 'grep': 37.801447}
+passed 1615
