@@ -1,0 +1,15 @@
+info(verbose): /home/dlamotte/.local/opt/zig/zig-x86_64-linux-0.17.0/zig translate-c -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/global-cache -Ofast -I include include/zgrep_pcre2.h --listen=-
+info(verbose): /home/dlamotte/.local/opt/zig/zig-x86_64-linux-0.17.0/zig build-exe -fllvm -fstrip -Ofast --dep zgrep -Mroot=src/main.zig -Ofast --dep pcre2 -Mzgrep=src/root.zig -Ofast --dep zpcre2 -Mpcre2=src/engine_zpcre2.zig -Ofast -Mzpcre2=../zpcre2-017a/src/root.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/global-cache --build-root . --name zgr --zig-lib-dir /home/dlamotte/.local/opt/zig/zig-x86_64-linux-0.17.0/lib/ --listen=-
+info(verbose): pkg-config --list-all
+info(verbose): pkg-config libpcre2-8 --cflags --libs
+info(verbose): /home/dlamotte/.local/opt/zig/zig-x86_64-linux-0.17.0/zig build-exe -fllvm -fstrip -Ofast --dep zgrep -Mroot=src/main.zig -cflags -std=c11 -O3 -- src/gnu_regex.c -cflags -std=c11 -O3 -- src/pcre2_shim.c -lpcre2-8 -Ofast -I include --dep pcre2 -Mzgrep=src/root.zig -Ofast -Mpcre2=/tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache/o/65316622fb36e9dec515e6b5c357e6cb/zgrep_pcre2.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/global-cache --build-root . --name zgrc --zig-lib-dir /home/dlamotte/.local/opt/zig/zig-x86_64-linux-0.17.0/lib/ --listen=-
+info(verbose): install -C /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache/o/7b2f148acb2f53d49d4f80f090174dd4/zgrc /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/out/bin/zgrc
+info(verbose): install -C /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/local-cache/o/b551c06eb342b5a57ef829a10bab339a/zgr /tmp/zgrep-backends-20261111-3ahjbzi8/0.17-llvm/out/bin/zgr
+Build Summary: 6/6 steps succeeded
+install success
++- install zgrc success
+|  +- compile exe zgrc fast native success 4s MaxRSS:283M
+|     +- translate-c cached 21ms MaxRSS:39M
++- install zgr success
+   +- compile exe zgr fast native success 5s MaxRSS:311M
+

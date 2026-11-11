@@ -1,0 +1,86 @@
+[
+  {
+    "variant": "0.16-llvm",
+    "repetition": 0,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.17-llvm",
+    "repetition": 0,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.16-native",
+    "repetition": 0,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  },
+  {
+    "variant": "0.17-native",
+    "repetition": 0,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  },
+  {
+    "variant": "0.17-native",
+    "repetition": 1,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  },
+  {
+    "variant": "0.16-native",
+    "repetition": 1,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  },
+  {
+    "variant": "0.16-llvm",
+    "repetition": 1,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.17-llvm",
+    "repetition": 1,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.17-llvm",
+    "repetition": 2,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.17-native",
+    "repetition": 2,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  },
+  {
+    "variant": "0.16-llvm",
+    "repetition": 2,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": true
+  },
+  {
+    "variant": "0.16-native",
+    "repetition": 2,
+    "status": 0,
+    "output": "100\n",
+    "same_hash_as_timed_binary": false
+  }
+]

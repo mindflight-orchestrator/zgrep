@@ -1,0 +1,15 @@
+/opt/zig/zig-x86_64-linux-0.16.0/zig translate-c -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/global-cache -OReleaseFast -I /tmp/zgrep-backends-20261111-3ahjbzi8/src/include /tmp/zgrep-backends-20261111-3ahjbzi8/src/include/zgrep_pcre2.h --listen=-
+/opt/zig/zig-x86_64-linux-0.16.0/zig build-exe -fno-llvm -fstrip -OReleaseFast --dep zgrep -Mroot=/tmp/zgrep-backends-20261111-3ahjbzi8/src/src/main.zig -OReleaseFast --dep pcre2 -Mzgrep=/tmp/zgrep-backends-20261111-3ahjbzi8/src/src/root.zig -OReleaseFast --dep zpcre2 -Mpcre2=/tmp/zgrep-backends-20261111-3ahjbzi8/src/src/engine_zpcre2.zig -OReleaseFast -Mzpcre2=/tmp/zgrep-backends-20261111-3ahjbzi8/zpcre2/src/root.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/global-cache --name zgr --zig-lib-dir /opt/zig/zig-x86_64-linux-0.16.0/lib/ --listen=-
+install -C /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache/o/5e665eb22be7f4c29728f4fb69f3d31c/zgr /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/out/bin/zgr
+pkg-config --list-all
+pkg-config libpcre2-8 --cflags --libs
+/opt/zig/zig-x86_64-linux-0.16.0/zig build-exe -fno-llvm -fstrip -OReleaseFast --dep zgrep -Mroot=/tmp/zgrep-backends-20261111-3ahjbzi8/src/src/main.zig -cflags -std=c11 -O3 -- /tmp/zgrep-backends-20261111-3ahjbzi8/src/src/gnu_regex.c -cflags -std=c11 -O3 -- /tmp/zgrep-backends-20261111-3ahjbzi8/src/src/pcre2_shim.c -lpcre2-8 -OReleaseFast -I /tmp/zgrep-backends-20261111-3ahjbzi8/src/include --dep pcre2 -Mzgrep=/tmp/zgrep-backends-20261111-3ahjbzi8/src/src/root.zig -OReleaseFast -Mpcre2=/tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache/o/1e2b7924f931ca1da919ce0ddf4b1f73/zgrep_pcre2.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/global-cache --name zgrc --zig-lib-dir /opt/zig/zig-x86_64-linux-0.16.0/lib/ --listen=-
+install -C /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/local-cache/o/d6283af6ec466da9a4945bbd0753a080/zgrc /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-native/out/bin/zgrc
+Build Summary: 6/6 steps succeeded
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native success 202ms MaxRSS:123M
+|     +- translate-c success 22s MaxRSS:739M
++- install zgr success
+   +- compile exe zgr ReleaseFast native success 1s MaxRSS:215M
+

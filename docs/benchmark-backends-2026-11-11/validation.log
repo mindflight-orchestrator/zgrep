@@ -1,0 +1,21 @@
+zgrc streaming differentials passed
+zgrc regex semantics differentials passed (59 cases)
+zgrc differential tests passed
+zgrc UTF-8 locale differentials passed (141 cases across 3 locales)
+Build Summary: 11/11 steps succeeded; 82/82 tests passed
+test success
++- run test 41 pass (41 total) 4ms MaxRSS:7M
+|  +- compile test ReleaseFast native success 11s MaxRSS:527M
+|     +- translate-c cached 8ms MaxRSS:38M
++- run test 41 pass (41 total) 4ms MaxRSS:7M
+|  +- compile test ReleaseFast native success 12s MaxRSS:597M
++- run bash success 755ms
+|  +- compile exe zgrc ReleaseFast native cached 12ms MaxRSS:40M
+|     +- translate-c (reused)
++- run python3 success 46s
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 133ms
+|  +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
++- run bash success 548ms
+   +- compile exe zgrc ReleaseFast native (+1 more reused dependencies)
+

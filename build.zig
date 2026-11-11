@@ -3,11 +3,13 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const use_llvm = b.option(bool, "llvm", "Use LLVM for Zig code generation");
 
     const pcre2_c = translatePcre2(b, target, optimize);
 
     const core_c = addCore(b, target, optimize, pcre2_c, .c);
     const zgrc = addExecutable(b, "zgrc", core_c, target, optimize);
+    zgrc.use_llvm = use_llvm;
     b.installArtifact(zgrc);
 
     const zpcre2 = b.dependency("zpcre2", .{
@@ -25,6 +27,7 @@ pub fn build(b: *std.Build) void {
     });
     const core_zpcre2 = addCore(b, target, optimize, engine, .zpcre2);
     const zgr = addExecutable(b, "zgr", core_zpcre2, target, optimize);
+    zgr.use_llvm = use_llvm;
     b.installArtifact(zgr);
 
     const run_step = b.step("run", "Run zgr");
@@ -32,9 +35,9 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run_cmd.addArgs(args);
     run_step.dependOn(&run_cmd.step);
 
-    const unit_tests_c = b.addTest(.{ .root_module = core_c });
+    const unit_tests_c = b.addTest(.{ .root_module = core_c, .use_llvm = use_llvm });
     const run_unit_tests_c = b.addRunArtifact(unit_tests_c);
-    const zpcre2_tests = b.addTest(.{ .root_module = core_zpcre2 });
+    const zpcre2_tests = b.addTest(.{ .root_module = core_zpcre2, .use_llvm = use_llvm });
     const run_zpcre2_tests = b.addRunArtifact(zpcre2_tests);
 
     const test_step = b.step("test", "Run unit tests and GNU differentials against zgrc");

@@ -59,7 +59,9 @@ jobs:
         run: |
           zig build test-fuzz -Doptimize=ReleaseFast
           zig build test-stress -Doptimize=ReleaseFast
-          zig build -Doptimize=ReleaseFast
+          zig build -Doptimize=ReleaseFast -Dllvm=true
           bench/generate.sh /tmp/zgrep-ci-bench.txt 100000
           BENCH_LOCALE=C.utf8 ZGR=./zig-out/bin/zgr ZGRC=./zig-out/bin/zgrc \
             bench/run.sh /tmp/zgrep-ci-bench.txt 1
+          python3 bench/compare.py --corpus /tmp/zgrep-ci-bench.txt \
+            --locale C.utf8 --repeats 3 --output /tmp/zgrep-ci-comparison.json

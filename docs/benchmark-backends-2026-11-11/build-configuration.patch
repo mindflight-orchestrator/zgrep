@@ -1,0 +1,36 @@
+--- a/build.zig
++++ b/build.zig
+@@ -3,11 +3,13 @@
+ pub fn build(b: *std.Build) void {
+     const target = b.standardTargetOptions(.{});
+     const optimize = b.standardOptimizeOption(.{});
++    const use_llvm = b.option(bool, "llvm", "Use LLVM for Zig code generation") orelse true;
+ 
+     const pcre2_c = translatePcre2(b, target, optimize);
+ 
+     const core_c = addCore(b, target, optimize, pcre2_c, .c);
+     const zgrc = addExecutable(b, "zgrc", core_c, target, optimize);
++    zgrc.use_llvm = use_llvm;
+     b.installArtifact(zgrc);
+ 
+     const zpcre2 = b.dependency("zpcre2", .{
+@@ -25,6 +27,7 @@
+     });
+     const core_zpcre2 = addCore(b, target, optimize, engine, .zpcre2);
+     const zgr = addExecutable(b, "zgr", core_zpcre2, target, optimize);
++    zgr.use_llvm = use_llvm;
+     b.installArtifact(zgr);
+ 
+     const run_step = b.step("run", "Run zgr");
+--- a/build.zig.zon
++++ b/build.zig.zon
+@@ -5,8 +5,7 @@
+     .minimum_zig_version = "0.16.0",
+     .dependencies = .{
+         .zpcre2 = .{
+-            .url = "git+https://github.com/mindflight-orchestrator/zpcre2.git?ref=v0.5#b93f4d8d999f1f000ecc3644c844294802ba78bb",
+-            .hash = "zpcre2-0.1.0-inU7b6KUBwChJsSYFblMFLP_583TLP-QpqI4KENIYXlD",
++            .path = "../zpcre2",
+         },
+     },
+     .paths = .{

@@ -1,0 +1,110 @@
+--- a/zgrep/build.zig
++++ b/zgrep/build.zig
+@@ -32,7 +32,7 @@
+ 
+     const run_step = b.step("run", "Run zgr");
+     const run_cmd = b.addRunArtifact(zgr);
+-    if (b.args) |args| run_cmd.addArgs(args);
++    run_cmd.addPassthruArgs();
+     run_step.dependOn(&run_cmd.step);
+ 
+     const unit_tests_c = b.addTest(.{ .root_module = core_c });
+@@ -149,7 +149,7 @@
+             .root_source_file = b.path("src/main.zig"),
+             .target = target,
+             .optimize = optimize,
+-            .strip = optimize != .Debug,
++            .strip = optimize != .debug,
+             .imports = &.{.{ .name = "zgrep", .module = core }},
+         }),
+     });
+--- a/zgrep/src/locale.zig
++++ b/zgrep/src/locale.zig
+@@ -244,6 +244,6 @@
+ 
+ test "pattern overflow heuristic" {
+     try std.testing.expect(!zg_pattern_would_overflow("abc".ptr, 3));
+-    const dense = "(" ** 6000 ++ "a" ** 4000;
++    const dense = @as([6000]u8, @splat('(')) ++ @as([4000]u8, @splat('a'));
+     try std.testing.expect(zg_pattern_would_overflow(dense.ptr, dense.len));
+ }
+--- a/zgrep/src/main.zig
++++ b/zgrep/src/main.zig
+@@ -1369,7 +1369,7 @@
+     name: []const u8,
+     strip_dot_prefix: bool,
+ ) ![:0]u8 {
+-    if (strip_dot_prefix and std.mem.eql(u8, path, ".")) return allocator.dupeZ(u8, name);
++    if (strip_dot_prefix and std.mem.eql(u8, path, ".")) return allocator.dupeSentinel(u8, name, 0);
+     return std.fs.path.joinZ(allocator, &.{ path, name });
+ }
+ 
+--- a/zgrep/src/scanner.zig
++++ b/zgrep/src/scanner.zig
+@@ -3651,7 +3651,7 @@
+     "{d}",
+     .{std.math.maxInt(isize)},
+ ).len;
+-const initial_tab_padding = [_]u8{' '} ** @bitSizeOf(usize);
++const initial_tab_padding: [@bitSizeOf(usize)]u8 = @splat(' ');
+ 
+ fn finishRecord(writer: *std.Io.Writer, line_buffered: bool) !void {
+     if (line_buffered) try writer.flush();
+--- a/zgrep/build.zig.zon
++++ b/zgrep/build.zig.zon
+@@ -5,7 +5,7 @@
+     .minimum_zig_version = "0.16.0",
+     .dependencies = .{
+         .zpcre2 = .{
+-            .path = "../zpcre2",
++            .path = "../zpcre2-017a",
+         },
+     },
+     .paths = .{
+--- a/zpcre2/build.zig
++++ b/zpcre2/build.zig
+@@ -84,7 +84,7 @@
+     const oracle_step = b.step("test-oracle", "Optional live C PCRE2 10.47 differential");
+     oracle_step.dependOn(&run_oracle.step);
+ 
+-    const bench_optimize: std.builtin.OptimizeMode = .ReleaseFast;
++    const bench_optimize: std.builtin.OptimizeMode = .fast;
+     const zpcre2_fast = b.createModule(.{
+         .root_source_file = b.path("src/root.zig"),
+         .target = target,
+@@ -130,7 +130,7 @@
+     });
+ 
+     const run_bench = b.addRunArtifact(bench_exe);
+-    if (b.args) |args| run_bench.addArgs(args);
++    run_bench.addPassthruArgs();
+     const bench_step = b.step("bench", "Match throughput: zpcre2 vs PCRE2 10.47");
+     bench_step.dependOn(&run_bench.step);
+ }
+--- a/zpcre2/src/analyze.zig
++++ b/zpcre2/src/analyze.zig
+@@ -35,8 +35,8 @@
+     lit_n: u8 = 0,
+     skip: u8 = 0,
+     /// Bitmask of `.save` slots to set at each atom's start / end (slots 0..15).
+-    start_slots: [8]u16 = .{0} ** 8,
+-    end_slots: [8]u16 = .{0} ** 8,
++    start_slots: [8]u16 = @splat(0),
++    end_slots: [8]u16 = @splat(0),
+ 
+     pub fn litSlice(self: *const Chain, off: u8, len: u8) []const u8 {
+         return self.lits[off..][0..len];
+--- a/zpcre2/src/bytecode.zig
++++ b/zpcre2/src/bytecode.zig
+@@ -13,9 +13,9 @@
+ pub const Class = struct {
+     bits: [4]u64 = .{ 0, 0, 0, 0 },
+     negated: bool = false,
+-    ranges: [16]Range = [_]Range{.{ .start = 0, .end = 0 }} ** 16,
++    ranges: [16]Range = @splat(.{ .start = 0, .end = 0 }),
+     range_count: u8 = 0,
+-    props: [4]PropSpec = [_]PropSpec{.{ .prop = .L }} ** 4,
++    props: [4]PropSpec = @splat(.{ .prop = .L }),
+     prop_count: u8 = 0,
+     /// When true, `.` / class matching uses UTF-8 code points.
+     utf: bool = true,

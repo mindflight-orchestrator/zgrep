@@ -21,7 +21,7 @@ jobs:
       - name: Install native dependencies and locales
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libpcre2-dev locales
+          sudo apt-get install --yes libpcre2-dev locales ripgrep
           sudo locale-gen en_US.UTF-8 nl_BE.UTF-8
 
       - uses: mlugg/setup-zig@v2
@@ -58,10 +58,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zig build -Doptimize=ReleaseFast
+          zig build -Doptimize=ReleaseFast -Dllvm=true
+          bench/generate.sh /tmp/zgrep-release-bench.txt 100000
+          python3 bench/compare.py --corpus /tmp/zgrep-release-bench.txt \
+            --repeats 3 --output /tmp/zgrep-release-comparison.json
           package="zgr-$GITHUB_REF_NAME-x86_64-linux-gnu"
           mkdir -p "dist/$package"
           cp zig-out/bin/zgr zig-out/bin/zgrc README.md LICENSE "dist/$package/"
+          cp /tmp/zgrep-release-comparison.json "dist/$package/benchmark.json"
           tar -C dist -czf "dist/$package.tar.gz" "$package"
           sha256sum "dist/$package.tar.gz" >"dist/$package.tar.gz.sha256"
 

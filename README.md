@@ -255,7 +255,12 @@ file and trees containing many small files. Every candidate result is compared
 with GNU grep before it is timed. The scripts always time both `zgr` and
 `zgrc`; both binaries are required.
 
-The latest saved comparison is documented in
+The Zig backend investigation and the November 11, 2026 comparison of LLVM
+builds with ripgrep (Rust) and GNU grep (C) are in
+[docs/benchmark-backends.md](docs/benchmark-backends.md), including samples,
+commands, versions and executable hashes.
+
+The earlier comparison is documented in
 [docs/benchmark-zgr-zgrc.md](docs/benchmark-zgr-zgrc.md). That capture times
 both binaries and lists the experimental GNU gaps that `zgr` (zpcre2) still
 misses; the generated ASCII profile itself matched GNU grep for `zgr` and
@@ -264,9 +269,30 @@ misses; the generated ASCII profile itself matched GNU grep for `zgr` and
 bundled ripgrep and `zgr` is in
 [docs/cursor-grep-comparison.md](docs/cursor-grep-comparison.md).
 
+### Comparison before release
+
+Benchmark scripts require binaries reporting both `ReleaseFast` and the LLVM
+backend in `--version`. `-Dcpu=native` selects the processor; `-Dllvm=true`
+selects the backend. These are independent settings.
+
+```sh
+zig build -Doptimize=ReleaseFast -Dllvm=true -Dcpu=native
+bench/generate.sh /tmp/zgrep-comparison.txt 1000000
+python3 bench/compare.py --corpus /tmp/zgrep-comparison.txt \
+  --repeats 15 --output /tmp/zgrep-comparison.json
+```
+
+This Linux comparator requires Python 3.11+, GNU grep and ripgrep. It shuffles
+the four tools in each round, checks every output and exit status, and saves
+individual measurements as JSON. Add `--cpu 2` to pin an available CPU, or
+`--zgr`, `--zgrc`, `--rg` and `--grep` to select executables. The JSON output
+must be a new file. Use the newline corpus from `bench/generate.sh`; the scripts
+below retain the other benchmark profiles.
+
 ### Generated corpus
 
 ```sh
+zig build -Doptimize=ReleaseFast -Dllvm=true
 bench/generate.sh /tmp/zgrep-bench.txt 3000000
 BENCH_BATCHES=5 ZGR=./zig-out/bin/zgr \
   bench/run.sh /tmp/zgrep-bench.txt 20
@@ -316,6 +342,11 @@ BENCH_BATCHES=1 TREE_PATTERN=Matcher \
 
 ### Controls
 
+- `--version` identifies the Zig compiler, optimization mode, actual backend
+  and CPU model. The scripts also print the executable SHA-256.
+- `BENCH_ALLOW_UNOPTIMIZED=1` explicitly permits an exploratory run with another
+  profile or an older binary lacking metadata. The log labels the override;
+  it is not used for the comparison before release.
 - `BENCH_BATCHES` reports mean, median, p95, minimum and maximum across
   independently timed batches.
 - `BENCH_LOCALE` selects the locale; `C` is the default and `C.utf8` exercises
@@ -348,6 +379,10 @@ Annotated `v*` tags trigger the [release workflow](.github/workflows/release.yml
 The workflow verifies that the tag matches `src/main.zig` and `build.zig.zon`,
 reruns the release gates, and publishes a stripped x86_64 GNU/Linux archive with
 its SHA-256 checksum. The archive contains both `zgr` and `zgrc`.
+Before creating the archive, the workflow explicitly builds with LLVM and
+compares the binaries with ripgrep and GNU grep. Its result is included as
+`benchmark.json`. This gate blocks output mismatches without imposing a speed
+threshold on shared CI machines.
 
 `zgrc` is dynamically linked to glibc and the PCRE2 8-bit runtime; `zgr` is
 dynamically linked to glibc and uses zpcre2. Neither is advertised as a static

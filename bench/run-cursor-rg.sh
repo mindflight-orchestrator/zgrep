@@ -33,7 +33,7 @@ if [ ! -d "$TREE" ]; then
 fi
 if [ ! -x "$ZGREP" ]; then
     echo "zgr binary not found: $ZGREP" >&2
-    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    echo "run: zig build -Doptimize=ReleaseFast -Dllvm=true" >&2
     exit 2
 fi
 case $REPEATS in ''|*[!0-9]*|0) echo "repeats must be a positive integer" >&2; exit 2 ;; esac
@@ -82,6 +82,12 @@ fi
 HAVE_ZGRC=0
 if [ -x "$ZGRC" ]; then
     HAVE_ZGRC=1
+fi
+
+if [ "$HAVE_ZGRC" -eq 1 ]; then
+    sh "$SCRIPT_DIR/check-build.sh" "$ZGREP" "$ZGRC"
+else
+    sh "$SCRIPT_DIR/check-build.sh" "$ZGREP"
 fi
 
 ZGR_EXCLUDES=

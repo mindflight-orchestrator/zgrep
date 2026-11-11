@@ -45,14 +45,15 @@ report_samples() {
 }
 if [ ! -x "$ZGREP" ]; then
     echo "zgr binary not found: $ZGREP" >&2
-    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    echo "run: zig build -Doptimize=ReleaseFast -Dllvm=true" >&2
     exit 2
 fi
 if [ ! -x "$ZGRC" ]; then
     echo "zgrc binary not found: $ZGRC" >&2
-    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    echo "run: zig build -Doptimize=ReleaseFast -Dllvm=true" >&2
     exit 2
 fi
+sh "$SCRIPT_DIR/check-build.sh" "$ZGREP" "$ZGRC"
 case $REPEATS in ''|*[!0-9]*|0) echo "repeats must be a positive integer" >&2; exit 2 ;; esac
 case $BENCH_BATCHES in ''|*[!0-9]*|0) echo "BENCH_BATCHES must be a positive integer" >&2; exit 2 ;; esac
 case $BENCH_CACHE in warm|cold) ;; *) echo "BENCH_CACHE must be warm or cold" >&2; exit 2 ;; esac

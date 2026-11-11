@@ -1,0 +1,15 @@
+/opt/zig/zig-x86_64-linux-0.16.0/zig translate-c -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/global-cache -OReleaseFast -I /home/dlamotte/Documents/mindflight/zgrep/include /home/dlamotte/Documents/mindflight/zgrep/include/zgrep_pcre2.h --listen=-
+/opt/zig/zig-x86_64-linux-0.16.0/zig build-exe -fllvm -fstrip -OReleaseFast --dep zgrep -Mroot=/home/dlamotte/Documents/mindflight/zgrep/src/main.zig -OReleaseFast --dep pcre2 -Mzgrep=/home/dlamotte/Documents/mindflight/zgrep/src/root.zig -OReleaseFast --dep zpcre2 -Mpcre2=/home/dlamotte/Documents/mindflight/zgrep/src/engine_zpcre2.zig -OReleaseFast -Mzpcre2=/home/dlamotte/Documents/mindflight/zgrep/zig-pkg/zpcre2-0.1.0-inU7b6KUBwChJsSYFblMFLP_583TLP-QpqI4KENIYXlD/src/root.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/global-cache --name zgr --zig-lib-dir /opt/zig/zig-x86_64-linux-0.16.0/lib/ --listen=-
+pkg-config --list-all
+pkg-config libpcre2-8 --cflags --libs
+/opt/zig/zig-x86_64-linux-0.16.0/zig build-exe -fllvm -fstrip -OReleaseFast --dep zgrep -Mroot=/home/dlamotte/Documents/mindflight/zgrep/src/main.zig -cflags -std=c11 -O3 -- /home/dlamotte/Documents/mindflight/zgrep/src/gnu_regex.c -cflags -std=c11 -O3 -- /home/dlamotte/Documents/mindflight/zgrep/src/pcre2_shim.c -lpcre2-8 -OReleaseFast -I /home/dlamotte/Documents/mindflight/zgrep/include --dep pcre2 -Mzgrep=/home/dlamotte/Documents/mindflight/zgrep/src/root.zig -OReleaseFast -Mpcre2=/tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/d7ea0391e589219737e557413838c391/zgrep_pcre2.zig -lc --cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache --global-cache-dir /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/global-cache --name zgrc --zig-lib-dir /opt/zig/zig-x86_64-linux-0.16.0/lib/ --listen=-
+install -C /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/5d3cb7e376aa4c449b328222ccaaa46c/zgrc /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+install -C /tmp/zgrep-backends-20261111-3ahjbzi8/publication/local-cache/o/46621b96bae8e7b683b61832307d1c15/zgr /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr
+Build Summary: 6/6 steps succeeded
+install success
++- install zgrc success
+|  +- compile exe zgrc ReleaseFast native success 4s MaxRSS:273M
+|     +- translate-c success 19ms MaxRSS:37M
++- install zgr success
+   +- compile exe zgr ReleaseFast native success 5s MaxRSS:297M
+

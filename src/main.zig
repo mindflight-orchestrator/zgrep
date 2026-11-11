@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const zgrep = @import("zgrep");
 
 const version = "0.4.1";
@@ -110,12 +111,12 @@ fn run(init: std.process.Init) !u8 {
         return 0;
     }
     if (options.version) {
-        var name_buf: [96]u8 = undefined;
+        var name_buf: [192]u8 = undefined;
         const printed_version = std.fmt.bufPrint(
             &name_buf,
-            "{s} {s} (Zig 0.16)\n",
-            .{ diagnostic_name, version },
-        ) catch "zgr " ++ version ++ " (Zig 0.16)\n";
+            "{s} {s} (Zig {s})\n",
+            .{ diagnostic_name, version, builtin.zig_version_string },
+        ) catch "zgr " ++ version ++ " (Zig " ++ builtin.zig_version_string ++ ")\n";
         try std.Io.File.stdout().writeStreamingAll(init.io, printed_version);
         var ver_buf: [128]u8 = undefined;
         const pcre_line = std.fmt.bufPrint(
@@ -124,6 +125,11 @@ fn run(init: std.process.Init) !u8 {
             .{ diagnostic_name, std.mem.span(zgrep.matcher.pcre2Version()) },
         ) catch "grep -P uses PCRE2 10\n";
         try std.Io.File.stdout().writeStreamingAll(init.io, pcre_line);
+        const build_info = "build: zig=" ++ builtin.zig_version_string ++
+            " optimize=" ++ @tagName(builtin.mode) ++
+            " backend=" ++ @tagName(builtin.zig_backend) ++
+            " cpu=" ++ builtin.cpu.model.name ++ "\n";
+        try std.Io.File.stdout().writeStreamingAll(init.io, build_info);
         return 0;
     }
 
@@ -2143,7 +2149,7 @@ fn appendFilterRules(
     }
 }
 
-const help_text = "zgr " ++ version ++ " (Zig 0.16)\n\n" ++
+const help_text = "zgr " ++ version ++ " (Zig " ++ builtin.zig_version_string ++ ")\n\n" ++
     \\Usage: zgr [OPTION]... PATTERN [FILE]...
     \\Search for PATTERN in each FILE (or standard input).
     \\

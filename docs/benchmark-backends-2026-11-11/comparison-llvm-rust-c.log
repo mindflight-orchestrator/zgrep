@@ -1,0 +1,23 @@
+binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr
+zgr 0.4.1 (Zig 0.16.0)
+zgr -P uses PCRE2 10
+build: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake
+eb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr
+binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+zgrc 0.4.1 (Zig 0.16.0)
+zgrc -P uses PCRE2 10.42 2022-12-11
+build: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake
+657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+literal miss: zgr=15.655 ms, zgrc=16.246 ms, ripgrep=13.980 ms, grep=25.659 ms
+rare literal: zgr=15.948 ms, zgrc=16.495 ms, ripgrep=14.069 ms, grep=36.450 ms
+case insensitive: zgr=15.306 ms, zgrc=13.570 ms, ripgrep=15.219 ms, grep=35.036 ms
+word literal: zgr=15.815 ms, zgrc=16.393 ms, ripgrep=13.732 ms, grep=35.793 ms
+dense regex: zgr=29.140 ms, zgrc=28.996 ms, ripgrep=63.717 ms, grep=90.879 ms
+regex suffix: zgr=13.940 ms, zgrc=13.737 ms, ripgrep=13.652 ms, grep=43.443 ms
+alternation: zgr=33.311 ms, zgrc=33.301 ms, ripgrep=33.286 ms, grep=119.999 ms
+regex no literal: zgr=33.783 ms, zgrc=33.587 ms, ripgrep=62.111 ms, grep=58.814 ms
+sparse numbered: zgr=19.392 ms, zgrc=16.465 ms, ripgrep=13.131 ms, grep=39.317 ms
+dense numbered: zgr=58.144 ms, zgrc=58.336 ms, ripgrep=165.480 ms, grep=89.624 ms
+dense plain: zgr=44.538 ms, zgrc=44.658 ms, ripgrep=83.510 ms, grep=56.999 ms
+regex output: zgr=24.902 ms, zgrc=33.628 ms, ripgrep=54.199 ms, grep=86.136 ms
+passed: 12 cases, 816 checked runs; docs/benchmark-backends-2026-11-11/comparison-llvm-rust-c.json

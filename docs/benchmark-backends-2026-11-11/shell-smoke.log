@@ -1,0 +1,114 @@
+binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr
+zgr 0.4.1 (Zig 0.16.0)
+zgr -P uses PCRE2 10
+build: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake
+eb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr
+binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+zgrc 0.4.1 (Zig 0.16.0)
+zgrc -P uses PCRE2 10.42 2022-12-11
+build: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake
+657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+corpus: /tmp/zgrep-backends-20261111-3ahjbzi8/corpus.txt (9378980 bytes), profile: generated, repeats: 1, batches: 1, locale: C.utf8, cache: warm, cpuset: unrestricted, zgr: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr, zgrc: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc
+literal miss
+zgr                              11.647 ms/run
+zgrc                              9.955 ms/run
+grep                             17.305 ms/run
+ripgrep                          11.820 ms/run
+rare literal hit
+zgr                               5.292 ms/run
+zgrc                             13.025 ms/run
+grep                             13.838 ms/run
+ripgrep                          12.095 ms/run
+literal case-insensitive
+zgr                              13.700 ms/run
+zgrc                             14.398 ms/run
+grep                             17.944 ms/run
+ripgrep                          13.749 ms/run
+word literal
+zgr                               5.625 ms/run
+zgrc                              5.717 ms/run
+grep                              5.503 ms/run
+ripgrep                           3.598 ms/run
+extended regexp
+zgr                               4.731 ms/run
+zgrc                              8.779 ms/run
+grep                             15.702 ms/run
+ripgrep                          10.302 ms/run
+regexp with literal suffix
+zgr                               4.649 ms/run
+zgrc                              2.828 ms/run
+grep                              6.958 ms/run
+ripgrep                           3.401 ms/run
+literal alternation
+zgr                               5.596 ms/run
+zgrc                             11.946 ms/run
+grep                             20.832 ms/run
+ripgrep                          18.202 ms/run
+case-i literal alternation
+zgr                              30.415 ms/run
+zgrc                             17.352 ms/run
+grep                             25.070 ms/run
+ripgrep                          30.341 ms/run
+regexp with inner literal
+zgr                              11.840 ms/run
+zgrc                             12.404 ms/run
+grep                             26.646 ms/run
+ripgrep                          12.007 ms/run
+regexp without literal
+zgr                              12.753 ms/run
+zgrc                              9.765 ms/run
+grep                             75.432 ms/run
+ripgrep                          16.077 ms/run
+literal output with line numbers
+zgr                               5.140 ms/run
+zgrc                              6.264 ms/run
+grep                             18.603 ms/run
+ripgrep                          11.807 ms/run
+literal output text mode
+zgr                               7.284 ms/run
+zgrc                             12.414 ms/run
+grep                             10.589 ms/run
+ripgrep                           3.617 ms/run
+regexp suffix output with line numbers
+zgr                               4.754 ms/run
+zgrc                              8.848 ms/run
+grep                             13.378 ms/run
+ripgrep                           8.489 ms/run
+regexp only-matching output
+zgr                              12.389 ms/run
+zgrc                              8.500 ms/run
+grep                             16.726 ms/run
+ripgrep                          13.015 ms/run
+literal alternation output with line numbers
+zgr                              24.167 ms/run
+zgrc                             18.371 ms/run
+grep                             24.413 ms/run
+ripgrep                          24.116 ms/run
+literal only-matching output
+zgr                              11.388 ms/run
+zgrc                             12.501 ms/run
+grep                             16.994 ms/run
+ripgrep                           9.648 ms/run
+literal colored output
+zgr                              16.610 ms/run
+zgrc                             15.623 ms/run
+grep                              8.196 ms/run
+regexp colored output
+zgr                               3.763 ms/run
+zgrc                              3.743 ms/run
+grep                              7.081 ms/run
+literal output with context
+zgr                               4.901 ms/run
+zgrc                             14.677 ms/run
+grep                             14.280 ms/run
+ripgrep                           8.839 ms/run
+regexp output with context
+zgr                               6.287 ms/run
+zgrc                              6.690 ms/run
+grep                             10.699 ms/run
+ripgrep                           8.565 ms/run
+rare literal hit from stdin
+zgr                               5.315 ms/run
+zgrc                              6.510 ms/run
+grep                             20.313 ms/run
+ripgrep                          21.426 ms/run

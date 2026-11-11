@@ -6,6 +6,7 @@ REPEATS=${2:-20}
 BENCH_BATCHES=${BENCH_BATCHES:-1}
 ZGREP=${ZGR:-${ZGREP:-./zig-out/bin/zgr}}
 ZGRC=${ZGRC:-$(dirname "$ZGREP")/zgrc}
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 SINK=$(mktemp /tmp/zgrep-null-benchmark-output.XXXXXX)
 REFERENCE=$(mktemp /tmp/zgrep-null-benchmark-reference.XXXXXX)
 SAMPLES=$(mktemp /tmp/zgrep-null-benchmark-samples.XXXXXX)
@@ -38,14 +39,15 @@ report_samples() {
 }
 if [ ! -x "$ZGREP" ]; then
     echo "zgr binary not found: $ZGREP" >&2
-    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    echo "run: zig build -Doptimize=ReleaseFast -Dllvm=true" >&2
     exit 2
 fi
 if [ ! -x "$ZGRC" ]; then
     echo "zgrc binary not found: $ZGRC" >&2
-    echo "run: zig build -Doptimize=ReleaseFast" >&2
+    echo "run: zig build -Doptimize=ReleaseFast -Dllvm=true" >&2
     exit 2
 fi
+sh "$SCRIPT_DIR/check-build.sh" "$ZGREP" "$ZGRC"
 case $REPEATS in ''|*[!0-9]*|0) echo "repeats must be a positive integer" >&2; exit 2 ;; esac
 case $BENCH_BATCHES in ''|*[!0-9]*|0) echo "BENCH_BATCHES must be a positive integer" >&2; exit 2 ;; esac
 

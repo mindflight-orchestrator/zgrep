@@ -1,0 +1,58 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "LLVM ReleaseFast accepted",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr",
+      "expected_status": 0,
+      "status": 0,
+      "stdout": "binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr\nzgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake\neb5d465b0dfa040d0ce6e08d940c44997d3fd05f1cea197d313c7789734e002c  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgr\n",
+      "stderr": ""
+    },
+    {
+      "name": "LLVM ReleaseFast C engine accepted",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc",
+      "expected_status": 0,
+      "status": 0,
+      "stdout": "binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc\nzgrc 0.4.1 (Zig 0.16.0)\nzgrc -P uses PCRE2 10.42 2022-12-11\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_llvm cpu=raptorlake\n657c969523a3402ac08fef39b6d197042d7a3037df314db4e3f15ed380d237dd  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/out/bin/zgrc\n",
+      "stderr": ""
+    },
+    {
+      "name": "native ReleaseFast rejected",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr",
+      "expected_status": 2,
+      "status": 2,
+      "stdout": "",
+      "stderr": "benchmark requires a verified ReleaseFast LLVM binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr\nfound: build: zig=0.16.0 optimize=ReleaseFast backend=stage2_x86_64 cpu=raptorlake\nrun: zig build -Doptimize=ReleaseFast -Dllvm=true\nfor an explicitly labelled exploratory run: BENCH_ALLOW_UNOPTIMIZED=1\n"
+    },
+    {
+      "name": "native Debug rejected",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/debug/bin/zgr",
+      "expected_status": 2,
+      "status": 2,
+      "stdout": "",
+      "stderr": "benchmark requires a verified ReleaseFast LLVM binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/debug/bin/zgr\nfound: build: zig=0.16.0 optimize=Debug backend=stage2_x86_64 cpu=raptorlake\nrun: zig build -Doptimize=ReleaseFast -Dllvm=true\nfor an explicitly labelled exploratory run: BENCH_ALLOW_UNOPTIMIZED=1\n"
+    },
+    {
+      "name": "old metadata-free binary rejected",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/out/bin/zgr",
+      "expected_status": 2,
+      "status": 2,
+      "stdout": "",
+      "stderr": "benchmark requires a verified ReleaseFast LLVM binary: /tmp/zgrep-backends-20261111-3ahjbzi8/0.16-llvm/out/bin/zgr\nfound: build metadata unavailable\nrun: zig build -Doptimize=ReleaseFast -Dllvm=true\nfor an explicitly labelled exploratory run: BENCH_ALLOW_UNOPTIMIZED=1\n"
+    },
+    {
+      "name": "explicit native exploration accepted",
+      "path": "/tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr",
+      "expected_status": 0,
+      "status": 0,
+      "stdout": "binary: /tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr\nzgr 0.4.1 (Zig 0.16.0)\nzgr -P uses PCRE2 10\nbuild: zig=0.16.0 optimize=ReleaseFast backend=stage2_x86_64 cpu=raptorlake\nb33eb9c2e2b76e1f44cf54f89de1294a69ea227ac5f17ccfde0e44cdb8bc89eb  /tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr\n",
+      "stderr": "EXPLORATORY: ReleaseFast LLVM profile not verified for /tmp/zgrep-backends-20261111-3ahjbzi8/publication/native/bin/zgr\n"
+    },
+    {
+      "name": "existing result preserved",
+      "status": 1,
+      "sha256": "31a75bf9037baaef72836b553ce309710fe6a05e11acd8a02935fc5ee2a390eb"
+    }
+  ]
+}

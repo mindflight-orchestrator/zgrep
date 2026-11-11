@@ -280,7 +280,12 @@ fichier structuré et des arbres comprenant de nombreux petits fichiers. Chaque
 résultat candidat est comparé à GNU grep avant d'être chronométré. Les scripts
 chronomètrent toujours `zgr` et `zgrc` ; les deux binaires sont requis.
 
-La dernière comparaison enregistrée est documentée dans
+La recherche sur les backends Zig et la comparaison LLVM / ripgrep (Rust) /
+GNU grep (C) du 11 novembre 2026 sont dans
+[docs/benchmark-backends.fr.md](docs/benchmark-backends.fr.md), avec les
+échantillons, commandes, versions et empreintes des exécutables.
+
+La comparaison antérieure est documentée dans
 [docs/benchmark-zgr-zgrc.fr.md](docs/benchmark-zgr-zgrc.fr.md). Cette capture
 chronomètre les deux binaires et dresse les écarts GNU expérimentaux que `zgr`
 (zpcre2) rate encore ; le profil ASCII généré lui-même concordait avec GNU grep
@@ -289,9 +294,31 @@ pour `zgr` et `zgrc`. L'A/B v0.3 précédent reste dans
 ripgrep fourni par Cursor et de `zgr` est dans
 [docs/cursor-grep-comparison.fr.md](docs/cursor-grep-comparison.fr.md).
 
+### Comparaison avant publication
+
+Les scripts refusent par défaut un binaire qui ne déclare pas à la fois
+`ReleaseFast` et le backend LLVM dans `--version`. `-Dcpu=native` sélectionne
+le processeur ; `-Dllvm=true` sélectionne le backend. Les deux sont indépendants.
+
+```sh
+zig build -Doptimize=ReleaseFast -Dllvm=true -Dcpu=native
+bench/generate.sh /tmp/zgrep-comparison.txt 1000000
+python3 bench/compare.py --corpus /tmp/zgrep-comparison.txt \
+  --repeats 15 --output /tmp/zgrep-comparison.json
+```
+
+Ce comparateur Linux nécessite Python 3.11+, GNU grep et ripgrep. Il alterne
+l'ordre des quatre outils, vérifie la sortie et le code retour de chaque
+exécution, puis conserve les mesures individuelles en JSON. Ajoutez `--cpu 2`
+pour fixer un cœur disponible, et `--zgr`, `--zgrc`, `--rg` ou `--grep` pour
+choisir les exécutables. Le fichier JSON doit être nouveau. Le corpus doit être
+celui de `bench/generate.sh` en mode newline ; les autres profils restent dans
+les scripts ci-dessous.
+
 ### Corpus généré
 
 ```sh
+zig build -Doptimize=ReleaseFast -Dllvm=true
 bench/generate.sh /tmp/zgrep-bench.txt 3000000
 BENCH_BATCHES=5 ZGR=./zig-out/bin/zgr \
   bench/run.sh /tmp/zgrep-bench.txt 20
@@ -341,6 +368,11 @@ BENCH_BATCHES=1 TREE_PATTERN=Matcher \
 
 ### Contrôles
 
+- `--version` indique le compilateur Zig, le mode d'optimisation, le backend
+  effectif et le modèle CPU. Les scripts affichent aussi le SHA-256 du binaire.
+- `BENCH_ALLOW_UNOPTIMIZED=1` autorise explicitement un essai exploratoire avec
+  un autre profil ou un ancien binaire sans métadonnées. Le journal le signale ;
+  ce contournement n'est pas utilisé pour la comparaison avant publication.
 - `BENCH_BATCHES` indique la moyenne, la médiane, le 95e centile, le minimum et
   le maximum de lots chronométrés indépendamment.
 - `BENCH_LOCALE` choisit l'environnement régional ; `C` est utilisé par défaut
@@ -378,6 +410,10 @@ Les tags annotés `v*` déclenchent le
 le tag correspond à `src/main.zig` et `build.zig.zon`, relance les contrôles de
 publication et publie une archive x86_64 GNU/Linux dépouillée de ses symboles,
 accompagnée de sa somme de contrôle SHA-256. L'archive contient `zgr` et `zgrc`.
+Avant de créer cette archive, le workflow compile explicitement avec LLVM et
+compare les binaires à ripgrep et GNU grep. Le résultat est inclus sous
+`benchmark.json`. Ce contrôle bloque une divergence de résultat, sans imposer
+de seuil de vitesse sur les machines partagées de CI.
 
 `zgrc` est lié dynamiquement à glibc et au runtime PCRE2 8 bits ; `zgr` est lié
 dynamiquement à glibc et utilise zpcre2. Ni l'un ni l'autre n'est présenté comme
